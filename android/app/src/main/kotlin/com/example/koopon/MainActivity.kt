@@ -1,4 +1,4 @@
-package com.example.prelove_app
+package com.example.koopon
 
 import io.flutter.embedding.android.FlutterActivity
 

@@ -1,0 +1,88 @@
+// lib/services/auth_service.dart
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+
+class AuthService {
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  // Get current user
+  User? get currentUser => _auth.currentUser;
+
+  // Sign in with email and password
+  Future<UserCredential> signInWithEmailAndPassword(
+      String email, String password) async {
+    try {
+      UserCredential result = await _auth.signInWithEmailAndPassword(
+          email: email, password: password);
+      return result;
+    } catch (e) {
+      throw e;
+    }
+  }
+
+  // Register with email and password
+  Future<UserCredential> registerWithEmailAndPassword(
+      String email, String password, String displayName) async {
+    try {
+      // Create the user in Firebase Auth
+      UserCredential result = await _auth.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+
+      // Add user profile to Firestore
+      await _firestore.collection('users').doc(result.user!.uid).set({
+        'email': email,
+        'displayName': displayName,
+        'role': 'buyer', // Default role
+        'dateCreated': FieldValue.serverTimestamp(),
+        'universityName': _extractUniversityFromEmail(email),
+      });
+
+      // Update display name
+      await result.user!.updateDisplayName(displayName);
+
+      return result;
+    } catch (e) {
+      throw e;
+    }
+  }
+
+  // Reset password
+  Future<void> resetPassword(String email) async {
+    try {
+      await _auth.sendPasswordResetEmail(email: email);
+    } catch (e) {
+      throw e;
+    }
+  }
+
+  // Sign out
+  Future<void> signOut() async {
+    return await _auth.signOut();
+  }
+
+  // Check if email is a university email
+  bool isUniversityEmail(String email) {
+    // Add your university domain validation logic here
+    return email.endsWith('.edu.my') ||
+        email.endsWith('.edu') ||
+        email.contains('utm.my');
+  }
+
+  // Extract university name from email
+  String _extractUniversityFromEmail(String email) {
+    // Basic extraction logic - can be improved
+    final domain = email.split('@').last;
+    if (domain.contains('utm.my')) return 'UTM';
+    // Add more universities as needed
+    return domain.split('.').first.toUpperCase();
+  }
+
+  // Add this method to AuthService
+  bool isEmailVerified() {
+    User? user = _auth.currentUser;
+    return user != null ? user.emailVerified : false;
+  }
+}

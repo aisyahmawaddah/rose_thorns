@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "96137870116",
+    "project_id": "koopon-41d5a",
+    "storage_bucket": "koopon-41d5a.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:96137870116:android:6a3b71336b8b412a05d1b1",
+        "android_client_info": {
+          "package_name": "com.example.koopon"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDr2awZy1JQNURFuSHIrFiYtAcEGVeUF04"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
