@@ -25,6 +25,14 @@ class AuthService {
   Future<UserCredential> registerWithEmailAndPassword(
       String email, String password, String displayName) async {
     try {
+      // Validate university email
+      if (!isUniversityEmail(email)) {
+        throw FirebaseAuthException(
+          code: 'invalid-email',
+          message: 'Please use your university email address to register.',
+        );
+      }
+
       // Create the user in Firebase Auth
       UserCredential result = await _auth.createUserWithEmailAndPassword(
         email: email,
@@ -80,9 +88,21 @@ class AuthService {
     return domain.split('.').first.toUpperCase();
   }
 
-  // Add this method to AuthService
+  // Check if the current user's email is verified
   bool isEmailVerified() {
     User? user = _auth.currentUser;
     return user != null ? user.emailVerified : false;
+  }
+
+  // Send verification email to the user
+  Future<void> sendVerificationEmail() async {
+    try {
+      User? user = _auth.currentUser;
+      if (user != null && !user.emailVerified) {
+        await user.sendEmailVerification();
+      }
+    } catch (e) {
+      throw e;
+    }
   }
 }

@@ -1,14 +1,18 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '/services/auth_service.dart';
 
 class EmailVerificationScreen extends StatefulWidget {
   @override
-  _EmailVerificationScreenState createState() => _EmailVerificationScreenState();
+  _EmailVerificationScreenState createState() =>
+      _EmailVerificationScreenState();
 }
 
 class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final AuthService _authService =
+      AuthService(); // Instance for university email validation
   late User _user;
   late Timer _timer;
 
@@ -16,7 +20,17 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
   void initState() {
     super.initState();
     _user = _auth.currentUser!; // The user just registered
-    _startVerificationCheck();
+
+    // Validate the email domain before proceeding
+    if (!_authService.isUniversityEmail(_user.email!)) {
+      // If the email is not a university email, show error and navigate to login
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Please use a valid university email address.')),
+      );
+      Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+    } else {
+      _startVerificationCheck();
+    }
   }
 
   void _startVerificationCheck() {
@@ -34,10 +48,10 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
   Future<void> _checkEmailVerified() async {
     // Reload user to check verification status
     await _user.reload();
-    
+
     // Get updated user
     _user = _auth.currentUser!;
-    
+
     if (_user.emailVerified) {
       _timer.cancel();
       // Email is verified, show success and redirect to login
@@ -54,8 +68,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
   Future<void> _resendVerificationEmail() async {
     try {
       await _user.sendEmailVerification();
-      setState(() {
-      });
+      setState(() {});
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Verification email resent!')),
       );
@@ -117,7 +130,8 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                 onPressed: () async {
                   // Sign out and go back to login
                   await _auth.signOut();
-                  Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+                  Navigator.of(context)
+                      .pushNamedAndRemoveUntil('/login', (route) => false);
                 },
                 child: Text('Back to Login'),
               ),

@@ -1,8 +1,7 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:koopon/services/auth_service.dart';
-import 'package:koopon/views/auth/register_screen.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:koopon/views/auth/password_reset_screen.dart';
+import 'package:koopon/views/auth/register_screen.dart';
 import 'package:koopon/widgets/custom_button.dart';
 import 'package:koopon/widgets/custom_text_field.dart';
 
@@ -12,7 +11,7 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final AuthService _authService = AuthService();
+  final FirebaseAuth _auth = FirebaseAuth.instance;
   final _formKey = GlobalKey<FormState>();
 
   String _email = '';
@@ -28,20 +27,19 @@ class _LoginScreenState extends State<LoginScreen> {
       });
 
       try {
-        // Sign in with email and password
-        await _authService.signInWithEmailAndPassword(_email, _password);
+        // Sign in the user with email and password
+        UserCredential result = await _auth.signInWithEmailAndPassword(
+            email: _email, password: _password);
 
-        // Check if email is verified
-        if (_authService.currentUser != null &&
-            !_authService.currentUser!.emailVerified) {
-          // Show error and don't proceed
+        // Check if the email is verified
+        if (!result.user!.emailVerified) {
           setState(() {
             _errorMessage =
                 'Please verify your email before logging in. Check your inbox for the verification link.';
             _isLoading = false;
           });
 
-          // Show dialog with option to resend
+          // Show dialog with option to resend verification email
           showDialog(
             context: context,
             builder: (context) => AlertDialog(
@@ -57,7 +55,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   onPressed: () async {
                     Navigator.pop(context);
                     try {
-                      await _authService.currentUser!.sendEmailVerification();
+                      // Resend verification email
+                      await result.user!.sendEmailVerification();
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                             content: Text(
@@ -77,12 +76,12 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           );
 
-          // Sign out since they shouldn't be logged in yet
-          await _authService.signOut();
+          // Sign out after failed login attempt due to unverified email
+          await _auth.signOut();
           return;
         }
 
-        // If verified, proceed to home
+        // If the email is verified, navigate to the home screen
         Navigator.pushReplacementNamed(context, '/home');
       } catch (e) {
         setState(() {

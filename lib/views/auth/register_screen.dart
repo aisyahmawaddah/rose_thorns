@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:koopon/services/auth_service.dart'; // Import AuthService for validation
 
 class RegisterScreen extends StatefulWidget {
   @override
@@ -13,6 +14,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
+
+  final AuthService _authService =
+      AuthService(); // Instance for university email validation
 
   bool _isLoading = false;
   String _errorMessage = '';
@@ -73,25 +77,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
         // Update display name
         await result.user!.updateDisplayName(_nameController.text.trim());
 
-        // Replace this section in your _register method after sending the verification email
+        // Send verification email
+        await result.user!.sendEmailVerification();
+
+        // Sign out the user so they need to log in after verification
+        await FirebaseAuth.instance.signOut();
+
+        // Show success message and navigate back to login
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
                 'Registration successful! Please check your email and verify your account before logging in.'),
             duration: Duration(seconds: 8),
           ),
-        );
-
-// Sign out the user so they need to log in after verification
-        await FirebaseAuth.instance.signOut();
-
-// Navigate back to login
-        Navigator.pop(context);
-        // Show success message and navigate to login
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content:
-                  Text('Registration successful! Please verify your email.')),
         );
 
         // Navigate back to login

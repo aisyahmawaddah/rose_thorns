@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:koopon/services/auth_service.dart'; // Import AuthService for validation
 
 class PasswordResetScreen extends StatefulWidget {
   @override
@@ -9,6 +10,8 @@ class PasswordResetScreen extends StatefulWidget {
 class _PasswordResetScreenState extends State<PasswordResetScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
+  final AuthService _authService =
+      AuthService(); // Instance for university email validation
 
   bool _isLoading = false;
   String _errorMessage = '';
@@ -22,7 +25,17 @@ class _PasswordResetScreenState extends State<PasswordResetScreen> {
         _resetSent = false;
       });
 
+      // Validate university email before proceeding
+      if (!_authService.isUniversityEmail(_emailController.text.trim())) {
+        setState(() {
+          _errorMessage = 'Please use your university email address.';
+          _isLoading = false;
+        });
+        return;
+      }
+
       try {
+        // Send password reset email
         await FirebaseAuth.instance.sendPasswordResetEmail(
           email: _emailController.text.trim(),
         );
