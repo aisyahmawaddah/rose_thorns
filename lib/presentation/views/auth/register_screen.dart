@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:koopon/services/auth_service.dart'; // Import AuthService for validation
+import 'package:koopon/data/services/auth_service.dart'; // Import AuthService for validation
 
 class RegisterScreen extends StatefulWidget {
   @override

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:koopon/config/routes.dart';
-import 'package:koopon/config/themes.dart';
-import 'package:koopon/views/auth/login_screen.dart';
-import 'package:koopon/views/splash_screen.dart';
+import 'package:koopon/core/config/routes.dart';
+import 'package:koopon/core/config/themes.dart';
+import 'package:koopon/presentation/views/auth/login_screen.dart';
+import 'package:koopon/presentation/views/splash_screen.dart';
 
 class KooponApp extends StatelessWidget {
   @override

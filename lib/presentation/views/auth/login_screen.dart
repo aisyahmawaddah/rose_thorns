@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:koopon/views/auth/password_reset_screen.dart';
-import 'package:koopon/views/auth/register_screen.dart';
-import 'package:koopon/widgets/custom_button.dart';
-import 'package:koopon/widgets/custom_text_field.dart';
+import 'package:koopon/presentation/views/auth/password_reset_screen.dart';
+import 'package:koopon/presentation/views/auth/register_screen.dart';
+import 'package:koopon/presentation/widgets/custom_button.dart';
+import 'package:koopon/presentation/widgets/custom_text_field.dart';
 
 class LoginScreen extends StatefulWidget {
   @override

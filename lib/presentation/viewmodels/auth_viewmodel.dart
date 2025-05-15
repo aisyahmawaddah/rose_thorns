@@ -1,4 +1,4 @@
-import '../services/auth_service.dart';
+import '../../data/services/auth_service.dart';
 
 class AuthViewModel {
   final AuthService _authService = AuthService();
