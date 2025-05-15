@@ -1,1 +1,0 @@
-class ItemModel { String id, name; ItemModel({required this.id, required this.name}); }
