@@ -3,9 +3,12 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:koopon/core/config/routes.dart';
 import 'package:koopon/core/config/themes.dart';
 import 'package:koopon/presentation/views/auth/login_screen.dart';
+import 'package:koopon/presentation/views/authentication/welcome_screen.dart';
 import 'package:koopon/presentation/views/splash_screen.dart';
 
 class KooponApp extends StatelessWidget {
+  KooponApp(WelcomeScreen welcomeScreen, {required ThemeData theme});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
