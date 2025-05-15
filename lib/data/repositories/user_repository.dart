@@ -37,4 +37,6 @@ class UserRepository {
       throw e;
     }
   }
+
+  getUserById(String sellerId) {}
 }
