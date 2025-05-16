@@ -3,6 +3,10 @@ import 'package:flutter/material.dart';
 import 'order_summary_screen.dart';
 
 class TimeslotSelectionScreen extends StatefulWidget {
+  final Map<String, dynamic>? itemData;
+  
+  TimeslotSelectionScreen({this.itemData});
+
   @override
   _TimeslotSelectionScreenState createState() => _TimeslotSelectionScreenState();
 }
@@ -74,10 +78,18 @@ class _TimeslotSelectionScreenState extends State<TimeslotSelectionScreen> {
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: selectedSlot != null ? () {
+                  // Create updated item data with selected timeslot
+                  Map<String, dynamic> updatedItemData = {
+                    ...?widget.itemData,
+                    'selectedTimeslot': selectedSlot,
+                  };
+                  
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => OrderSummaryScreen(),
+                      builder: (context) => OrderSummaryScreen(
+                        itemData: updatedItemData,
+                      ),
                     ),
                   );
                 } : null,

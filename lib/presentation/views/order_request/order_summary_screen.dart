@@ -2,8 +2,21 @@
 import 'package:flutter/material.dart';
 
 class OrderSummaryScreen extends StatelessWidget {
+  final Map<String, dynamic>? itemData;
+  
+  OrderSummaryScreen({this.itemData});
+
   @override
   Widget build(BuildContext context) {
+    // Extract data from itemData or use defaults
+    String title = itemData?['title'] ?? 'Zara Trenched Coat';
+    String condition = itemData?['condition'] ?? 'Lightly used';
+    String price = itemData?['price'] ?? 'RM 30.00';
+    String total = itemData?['total'] ?? 'RM 30.00';
+    Color imageColor = itemData?['imageColor'] ?? Color(0xFFDEB887);
+    String selectedMethod = itemData?['selectedMethod'] ?? 'campus';
+    double deliveryFee = itemData?['deliveryFee'] ?? 0.0;
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -42,23 +55,14 @@ class OrderSummaryScreen extends StatelessWidget {
                     height: 80,
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(8),
-                      color: Color(0xFFDEB887),
+                      color: imageColor,
                     ),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(8),
-                      child: Image.asset(
-                        'assets/trench_coat.jpg',
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return Container(
-                            color: Color(0xFFDEB887),
-                            child: Icon(
-                              Icons.checkroom,
-                              color: Colors.white.withOpacity(0.8),
-                              size: 40,
-                            ),
-                          );
-                        },
+                      child: Icon(
+                        _getItemIcon(title),
+                        color: Colors.white.withOpacity(0.8),
+                        size: 40,
                       ),
                     ),
                   ),
@@ -68,7 +72,7 @@ class OrderSummaryScreen extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Zara Trenched Coat',
+                          title,
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w600,
@@ -77,7 +81,7 @@ class OrderSummaryScreen extends StatelessWidget {
                         ),
                         SizedBox(height: 4),
                         Text(
-                          'Lightly used',
+                          condition,
                           style: TextStyle(
                             fontSize: 14,
                             color: Colors.grey[600],
@@ -85,7 +89,7 @@ class OrderSummaryScreen extends StatelessWidget {
                         ),
                         SizedBox(height: 4),
                         Text(
-                          'RM 30.00',
+                          price,
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
@@ -104,7 +108,9 @@ class OrderSummaryScreen extends StatelessWidget {
             // Deal Method
             _buildInfoSection(
               title: 'Deal method',
-              content: 'In Campus Meetup\nRM 0.00',
+              content: selectedMethod == 'campus' 
+                  ? 'In Campus Meetup\nRM 0.00'
+                  : 'Delivery\nRM ${deliveryFee.toStringAsFixed(2)}',
               actionText: 'Edit',
               onTap: () {
                 // Navigate to deal method screen
@@ -115,7 +121,7 @@ class OrderSummaryScreen extends StatelessWidget {
 
             // Meetup Location
             _buildInfoSection(
-              title: 'Meetup Location',
+              title: selectedMethod == 'campus' ? 'Meetup Location' : 'Delivery Address',
               content: 'Alicia Amin\n011-19016774\nMAJ, Kolej Tun Dr Ismail\nDepan medan air',
               actionText: 'Edit',
               showLocationTag: true,
@@ -150,14 +156,17 @@ class OrderSummaryScreen extends StatelessWidget {
             SizedBox(height: 12),
 
             // Summary rows
-            _buildSummaryRow('Subtotal (1 item)', 'RM 30.00'),
-            _buildSummaryRow('In Campus Meetup', 'RM 0.00'),
+            _buildSummaryRow('Subtotal (1 item)', price),
+            _buildSummaryRow(
+              selectedMethod == 'campus' ? 'In Campus Meetup' : 'Delivery Fee', 
+              'RM ${deliveryFee.toStringAsFixed(2)}'
+            ),
             
             Divider(height: 24, color: Colors.grey[300]),
             
             _buildSummaryRow(
               'Total',
-              'RM 30.00',
+              total,
               isTotal: true,
             ),
 
@@ -168,7 +177,7 @@ class OrderSummaryScreen extends StatelessWidget {
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: () {
-                  // Handle place order
+                  // Handle place order with all item data
                   _showOrderConfirmationDialog(context);
                 },
                 style: ElevatedButton.styleFrom(
@@ -293,12 +302,40 @@ class OrderSummaryScreen extends StatelessWidget {
       builder: (BuildContext context) {
         return AlertDialog(
           title: Text('Order Placed Successfully!'),
-          content: Text('Your order request has been sent to the seller.'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.check_circle,
+                color: Colors.green,
+                size: 60,
+              ),
+              SizedBox(height: 16),
+              Text(
+                'Your order request has been sent to the seller.',
+                textAlign: TextAlign.center,
+              ),
+              if (itemData != null) ...[
+                SizedBox(height: 12),
+                Text(
+                  'Item: ${itemData!['title']}',
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
+                Text(
+                  'Total: ${itemData!['total']}',
+                  style: TextStyle(color: Colors.green),
+                ),
+              ],
+            ],
+          ),
           actions: [
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop();
-                // Navigate to purchase history or home
+                Navigator.of(context).pop();
+                Navigator.of(context).pop();
+                Navigator.of(context).pop();
+                // Navigate back to cart/home
               },
               child: Text('OK'),
             ),
@@ -306,6 +343,20 @@ class OrderSummaryScreen extends StatelessWidget {
         );
       },
     );
+  }
+
+  // Add the _getItemIcon method inside the class
+  IconData _getItemIcon(String title) {
+    if (title.toLowerCase().contains('coat') || title.toLowerCase().contains('sweater')) {
+      return Icons.checkroom;
+    } else if (title.toLowerCase().contains('iphone')) {
+      return Icons.phone_iphone;
+    } else if (title.toLowerCase().contains('ipad')) {
+      return Icons.tablet_mac;
+    } else if (title.toLowerCase().contains('book')) {
+      return Icons.book;
+    }
+    return Icons.shopping_bag;
   }
 }
 
