@@ -1,15 +1,5 @@
 import 'package:flutter/material.dart';
 
-void main() {
-  runApp(MaterialApp(
-    home: RegisterScreen(),
-    theme: ThemeData(
-      primarySwatch: Colors.blue,
-      visualDensity: VisualDensity.adaptivePlatformDensity,
-    ),
-  ));
-}
-
 class RegisterScreen extends StatefulWidget {
   @override
   _RegisterScreenState createState() => _RegisterScreenState();
@@ -48,11 +38,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       Navigator.pop(context);
                     },
                   ),
-                  
                   SizedBox(width: 16.0),
                 ],
               ),
-              
+
               // Main content in Expanded widget
               Expanded(
                 child: ListView(
@@ -99,8 +88,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             fontSize: 16.0,
                           ),
                           border: InputBorder.none,
-                          contentPadding:
-                              EdgeInsets.symmetric(horizontal: 20.0, vertical: 15.0),
+                          contentPadding: EdgeInsets.symmetric(
+                              horizontal: 20.0, vertical: 15.0),
                         ),
                       ),
                     ),
@@ -122,8 +111,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             fontSize: 16.0,
                           ),
                           border: InputBorder.none,
-                          contentPadding:
-                              EdgeInsets.symmetric(horizontal: 20.0, vertical: 15.0),
+                          contentPadding: EdgeInsets.symmetric(
+                              horizontal: 20.0, vertical: 15.0),
                         ),
                       ),
                     ),
@@ -146,8 +135,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             fontSize: 16.0,
                           ),
                           border: InputBorder.none,
-                          contentPadding:
-                              EdgeInsets.symmetric(horizontal: 20.0, vertical: 15.0),
+                          contentPadding: EdgeInsets.symmetric(
+                              horizontal: 20.0, vertical: 15.0),
                         ),
                       ),
                     ),
@@ -169,8 +158,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             fontSize: 16.0,
                           ),
                           border: InputBorder.none,
-                          contentPadding:
-                              EdgeInsets.symmetric(horizontal: 20.0, vertical: 15.0),
+                          contentPadding: EdgeInsets.symmetric(
+                              horizontal: 20.0, vertical: 15.0),
                         ),
                       ),
                     ),
@@ -193,8 +182,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             fontSize: 16.0,
                           ),
                           border: InputBorder.none,
-                          contentPadding:
-                              EdgeInsets.symmetric(horizontal: 20.0, vertical: 15.0),
+                          contentPadding: EdgeInsets.symmetric(
+                              horizontal: 20.0, vertical: 15.0),
                         ),
                       ),
                     ),

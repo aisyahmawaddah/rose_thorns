@@ -2,16 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:koopon/presentation/views/authentication/login_screen.dart';
 import 'package:koopon/presentation/views/authentication/register_screen.dart';
 
-void main() {
-  runApp(MaterialApp(
-    home: WelcomeScreen(),
-    theme: ThemeData(
-      primarySwatch: Colors.blue,
-      visualDensity: VisualDensity.adaptivePlatformDensity,
-    ),
-  ));
-}
-
 class WelcomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
