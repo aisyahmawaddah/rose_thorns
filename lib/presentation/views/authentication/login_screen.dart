@@ -18,17 +18,17 @@ class LoginPageScreen extends StatefulWidget {
 class _LoginPageScreenState extends State<LoginPageScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  
+
   @override
   Widget build(BuildContext context) {
     // Get screen size for responsive layout
     final screenHeight = MediaQuery.of(context).size.height;
-    
+
     return Scaffold(
       // Allow the screen to resize when keyboard appears
       resizeToAvoidBottomInset: true,
       body: Container(
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
@@ -39,42 +39,29 @@ class _LoginPageScreenState extends State<LoginPageScreen> {
           ),
         ),
         child: SafeArea(
-          child: ListView( // Using ListView instead of SingleChildScrollView for better scrolling
+          child: ListView(
+            // Using ListView instead of SingleChildScrollView for better scrolling
             padding: const EdgeInsets.symmetric(horizontal: 20.0),
             keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
             children: [
               // Top navigation bar
               Padding(
-                padding: EdgeInsets.only(top: 8.0),
+                padding: const EdgeInsets.only(top: 8.0),
                 child: Row(
                   children: [
                     IconButton(
-                      icon: Icon(Icons.arrow_back, color: Colors.white),
+                      icon: const Icon(Icons.arrow_back, color: Colors.white),
                       onPressed: () {
                         Navigator.pop(context);
                       },
                     ),
-                    Spacer(),
-                    TextButton(
-                      onPressed: () {
-                        // Navigate to registration page
-                      },
-                      child: Text(
-                        'Register',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16.0,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
                   ],
                 ),
               ),
-              
+
               // Sign In header
-              Padding(
-                padding: const EdgeInsets.only(left: 8.0, top: 8.0),
+              const Padding(
+                padding: EdgeInsets.only(left: 8.0, top: 8.0),
                 child: Text(
                   'Sign In',
                   style: TextStyle(
@@ -84,10 +71,11 @@ class _LoginPageScreenState extends State<LoginPageScreen> {
                   ),
                 ),
               ),
-              
+
               // Description text
-              Padding(
-                padding: const EdgeInsets.only(left: 8.0, top: 8.0, right: 30.0, bottom: 10.0),
+              const Padding(
+                padding: EdgeInsets.only(
+                    left: 8.0, top: 8.0, right: 30.0, bottom: 10.0),
                 child: Text(
                   'This is your student-friendly corner of the internet. Sign in to reconnect with your favorites, discover new preloved gems.',
                   style: TextStyle(
@@ -97,30 +85,31 @@ class _LoginPageScreenState extends State<LoginPageScreen> {
                   ),
                 ),
               ),
-              
+
               // Shopping cart image
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 15.0),
                 child: Center(
                   child: Image.asset(
                     'images/shopping_cart.png',
-                    height: screenHeight * 0.25, // Increased from 0.15 to 0.25 (67% larger)
+                    height: screenHeight *
+                        0.25, // Increased from 0.15 to 0.25 (67% larger)
                     width: double.infinity,
                     fit: BoxFit.contain,
                   ),
                 ),
               ),
-              
+
               // Username/Email field
               Container(
                 decoration: BoxDecoration(
-                  color: Color(0xFFEBEBEB),
+                  color: const Color(0xFFEBEBEB),
                   borderRadius: BorderRadius.circular(30.0),
                 ),
-                padding: EdgeInsets.symmetric(horizontal: 20.0),
+                padding: const EdgeInsets.symmetric(horizontal: 20.0),
                 child: TextField(
                   controller: _emailController,
-                  decoration: InputDecoration(
+                  decoration: const InputDecoration(
                     hintText: 'Username',
                     hintStyle: TextStyle(
                       color: Colors.grey,
@@ -131,20 +120,20 @@ class _LoginPageScreenState extends State<LoginPageScreen> {
                   ),
                 ),
               ),
-              
-              SizedBox(height: 16.0),
-              
+
+              const SizedBox(height: 16.0),
+
               // Password field
               Container(
                 decoration: BoxDecoration(
-                  color: Color(0xFFEBEBEB),
+                  color: const Color(0xFFEBEBEB),
                   borderRadius: BorderRadius.circular(30.0),
                 ),
-                padding: EdgeInsets.symmetric(horizontal: 20.0),
+                padding: const EdgeInsets.symmetric(horizontal: 20.0),
                 child: TextField(
                   controller: _passwordController,
                   obscureText: true,
-                  decoration: InputDecoration(
+                  decoration: const InputDecoration(
                     hintText: 'Password',
                     hintStyle: TextStyle(
                       color: Colors.grey,
@@ -155,7 +144,7 @@ class _LoginPageScreenState extends State<LoginPageScreen> {
                   ),
                 ),
               ),
-              
+
               // Forgot Password link
               Align(
                 alignment: Alignment.centerRight,
@@ -163,7 +152,7 @@ class _LoginPageScreenState extends State<LoginPageScreen> {
                   onPressed: () {
                     // Navigate to forgot password page
                   },
-                  child: Text(
+                  child: const Text(
                     'Forgot Password?',
                     style: TextStyle(
                       color: Colors.black87,
@@ -172,25 +161,28 @@ class _LoginPageScreenState extends State<LoginPageScreen> {
                   ),
                 ),
               ),
-              
-              SizedBox(height: 8.0),
-              
+
+              const SizedBox(height: 8.0),
+
               // Sign In button
               Container(
                 width: double.infinity,
-                margin: EdgeInsets.only(bottom: 80.0), // Extra bottom margin to ensure visibility with keyboard
+                margin: const EdgeInsets.only(
+                    bottom:
+                        80.0), // Extra bottom margin to ensure visibility with keyboard
                 child: ElevatedButton(
                   onPressed: () {
                     // Handle login
                   },
                   style: ElevatedButton.styleFrom(
-                    foregroundColor: Colors.white, backgroundColor: Colors.black,
+                    foregroundColor: Colors.white,
+                    backgroundColor: Colors.black,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(30.0),
                     ),
-                    padding: EdgeInsets.symmetric(vertical: 15.0),
+                    padding: const EdgeInsets.symmetric(vertical: 15.0),
                   ),
-                  child: Text(
+                  child: const Text(
                     'Sign In',
                     style: TextStyle(
                       fontSize: 16.0,
@@ -204,7 +196,7 @@ class _LoginPageScreenState extends State<LoginPageScreen> {
       ),
     );
   }
-  
+
   @override
   void dispose() {
     _emailController.dispose();

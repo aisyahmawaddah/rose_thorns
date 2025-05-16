@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:koopon/presentation/views/auth/login_screen.dart';
-import 'package:koopon/presentation/views/auth/register_screen.dart';
+import 'package:koopon/presentation/views/authentication/login_screen.dart';
+import 'package:koopon/presentation/views/authentication/register_screen.dart';
 
 void main() {
   runApp(MaterialApp(
@@ -19,7 +19,6 @@ class WelcomeScreen extends StatelessWidget {
       backgroundColor: Colors.white, // Make entire background white
       body: Column(
         children: [
-          
           // White section with logo and app name
           Expanded(
             flex: 6,
@@ -35,7 +34,7 @@ class WelcomeScreen extends StatelessWidget {
                       'images/koopon_logo.png',
                       height: 150,
                     ),
-                    
+
                     // App name
                     Text(
                       'KOOPON',
@@ -44,7 +43,7 @@ class WelcomeScreen extends StatelessWidget {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    
+
                     // Tagline
                     Text(
                       'U N I  D E A L S,  R E A L  F E E L S',
@@ -58,7 +57,7 @@ class WelcomeScreen extends StatelessWidget {
               ),
             ),
           ),
-          
+
           // Blue section with welcome text and buttons
           Container(
             width: double.infinity,
@@ -82,9 +81,9 @@ class WelcomeScreen extends StatelessWidget {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                
+
                 SizedBox(height: 12.0),
-                
+
                 // Welcome description
                 Text(
                   'Where university students connect, buy & sell preloved treasures - verified, trusted, and just for you.',
@@ -93,9 +92,9 @@ class WelcomeScreen extends StatelessWidget {
                     fontSize: 14.0,
                   ),
                 ),
-                
+
                 SizedBox(height: 40.0),
-                
+
                 // Sign in and Sign up buttons
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -109,13 +108,14 @@ class WelcomeScreen extends StatelessWidget {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => LoginScreen(),
+                                builder: (context) => LoginPageScreen(),
                               ),
                             );
                           },
                           child: Text('Sign In'),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Color(0xFFD7A0D7), // Light purple color
+                            backgroundColor:
+                                Color(0xFFD7A0D7), // Light purple color
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(50.0),
                             ),
@@ -124,7 +124,7 @@ class WelcomeScreen extends StatelessWidget {
                         ),
                       ),
                     ),
-                    
+
                     // Sign Up button
                     Expanded(
                       child: Padding(
