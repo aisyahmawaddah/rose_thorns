@@ -7,8 +7,6 @@ import 'package:koopon/presentation/views/authentication/welcome_screen.dart';
 import 'package:koopon/presentation/views/splash_screen.dart';
 
 class KooponApp extends StatelessWidget {
-  KooponApp(WelcomeScreen welcomeScreen, {required ThemeData theme});
-
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -37,7 +35,7 @@ class AuthWrapper extends StatelessWidget {
         }
         
         // Otherwise, go to login screen
-        return LoginScreen();
+        return WelcomeScreen();
       },
     );
   }
