@@ -10,9 +10,10 @@ class AppRoutes {
     '/login': (context) => LoginScreen(),
     '/register': (context) => RegisterScreen(),
     // In your routes configuration
-'/email_verification': (context) => EmailVerificationScreen(),
+    '/email_verification': (context) => EmailVerificationScreen(),
     '/password_reset': (context) => PasswordResetScreen(),
     '/profile': (context) => ProfileScreen(),
-    '/home': (context) => ProfileScreen(), // Temporary until you create a home screen
+    '/home': (context) =>
+        ProfileScreen(), // Temporary until you create a home screen
   };
 }

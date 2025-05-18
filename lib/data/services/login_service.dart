@@ -1,20 +1,22 @@
-// login_service.dart
 import 'package:firebase_auth/firebase_auth.dart';
 
 class LoginService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  // Sign in with email and password
+  // Sign in with email and password - simplify to ensure we're not doing unexpected casting
   Future<UserCredential> signInWithEmailAndPassword(String email, String password) async {
     try {
+      // Direct Firebase Auth call
       return await _auth.signInWithEmailAndPassword(
         email: email, 
         password: password
       );
     } catch (e) {
+      print('Login service error: ${e.toString()}');
       throw e;
     }
   }
+
 
   // Reset password
   Future<void> resetPassword(String email) async {

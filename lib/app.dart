@@ -28,12 +28,12 @@ class AuthWrapper extends StatelessWidget {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return SplashScreen();
         }
-        
-        // If user is logged in, go to home screen
-        if (snapshot.hasData) {
-          return AppRoutes.routes['/home']!(context);
-        }
-        
+
+        // // If user is logged in, go to home screen
+        // if (snapshot.hasData) {
+        //   return AppRoutes.routes['/home']!(context);
+        // }
+
         // Otherwise, go to login screen
         return WelcomeScreen();
       },
