@@ -4,7 +4,7 @@ description: A university marketplace app
 version: 1.0.0+1
 
 environment:
-  sdk: '>=3.0.0 <4.0.0'  # This is the line you need to add
+  sdk: '>=3.0.0 <4.0.0'
 
 dependencies:
   flutter:
@@ -14,4 +14,25 @@ dependencies:
   cloud_firestore: ^4.9.1
   firebase_storage: ^11.2.6
   provider: ^6.0.5
-  # Add other Firebase products as needed
+  
+  # Add other dependencies as needed
+  cupertino_icons: ^1.0.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^2.0.0
+
+flutter:
+  uses-material-design: true
+  
+  # Add assets, fonts, etc. as needed
+  assets:
+    - images/
+  
+  # fonts:
+  #   - family: Poppins
+  #     fonts:
+  #       - asset: fonts/Poppins-Regular.ttf
+  #       - asset: fonts/Poppins-Bold.ttf
+  #         weight: 700

@@ -17,6 +17,8 @@ class UserModel {
     this.dateCreated,
   });
 
+  get profileImageUrl => null;
+
   // Convert Firestore document to UserModel
   static Future<UserModel?> fromMap(Map<String, dynamic> data, String id) {
     try {

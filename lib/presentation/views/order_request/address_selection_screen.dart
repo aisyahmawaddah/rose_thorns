@@ -3,6 +3,10 @@ import 'package:flutter/material.dart';
 import 'timeslot_selection_screen.dart';
 
 class AddressSelectionScreen extends StatefulWidget {
+  final Map<String, dynamic>? itemData;
+  
+  AddressSelectionScreen({this.itemData});
+
   @override
   _AddressSelectionScreenState createState() => _AddressSelectionScreenState();
 }
@@ -191,10 +195,18 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: selectedAddressId != null ? () {
+                  // Create updated item data with selected address
+                  Map<String, dynamic> updatedItemData = {
+                    ...?widget.itemData,
+                    'selectedAddressId': selectedAddressId,
+                  };
+                  
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => TimeslotSelectionScreen(),
+                      builder: (context) => TimeslotSelectionScreen(
+                        itemData: updatedItemData,
+                      ),
                     ),
                   );
                 } : null,

@@ -1,14 +1,225 @@
-// views/order_request/timeslot_selection_screen.dart
+// Updated Deal Method Screen to accept item data
 import 'package:flutter/material.dart';
-import 'order_summary_screen.dart';
+import 'address_selection_screen.dart';
 
-class TimeslotSelectionScreen extends StatefulWidget {
+class DealMethodScreen extends StatefulWidget {
+  // Accept item data
+  final Map<String, dynamic>? itemData;
+  
+  // Constructor that accepts optional item data
+  DealMethodScreen({this.itemData});
+
   @override
-  _TimeslotSelectionScreenState createState() => _TimeslotSelectionScreenState();
+  _DealMethodScreenState createState() => _DealMethodScreenState();
 }
 
-class _TimeslotSelectionScreenState extends State<TimeslotSelectionScreen> {
-  String? selectedSlot;
+class _DealMethodScreenState extends State<DealMethodScreen> {
+  String? selectedMethod;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Header
+            Container(
+              padding: EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: Icon(
+                      Icons.arrow_back,
+                      color: Colors.black,
+                      size: 24,
+                    ),
+                  ),
+                  SizedBox(width: 16),
+                  Text(
+                    'Order Request',
+                    style: TextStyle(
+                      color: Colors.black,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            Expanded(
+              child: SingleChildScrollView(
+                padding: EdgeInsets.all(20),
+                child: Column(
+                  children: [
+                    // Display item information if available
+                    if (widget.itemData != null) ...[
+                      Container(
+                        padding: EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[50],
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          children: [
+                            // Item image
+                            Container(
+                              width: 60,
+                              height: 60,
+                              decoration: BoxDecoration(
+                                color: widget.itemData!['imageColor'] ?? Colors.grey,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Icon(
+                                _getItemIcon(widget.itemData!['title'] ?? ''),
+                                color: Colors.white.withOpacity(0.8),
+                                size: 30,
+                              ),
+                            ),
+                            SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    widget.itemData!['title'] ?? '',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  SizedBox(height: 4),
+                                  Text(
+                                    widget.itemData!['condition'] ?? '',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.grey[600],
+                                    ),
+                                  ),
+                                  SizedBox(height: 4),
+                                  Text(
+                                    widget.itemData!['price'] ?? '',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      SizedBox(height: 24),
+                    ],
+
+                    // Deal method section
+                    Container(
+                      width: double.infinity,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Deal method',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.black,
+                            ),
+                          ),
+                          SizedBox(height: 8),
+                          GestureDetector(
+                            onTap: () {
+                              // Navigate to deal method selection
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => DealMethodSelectionScreen(
+                                    itemData: widget.itemData,
+                                  ),
+                                ),
+                              );
+                            },
+                            child: Container(
+                              padding: EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: Colors.grey[50],
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: Colors.grey[300]!),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    'Choose deal method',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      color: Colors.grey[600],
+                                    ),
+                                  ),
+                                  Row(
+                                    children: [
+                                      Text(
+                                        'Add',
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          color: Color(0xFF6B46C1),
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                      SizedBox(width: 4),
+                                      Icon(
+                                        Icons.arrow_forward_ios,
+                                        size: 16,
+                                        color: Color(0xFF6B46C1),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  IconData _getItemIcon(String title) {
+    if (title.toLowerCase().contains('coat') || title.toLowerCase().contains('sweater')) {
+      return Icons.checkroom;
+    } else if (title.toLowerCase().contains('iphone')) {
+      return Icons.phone_iphone;
+    } else if (title.toLowerCase().contains('ipad')) {
+      return Icons.tablet_mac;
+    } else if (title.toLowerCase().contains('book')) {
+      return Icons.book;
+    }
+    return Icons.shopping_bag;
+  }
+}
+
+// Create a separate deal method selection screen
+class DealMethodSelectionScreen extends StatefulWidget {
+  final Map<String, dynamic>? itemData;
+  
+  DealMethodSelectionScreen({this.itemData});
+
+  @override
+  _DealMethodSelectionScreenState createState() => _DealMethodSelectionScreenState();
+}
+
+class _DealMethodSelectionScreenState extends State<DealMethodSelectionScreen> {
+  String? selectedMethod;
 
   @override
   Widget build(BuildContext context) {
@@ -22,7 +233,7 @@ class _TimeslotSelectionScreenState extends State<TimeslotSelectionScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          'Choose A Timeslot',
+          'Deal Method',
           style: TextStyle(
             color: Colors.black,
             fontSize: 18,
@@ -34,55 +245,188 @@ class _TimeslotSelectionScreenState extends State<TimeslotSelectionScreen> {
         padding: EdgeInsets.all(20),
         child: Column(
           children: [
-            Expanded(
-              child: ListView(
-                children: [
-                  // Monday, 4 May
-                  _buildDaySection('Mon, 4 May', ['12:00 PM', '2:30 PM']),
-                  _buildDivider(),
-
-                  // Tuesday, 5 May
-                  _buildDaySection('Tues, 5 May', ['11:00 AM', '4:30 PM']),
-                  _buildDivider(),
-
-                  // Wednesday, 6 May
-                  _buildDaySection('Wed, 6 May', ['6:00 PM']),
-                  _buildDivider(),
-
-                  // Thursday, 7 May
-                  _buildDaySection('Thu, 7 May', ['8:00 PM']),
-                  _buildDivider(),
-
-                  // Friday, 8 May
-                  _buildDaySection('Fri, 8 May', []),
-                  _buildDivider(),
-
-                  // Saturday, 9 May
-                  _buildDaySection('Sat, 9 May', ['9:00 AM']),
-                  _buildDivider(),
-
-                  // Sunday, 10 May
-                  _buildDaySection('Sun, 10 May', ['11:00 AM', '7:00 PM']),
-                ],
+            // In Campus Meetup Option
+            Container(
+              margin: EdgeInsets.only(bottom: 16),
+              child: InkWell(
+                onTap: () {
+                  setState(() {
+                    selectedMethod = 'campus';
+                  });
+                },
+                child: Container(
+                  padding: EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    border: Border.all(
+                      color: selectedMethod == 'campus' 
+                          ? Color(0xFF6B46C1) 
+                          : Colors.grey[300]!,
+                      width: selectedMethod == 'campus' ? 2 : 1,
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'In Campus Meetup',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.black,
+                            ),
+                          ),
+                          SizedBox(height: 4),
+                          Text(
+                            'pay by cash when meetup',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                        ],
+                      ),
+                      Row(
+                        children: [
+                          Text(
+                            'RM0.00',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.black,
+                            ),
+                          ),
+                          SizedBox(width: 12),
+                          Container(
+                            width: 24,
+                            height: 24,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: selectedMethod == 'campus' 
+                                    ? Color(0xFF6B46C1) 
+                                    : Colors.grey[400]!,
+                                width: 2,
+                              ),
+                            ),
+                            child: selectedMethod == 'campus'
+                                ? Icon(
+                                    Icons.check,
+                                    size: 16,
+                                    color: Color(0xFF6B46C1),
+                                  )
+                                : null,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
 
-            SizedBox(height: 20),
+            // Delivery Option
+            Container(
+              child: InkWell(
+                onTap: () {
+                  setState(() {
+                    selectedMethod = 'delivery';
+                  });
+                },
+                child: Container(
+                  padding: EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    border: Border.all(
+                      color: selectedMethod == 'delivery' 
+                          ? Color(0xFF6B46C1) 
+                          : Colors.grey[300]!,
+                      width: selectedMethod == 'delivery' ? 2 : 1,
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Delivery',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.black,
+                            ),
+                          ),
+                        ],
+                      ),
+                      Row(
+                        children: [
+                          Text(
+                            'RM 3.00',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.black,
+                            ),
+                          ),
+                          SizedBox(width: 12),
+                          Container(
+                            width: 24,
+                            height: 24,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: selectedMethod == 'delivery' 
+                                    ? Color(0xFF6B46C1) 
+                                    : Colors.grey[400]!,
+                                width: 2,
+                              ),
+                            ),
+                            child: selectedMethod == 'delivery'
+                                ? Icon(
+                                    Icons.check,
+                                    size: 16,
+                                    color: Color(0xFF6B46C1),
+                                  )
+                                : null,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+            Spacer(),
 
             // Continue Button
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: selectedSlot != null ? () {
+                onPressed: selectedMethod != null ? () {
+                  // Create updated item data with selected method
+                  Map<String, dynamic> updatedItemData = {
+                    ...?widget.itemData,
+                    'selectedMethod': selectedMethod,
+                    'deliveryFee': selectedMethod == 'delivery' ? 3.0 : 0.0,
+                  };
+                  
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => OrderSummaryScreen(),
+                      builder: (context) => AddressSelectionScreen(
+                        itemData: updatedItemData,
+                      ),
                     ),
                   );
                 } : null,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: selectedSlot != null 
+                  backgroundColor: selectedMethod != null 
                       ? Color(0xFF6B46C1) 
                       : Colors.grey[300],
                   padding: EdgeInsets.symmetric(vertical: 16),
@@ -94,7 +438,7 @@ class _TimeslotSelectionScreenState extends State<TimeslotSelectionScreen> {
                 child: Text(
                   'Continue',
                   style: TextStyle(
-                    color: selectedSlot != null ? Colors.white : Colors.grey[500],
+                    color: selectedMethod != null ? Colors.white : Colors.grey[500],
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
                   ),
@@ -106,111 +450,20 @@ class _TimeslotSelectionScreenState extends State<TimeslotSelectionScreen> {
       ),
     );
   }
-
-  Widget _buildDaySection(String day, List<String> timeSlots) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          day,
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-            color: Colors.black,
-          ),
-        ),
-        SizedBox(height: 8),
-        
-        if (timeSlots.isEmpty)
-          Container(
-            padding: EdgeInsets.symmetric(vertical: 12),
-            child: Text(
-              'No available slots',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[500],
-                fontStyle: FontStyle.italic,
-              ),
-            ),
-          )
-        else
-          ...timeSlots.map((slot) {
-            final slotId = '${day}_$slot';
-            final isSelected = selectedSlot == slotId;
-            
-            return GestureDetector(
-              onTap: () {
-                setState(() {
-                  selectedSlot = slotId;
-                });
-              },
-              child: Container(
-                margin: EdgeInsets.only(bottom: 8),
-                padding: EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  border: Border.all(
-                    color: isSelected 
-                        ? Color(0xFF6B46C1) 
-                        : Colors.grey[300]!,
-                    width: isSelected ? 2 : 1,
-                  ),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      slot,
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                        color: Colors.black,
-                      ),
-                    ),
-                    Container(
-                      width: 24,
-                      height: 24,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: isSelected 
-                              ? Color(0xFF6B46C1) 
-                              : Colors.grey[400]!,
-                          width: 2,
-                        ),
-                      ),
-                      child: isSelected
-                          ? Icon(
-                              Icons.check,
-                              size: 16,
-                              color: Color(0xFF6B46C1),
-                            )
-                          : null,
-                    ),
-                  ],
-                ),
-              ),
-            );
-          }).toList(),
-      ],
-    );
-  }
-
-  Widget _buildDivider() {
-    return Container(
-      margin: EdgeInsets.symmetric(vertical: 16),
-      child: Divider(
-        color: Colors.grey[200],
-        thickness: 1,
-      ),
-    );
-  }
 }
 
 // Add this main function to run this screen directly
 void main() {
+  final sampleItem = {
+    'title': 'Zara Trenched Coat',
+    'condition': 'Lightly used',
+    'price': 'RM 30.00',
+    'imageColor': Color(0xFFDEB887),
+    'seller': 'shopwithmayauki',
+  };
+  
   runApp(MaterialApp(
-    home: TimeslotSelectionScreen(),
+    home: DealMethodScreen(itemData: sampleItem),
     debugShowCheckedModeBanner: false,
   ));
 }
