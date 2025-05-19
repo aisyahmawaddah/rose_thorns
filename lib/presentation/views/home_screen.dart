@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'add_item_screen.dart';
+import 'order_screen.dart';
 
 class ItemListPage extends StatelessWidget {
   const ItemListPage({Key? key}) : super(key: key);
@@ -14,7 +16,7 @@ class ItemListPage extends StatelessWidget {
             _buildHeader(),
             
             // Action Buttons Section
-            _buildActionButtons(),
+            _buildActionButtons(context),
             
             // Category Section
             _buildCategorySection(),
@@ -25,7 +27,7 @@ class ItemListPage extends StatelessWidget {
             ),
             
             // Bottom Navigation
-            _buildBottomNavigation(),
+            _buildBottomNavigation(context),
           ],
         ),
       ),
@@ -33,20 +35,20 @@ class ItemListPage extends StatelessWidget {
   }
 
   Widget _buildHeader() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+    return const Padding(
+      padding: EdgeInsets.fromLTRB(16, 8, 16, 8),
       child: Row(
         children: [
           // Menu Icon
-          const Icon(
+          Icon(
             Icons.menu,
             color: Color(0xFF473173),
             size: 28,
           ),
-          const SizedBox(width: 16),
+          SizedBox(width: 16),
           
           // Personalized Greeting with Username
-          const Column(
+          Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
@@ -69,7 +71,7 @@ class ItemListPage extends StatelessWidget {
             ],
           ),
           
-          const Spacer(),
+          Spacer(),
           
           // Profile Avatar
           CircleAvatar(
@@ -86,7 +88,7 @@ class ItemListPage extends StatelessWidget {
     );
   }
 
-  Widget _buildActionButtons() {
+  Widget _buildActionButtons(BuildContext context) {
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
       child: Row(
@@ -94,7 +96,12 @@ class ItemListPage extends StatelessWidget {
           // Add Item Button
           Expanded(
             child: ElevatedButton.icon(
-              onPressed: () {},
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const AddItemScreen()),
+                );
+              },
               icon: const Icon(Icons.add, color: Colors.white),
               label: const Text(
                 'Click here\nto add item',
@@ -120,7 +127,12 @@ class ItemListPage extends StatelessWidget {
           // Order History Button
           Expanded(
             child: ElevatedButton.icon(
-              onPressed: () {},
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const OrderHistoryScreen()),
+                );
+              },
               icon: const Icon(Icons.history, color: Colors.white),
               label: const Text(
                 'View Order\nHistory',
@@ -312,10 +324,10 @@ class ItemListPage extends StatelessWidget {
                     Row(
                       children: [
                         // Seller Icon
-                        CircleAvatar(
+                        const CircleAvatar(
                           radius: 10,
-                          backgroundColor: const Color(0xFFF9E7FF),
-                          child: const Icon(
+                          backgroundColor: Color(0xFFF9E7FF),
+                          child: Icon(
                             Icons.person,
                             size: 12,
                             color: Color(0xFF8A56AC),
@@ -362,7 +374,7 @@ class ItemListPage extends StatelessWidget {
     );
   }
 
-  Widget _buildBottomNavigation() {
+  Widget _buildBottomNavigation(BuildContext context) {
     return Container(
       height: 60,
       decoration: const BoxDecoration(
@@ -381,7 +393,7 @@ class ItemListPage extends StatelessWidget {
         children: [
           _buildNavItem(Icons.home, 'Home', true),
           _buildNavItem(Icons.bookmark_border, 'Wishlist', false),
-          _buildSellButton(),
+          _buildSellButton(context),
           _buildNavItem(Icons.notifications_none, 'Updates', false),
           _buildNavItem(Icons.person_outline, 'Profile', false),
         ],
@@ -409,25 +421,33 @@ class ItemListPage extends StatelessWidget {
     );
   }
 
-  Widget _buildSellButton() {
-    return Container(
-      width: 50,
-      height: 50,
-      decoration: BoxDecoration(
-        color: const Color(0xFF8A56AC),
-        shape: BoxShape.circle,
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF8A56AC).withOpacity(0.4),
-            blurRadius: 10,
-            spreadRadius: 2,
-          ),
-        ],
-      ),
-      child: const Icon(
-        Icons.add,
-        color: Colors.white,
-        size: 30,
+  Widget _buildSellButton(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const AddItemScreen()),
+        );
+      },
+      child: Container(
+        width: 50,
+        height: 50,
+        decoration: BoxDecoration(
+          color: const Color(0xFF8A56AC),
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF8A56AC).withOpacity(0.4),
+              blurRadius: 10,
+              spreadRadius: 2,
+            ),
+          ],
+        ),
+        child: const Icon(
+          Icons.add,
+          color: Colors.white,
+          size: 30,
+        ),
       ),
     );
   }
