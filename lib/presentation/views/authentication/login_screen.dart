@@ -115,7 +115,7 @@ class _LoginPageScreenState extends State<LoginPageScreen> {
                           controller: _emailController,
                           keyboardType: TextInputType.emailAddress,
                           decoration: const InputDecoration(
-                            hintText: 'University Email',
+                            hintText: 'University Emails',
                             hintStyle: TextStyle(
                               color: Colors.grey,
                               fontSize: 16.0,
@@ -226,7 +226,9 @@ class _LoginPageScreenState extends State<LoginPageScreen> {
                                   // Validate form
                                   if (_formKey.currentState!.validate()) {
                                     // Perform login
-                                    final success = await viewModel.login(_emailController.text, _passwordController.text);
+                                    final success = await viewModel.login(
+                                        _emailController.text,
+                                        _passwordController.text);
 
                                     if (success && mounted) {
                                       // Navigate to home screen (ItemListPage)
