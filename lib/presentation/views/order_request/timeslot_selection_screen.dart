@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'order_summary_screen.dart';
 
 class TimeslotSelectionScreen extends StatefulWidget {
-  const TimeslotSelectionScreen({super.key});
+  final Map<String, dynamic>? itemData;
+  
+  TimeslotSelectionScreen({this.itemData});
 
   @override
   _TimeslotSelectionScreenState createState() => _TimeslotSelectionScreenState();
@@ -20,10 +22,10 @@ class _TimeslotSelectionScreenState extends State<TimeslotSelectionScreen> {
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          icon: Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
+        title: Text(
           'Choose A Timeslot',
           style: TextStyle(
             color: Colors.black,
@@ -33,7 +35,7 @@ class _TimeslotSelectionScreenState extends State<TimeslotSelectionScreen> {
         ),
       ),
       body: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: EdgeInsets.all(20),
         child: Column(
           children: [
             Expanded(
@@ -69,25 +71,33 @@ class _TimeslotSelectionScreenState extends State<TimeslotSelectionScreen> {
               ),
             ),
 
-            const SizedBox(height: 20),
+            SizedBox(height: 20),
 
             // Continue Button
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: selectedSlot != null ? () {
+                  // Create updated item data with selected timeslot
+                  Map<String, dynamic> updatedItemData = {
+                    ...?widget.itemData,
+                    'selectedTimeslot': selectedSlot,
+                  };
+                  
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => OrderSummaryScreen(),
+                      builder: (context) => OrderSummaryScreen(
+                        itemData: updatedItemData,
+                      ),
                     ),
                   );
                 } : null,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: selectedSlot != null 
-                      ? const Color(0xFF6B46C1) 
+                      ? Color(0xFF6B46C1) 
                       : Colors.grey[300],
-                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  padding: EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(25),
                   ),
@@ -115,17 +125,17 @@ class _TimeslotSelectionScreenState extends State<TimeslotSelectionScreen> {
       children: [
         Text(
           day,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w600,
             color: Colors.black,
           ),
         ),
-        const SizedBox(height: 8),
+        SizedBox(height: 8),
         
         if (timeSlots.isEmpty)
           Container(
-            padding: const EdgeInsets.symmetric(vertical: 12),
+            padding: EdgeInsets.symmetric(vertical: 12),
             child: Text(
               'No available slots',
               style: TextStyle(
@@ -147,12 +157,12 @@ class _TimeslotSelectionScreenState extends State<TimeslotSelectionScreen> {
                 });
               },
               child: Container(
-                margin: const EdgeInsets.only(bottom: 8),
-                padding: const EdgeInsets.all(16),
+                margin: EdgeInsets.only(bottom: 8),
+                padding: EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   border: Border.all(
                     color: isSelected 
-                        ? const Color(0xFF6B46C1) 
+                        ? Color(0xFF6B46C1) 
                         : Colors.grey[300]!,
                     width: isSelected ? 2 : 1,
                   ),
@@ -163,7 +173,7 @@ class _TimeslotSelectionScreenState extends State<TimeslotSelectionScreen> {
                   children: [
                     Text(
                       slot,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w500,
                         color: Colors.black,
@@ -176,13 +186,13 @@ class _TimeslotSelectionScreenState extends State<TimeslotSelectionScreen> {
                         shape: BoxShape.circle,
                         border: Border.all(
                           color: isSelected 
-                              ? const Color(0xFF6B46C1) 
+                              ? Color(0xFF6B46C1) 
                               : Colors.grey[400]!,
                           width: 2,
                         ),
                       ),
                       child: isSelected
-                          ? const Icon(
+                          ? Icon(
                               Icons.check,
                               size: 16,
                               color: Color(0xFF6B46C1),
@@ -200,7 +210,7 @@ class _TimeslotSelectionScreenState extends State<TimeslotSelectionScreen> {
 
   Widget _buildDivider() {
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 16),
+      margin: EdgeInsets.symmetric(vertical: 16),
       child: Divider(
         color: Colors.grey[200],
         thickness: 1,

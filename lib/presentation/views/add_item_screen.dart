@@ -1,15 +1,25 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import '../../data/services/image_picker.dart';
+import '../../data/image_picker.dart';
 
-class AddItemScreen extends StatefulWidget {
-  const AddItemScreen({Key? key}) : super(key: key);
-
-  @override
-  State<AddItemScreen> createState() => _AddItemScreenState();
+void main() {
+  runApp(MaterialApp(
+    home: AddItemPage(),
+    theme: ThemeData(
+      primarySwatch: Colors.blue,
+      visualDensity: VisualDensity.adaptivePlatformDensity,
+    ),
+  ));
 }
 
-class _AddItemScreenState extends State<AddItemScreen> {
+class AddItemPage extends StatefulWidget {
+  const AddItemPage({Key? key}) : super(key: key);
+
+  @override
+  _AddItemPageState createState() => _AddItemPageState();
+}
+
+class _AddItemPageState extends State<AddItemPage> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
   final TextEditingController _priceController = TextEditingController();
@@ -17,7 +27,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
   final TextEditingController _brandController = TextEditingController();
   
   String _selectedCategory = 'Choose category';
-  final String _selectedStatus = 'Lightly used';
+  String _selectedStatus = 'Lightly used';
   File? _imageFile;
   final ImagePicker _picker = ImagePicker();
 
@@ -132,10 +142,10 @@ class _AddItemScreenState extends State<AddItemScreen> {
                       ),
                     ),
                   ),
-                  const CircleAvatar(
+                  CircleAvatar(
                     radius: 20,
                     backgroundColor: Colors.white,
-                    child: Icon(
+                    child: const Icon(
                       Icons.person,
                       color: Color(0xFF8A56AC),
                     ),
@@ -433,12 +443,6 @@ class _AddItemScreenState extends State<AddItemScreen> {
           ),
         ],
         currentIndex: 2, // Sell tab is selected
-        onTap: (index) {
-          if (index == 0) {
-            // Navigate back to home
-            Navigator.pop(context);
-          }
-        },
       ),
     );
   }
@@ -460,6 +464,64 @@ class _AddItemScreenState extends State<AddItemScreen> {
       _showErrorSnackBar('Please enter price');
       return;
     }
+
+    if (_imageFile == null) {
+      _showErrorSnackBar('Please add an image');
+      return;
+    }
+
+    // Here you would upload the image to your database
+    // For example with Firebase Storage:
+    /*
+    try {
+      // Show loading indicator
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(child: CircularProgressIndicator()),
+      );
+      
+      // Upload image to Firebase Storage
+      final storageRef = FirebaseStorage.instance.ref();
+      final imageRef = storageRef.child('item_images/${DateTime.now().millisecondsSinceEpoch}.jpg');
+      await imageRef.putFile(_imageFile!);
+      final imageUrl = await imageRef.getDownloadURL();
+      
+      // Create item data
+      final itemData = {
+        'name': _nameController.text,
+        'category': _selectedCategory,
+        'status': _selectedStatus,
+        'price': double.parse(_priceController.text),
+        'imageUrl': imageUrl,
+        'createdAt': DateTime.now(),
+        // Add other fields based on category
+      };
+      
+      // Add dynamic fields
+      for (var field in _currentFields) {
+        if (_dynamicControllers[field]?.text.isNotEmpty ?? false) {
+          itemData[field.toLowerCase()] = _dynamicControllers[field]!.text;
+        }
+      }
+      
+      // Save to Firestore
+      await FirebaseFirestore.instance.collection('items').add(itemData);
+      
+      // Close loading dialog
+      Navigator.of(context).pop();
+      
+      // Show success and navigate back
+      _showSuccessSnackBar('Item saved successfully');
+      Future.delayed(const Duration(seconds: 1), () {
+        Navigator.of(context).pop();
+      });
+    } catch (e) {
+      // Close loading dialog
+      Navigator.of(context).pop();
+      _showErrorSnackBar('Error saving item: ${e.toString()}');
+    }
+    */
 
     // For now, just show success and navigate back
     _showSuccessSnackBar('Item saved successfully');
@@ -490,7 +552,6 @@ class _AddItemScreenState extends State<AddItemScreen> {
 }
 
 class ImageSource {
-  static const gallery = 0;
 }
 
 class XFile {
@@ -499,8 +560,5 @@ class XFile {
 }
 
 class ImagePicker {
-  Future<XFile?> pickImage({required source}) async {
-    // This is a mock implementation
-    return null;
-  }
+  pickImage({required source}) {}
 }

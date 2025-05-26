@@ -7,12 +7,11 @@ import 'package:koopon/presentation/views/authentication/welcome_screen.dart';
 import 'package:koopon/presentation/views/splash_screen.dart';
 
 class KooponApp extends StatelessWidget {
-  const KooponApp(WelcomeScreen welcomeScreen, {super.key, required ThemeData theme});
-
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Koopon',
+      
       theme: AppTheme.lightTheme,
       home: AuthWrapper(),
       routes: AppRoutes.routes,
@@ -21,8 +20,6 @@ class KooponApp extends StatelessWidget {
 }
 
 class AuthWrapper extends StatelessWidget {
-  const AuthWrapper({super.key});
-
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<User?>(
@@ -30,16 +27,16 @@ class AuthWrapper extends StatelessWidget {
       builder: (context, snapshot) {
         // Show splash screen while checking auth state
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const SplashScreen();
+          return SplashScreen();
         }
-        
-        // If user is logged in, go to home screen
-        if (snapshot.hasData) {
-          return AppRoutes.routes['/home']!(context);
-        }
-        
+
+        // // If user is logged in, go to home screen
+        // if (snapshot.hasData) {
+        //   return AppRoutes.routes['/home']!(context);
+        // }
+
         // Otherwise, go to login screen
-        return LoginScreen();
+        return WelcomeScreen();
       },
     );
   }
