@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'timeslot_selection_screen.dart';
 
 class AddressSelectionScreen extends StatefulWidget {
+  const AddressSelectionScreen({super.key});
+
   @override
   _AddressSelectionScreenState createState() => _AddressSelectionScreenState();
 }
@@ -18,10 +20,10 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.black),
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text(
+        title: const Text(
           'My addresses',
           style: TextStyle(
             color: Colors.black,
@@ -31,7 +33,7 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
         ),
       ),
       body: Padding(
-        padding: EdgeInsets.all(20),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -45,7 +47,7 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
                   ),
                 );
               },
-              child: Row(
+              child: const Row(
                 children: [
                   Icon(
                     Icons.add,
@@ -65,7 +67,7 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
               ),
             ),
 
-            SizedBox(height: 24),
+            const SizedBox(height: 24),
 
             // Address list
             Expanded(
@@ -98,11 +100,11 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
                   final isSelected = selectedAddressId == address['id'];
                   
                   return Container(
-                    margin: EdgeInsets.only(bottom: 16),
-                    padding: EdgeInsets.all(16),
+                    margin: const EdgeInsets.only(bottom: 16),
+                    padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
                       border: Border.all(
-                        color: isSelected ? Color(0xFF6B46C1) : Colors.grey[300]!,
+                        color: isSelected ? const Color(0xFF6B46C1) : Colors.grey[300]!,
                         width: isSelected ? 2 : 1,
                       ),
                       borderRadius: BorderRadius.circular(12),
@@ -121,13 +123,13 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
                               children: [
                                 Text(
                                   address['name']!,
-                                  style: TextStyle(
+                                  style: const TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w600,
                                     color: Colors.black,
                                   ),
                                 ),
-                                SizedBox(height: 4),
+                                const SizedBox(height: 4),
                                 Text(
                                   address['phone']!,
                                   style: TextStyle(
@@ -135,7 +137,7 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
                                     color: Colors.grey[600],
                                   ),
                                 ),
-                                SizedBox(height: 8),
+                                const SizedBox(height: 8),
                                 Text(
                                   address['address']!,
                                   style: TextStyle(
@@ -144,8 +146,8 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
                                     height: 1.4,
                                   ),
                                 ),
-                                SizedBox(height: 8),
-                                Text(
+                                const SizedBox(height: 8),
+                                const Text(
                                   'view location picture',
                                   style: TextStyle(
                                     fontSize: 12,
@@ -163,13 +165,13 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
                               shape: BoxShape.circle,
                               border: Border.all(
                                 color: isSelected 
-                                    ? Color(0xFF6B46C1) 
+                                    ? const Color(0xFF6B46C1) 
                                     : Colors.grey[400]!,
                                 width: 2,
                               ),
                             ),
                             child: isSelected
-                                ? Icon(
+                                ? const Icon(
                                     Icons.check,
                                     size: 16,
                                     color: Color(0xFF6B46C1),
@@ -184,7 +186,7 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
               ),
             ),
 
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
 
             // Continue Button
             SizedBox(
@@ -200,9 +202,9 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
                 } : null,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: selectedAddressId != null 
-                      ? Color(0xFF6B46C1) 
+                      ? const Color(0xFF6B46C1) 
                       : Colors.grey[300],
-                  padding: EdgeInsets.symmetric(vertical: 16),
+                  padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(25),
                   ),
@@ -227,6 +229,8 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
 
 // Add New Address Screen (simplified version for this fix)
 class AddNewAddressScreen extends StatelessWidget {
+  const AddNewAddressScreen({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -235,10 +239,10 @@ class AddNewAddressScreen extends StatelessWidget {
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.black),
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text(
+        title: const Text(
           'Add new address',
           style: TextStyle(
             color: Colors.black,
@@ -248,17 +252,17 @@ class AddNewAddressScreen extends StatelessWidget {
         ),
       ),
       body: Padding(
-        padding: EdgeInsets.all(20),
+        padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-            Text(
+            const Text(
               'Add New Address Screen',
               style: TextStyle(fontSize: 18),
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             ElevatedButton(
               onPressed: () => Navigator.pop(context),
-              child: Text('Go Back'),
+              child: const Text('Go Back'),
             ),
           ],
         ),

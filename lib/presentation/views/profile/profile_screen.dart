@@ -3,6 +3,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class ProfileScreen extends StatefulWidget {
+  const ProfileScreen({super.key});
+
   @override
   _ProfileScreenState createState() => _ProfileScreenState();
 }
@@ -74,17 +76,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('My Profile'),
+        title: const Text('My Profile'),
         actions: [
           IconButton(
-            icon: Icon(Icons.exit_to_app),
+            icon: const Icon(Icons.exit_to_app),
             onPressed: _signOut,
             tooltip: 'Sign Out',
           ),
         ],
       ),
       body: _isLoading
-          ? Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator())
           : _errorMessage.isNotEmpty
               ? Center(
                   child: Column(
@@ -92,19 +94,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     children: [
                       Text(
                         'Error: $_errorMessage',
-                        style: TextStyle(color: Colors.red),
+                        style: const TextStyle(color: Colors.red),
                         textAlign: TextAlign.center,
                       ),
-                      SizedBox(height: 16),
+                      const SizedBox(height: 16),
                       ElevatedButton(
                         onPressed: _loadUserData,
-                        child: Text('Retry'),
+                        child: const Text('Retry'),
                       ),
                     ],
                   ),
                 )
               : SingleChildScrollView(
-                  padding: EdgeInsets.all(16.0),
+                  padding: const EdgeInsets.all(16.0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
@@ -119,14 +121,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           color: Theme.of(context).primaryColor,
                         ),
                       ),
-                      SizedBox(height: 16),
+                      const SizedBox(height: 16),
 
                       // Display name
                       Text(
                         _userData?['displayName'] ?? 'User',
                         style: Theme.of(context).textTheme.headlineMedium,
                       ),
-                      SizedBox(height: 8),
+                      const SizedBox(height: 8),
 
                       // Email
                       Text(
@@ -136,7 +138,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           fontSize: 16,
                         ),
                       ),
-                      SizedBox(height: 4),
+                      const SizedBox(height: 4),
 
                       // University
                       Text(
@@ -146,12 +148,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           fontSize: 14,
                         ),
                       ),
-                      SizedBox(height: 32),
+                      const SizedBox(height: 32),
 
                       // User role badge
                       Container(
                         padding:
-                            EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                         decoration: BoxDecoration(
                           color:
                               Theme.of(context).primaryColor.withOpacity(0.1),
@@ -165,40 +167,40 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ),
                         ),
                       ),
-                      SizedBox(height: 32),
+                      const SizedBox(height: 32),
 
                       // Account info section
                       _buildInfoSection('Account Information'),
                       _buildInfoRow('Account Created',
                           _formatTimestamp(_userData?['dateCreated'])),
 
-                      SizedBox(height: 24),
+                      const SizedBox(height: 24),
 
                       // Actions section
                       _buildInfoSection('Account Actions'),
 
                       // Edit profile button
                       ListTile(
-                        leading: Icon(Icons.edit),
-                        title: Text('Edit Profile'),
-                        trailing: Icon(Icons.chevron_right),
+                        leading: const Icon(Icons.edit),
+                        title: const Text('Edit Profile'),
+                        trailing: const Icon(Icons.chevron_right),
                         onTap: () {
                           // TODO: Navigate to edit profile screen
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Edit profile coming soon')),
+                            const SnackBar(content: Text('Edit profile coming soon')),
                           );
                         },
                       ),
 
                       // Change password button
                       ListTile(
-                        leading: Icon(Icons.lock_outline),
-                        title: Text('Change Password'),
-                        trailing: Icon(Icons.chevron_right),
+                        leading: const Icon(Icons.lock_outline),
+                        title: const Text('Change Password'),
+                        trailing: const Icon(Icons.chevron_right),
                         onTap: () {
                           // TODO: Navigate to change password screen
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
+                            const SnackBar(
                                 content: Text('Change password coming soon')),
                           );
                         },
@@ -206,8 +208,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                       // Sign out button
                       ListTile(
-                        leading: Icon(Icons.exit_to_app, color: Colors.red),
-                        title: Text('Sign Out',
+                        leading: const Icon(Icons.exit_to_app, color: Colors.red),
+                        title: const Text('Sign Out',
                             style: TextStyle(color: Colors.red)),
                         onTap: _signOut,
                       ),
@@ -232,7 +234,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           ),
         ),
-        Divider(),
+        const Divider(),
       ],
     );
   }
@@ -252,7 +254,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           Text(
             value,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w500,
             ),

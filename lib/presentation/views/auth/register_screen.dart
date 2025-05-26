@@ -4,6 +4,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:koopon/data/services/auth_service.dart'; // Import AuthService for validation
 
 class RegisterScreen extends StatefulWidget {
+  const RegisterScreen({super.key});
+
   @override
   _RegisterScreenState createState() => _RegisterScreenState();
 }
@@ -85,7 +87,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
         // Show success message and navigate back to login
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+          const SnackBar(
             content: Text(
                 'Registration successful! Please check your email and verify your account before logging in.'),
             duration: Duration(seconds: 8),
@@ -107,35 +109,35 @@ class _RegisterScreenState extends State<RegisterScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Register for Koopon'),
+        title: const Text('Register for Koopon'),
       ),
       body: SingleChildScrollView(
-        padding: EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(16.0),
         child: Form(
           key: _formKey,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              SizedBox(height: 24.0),
+              const SizedBox(height: 24.0),
               Text(
                 'Create an Account',
                 style: Theme.of(context).textTheme.headlineMedium,
                 textAlign: TextAlign.center,
               ),
-              SizedBox(height: 24.0),
+              const SizedBox(height: 24.0),
               TextFormField(
                 controller: _nameController,
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   labelText: 'Full Name',
                   prefixIcon: Icon(Icons.person),
                 ),
                 validator: (val) => val!.isEmpty ? 'Enter your name' : null,
               ),
-              SizedBox(height: 16.0),
+              const SizedBox(height: 16.0),
               TextFormField(
                 controller: _emailController,
                 keyboardType: TextInputType.emailAddress,
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   labelText: 'University Email',
                   prefixIcon: Icon(Icons.email),
                   hintText: 'example@utm.my',
@@ -146,54 +148,55 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   return null;
                 },
               ),
-              SizedBox(height: 16.0),
+              const SizedBox(height: 16.0),
               TextFormField(
                 controller: _passwordController,
                 obscureText: true,
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   labelText: 'Password',
                   prefixIcon: Icon(Icons.lock),
                 ),
                 validator: (val) =>
                     val!.length < 6 ? 'Password must be 6+ chars' : null,
               ),
-              SizedBox(height: 16.0),
+              const SizedBox(height: 16.0),
               TextFormField(
                 controller: _confirmPasswordController,
                 obscureText: true,
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   labelText: 'Confirm Password',
                   prefixIcon: Icon(Icons.lock_outline),
                 ),
                 validator: (val) {
                   if (val!.isEmpty) return 'Please confirm your password';
-                  if (val != _passwordController.text)
+                  if (val != _passwordController.text) {
                     return 'Passwords do not match';
+                  }
                   return null;
                 },
               ),
               if (_errorMessage.isNotEmpty) ...[
-                SizedBox(height: 16.0),
+                const SizedBox(height: 16.0),
                 Text(
                   _errorMessage,
-                  style: TextStyle(color: Colors.red, fontSize: 14.0),
+                  style: const TextStyle(color: Colors.red, fontSize: 14.0),
                   textAlign: TextAlign.center,
                 ),
               ],
-              SizedBox(height: 24.0),
+              const SizedBox(height: 24.0),
               ElevatedButton(
                 onPressed: _isLoading ? null : _register,
                 child: _isLoading
-                    ? CircularProgressIndicator(color: Colors.white)
-                    : Text('Create Account'),
+                    ? const CircularProgressIndicator(color: Colors.white)
+                    : const Text('Create Account'),
               ),
-              SizedBox(height: 16.0),
+              const SizedBox(height: 16.0),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text("Already have an account?"),
+                  const Text("Already have an account?"),
                   TextButton(
-                    child: Text('Login Instead'),
+                    child: const Text('Login Instead'),
                     onPressed: () {
                       Navigator.pop(context);
                     },
