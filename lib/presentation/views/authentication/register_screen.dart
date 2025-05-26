@@ -11,6 +11,8 @@ void main() {
 }
 
 class RegisterScreen extends StatefulWidget {
+  const RegisterScreen({super.key});
+
   @override
   _RegisterScreenState createState() => _RegisterScreenState();
 }
@@ -26,7 +28,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
@@ -38,12 +40,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
         ),
         child: SafeArea(
           child: ListView(
-            padding: EdgeInsets.symmetric(horizontal: 20.0),
+            padding: const EdgeInsets.symmetric(horizontal: 20.0),
             children: [
-              SizedBox(height: 30.0),
+              const SizedBox(height: 30.0),
 
               // Title: Sign Up
-              Text(
+              const Text(
                 'Sign Up',
                 style: TextStyle(
                   color: Colors.white,
@@ -52,10 +54,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
               ),
 
-              SizedBox(height: 10.0),
+              const SizedBox(height: 10.0),
 
               // Subtitle: marketplace quote
-              Text(
+              const Text(
                 '"Your Campus Marketplace: Where One Student\'s Old Is Another\'s New"',
                 style: TextStyle(
                   color: Colors.white,
@@ -64,7 +66,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
               ),
 
-              SizedBox(height: 30.0),
+              const SizedBox(height: 30.0),
 
               // Fullname field
               Container(
@@ -74,7 +76,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
                 child: TextField(
                   controller: _fullnameController,
-                  decoration: InputDecoration(
+                  decoration: const InputDecoration(
                     hintText: 'Fullname',
                     hintStyle: TextStyle(
                       color: Colors.grey,
@@ -87,7 +89,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
               ),
 
-              SizedBox(height: 15.0),
+              const SizedBox(height: 15.0),
 
               // Username field
               Container(
@@ -97,7 +99,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
                 child: TextField(
                   controller: _usernameController,
-                  decoration: InputDecoration(
+                  decoration: const InputDecoration(
                     hintText: 'Username',
                     hintStyle: TextStyle(
                       color: Colors.grey,
@@ -110,7 +112,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
               ),
 
-              SizedBox(height: 15.0),
+              const SizedBox(height: 15.0),
 
               // Password field
               Container(
@@ -121,7 +123,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 child: TextField(
                   controller: _passwordController,
                   obscureText: true,
-                  decoration: InputDecoration(
+                  decoration: const InputDecoration(
                     hintText: 'Password',
                     hintStyle: TextStyle(
                       color: Colors.grey,
@@ -134,7 +136,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
               ),
 
-              SizedBox(height: 15.0),
+              const SizedBox(height: 15.0),
 
               // Matric Number field
               Container(
@@ -144,7 +146,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
                 child: TextField(
                   controller: _matricNumberController,
-                  decoration: InputDecoration(
+                  decoration: const InputDecoration(
                     hintText: 'Matric Number',
                     hintStyle: TextStyle(
                       color: Colors.grey,
@@ -157,7 +159,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
               ),
 
-              SizedBox(height: 15.0),
+              const SizedBox(height: 15.0),
 
               // University Email field
               Container(
@@ -168,7 +170,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 child: TextField(
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
-                  decoration: InputDecoration(
+                  decoration: const InputDecoration(
                     hintText: 'University Email',
                     hintStyle: TextStyle(
                       color: Colors.grey,
@@ -181,12 +183,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
               ),
 
-              SizedBox(height: 30.0),
+              const SizedBox(height: 30.0),
 
               // Sign Up button
               Container(
                 width: double.infinity,
-                margin: EdgeInsets.only(bottom: 30.0),
+                margin: const EdgeInsets.only(bottom: 30.0),
                 child: ElevatedButton(
                   onPressed: () {
                     // Handle registration logic
@@ -197,9 +199,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(30.0),
                     ),
-                    padding: EdgeInsets.symmetric(vertical: 15.0),
+                    padding: const EdgeInsets.symmetric(vertical: 15.0),
                   ),
-                  child: Text(
+                  child: const Text(
                     'Sign Up',
                     style: TextStyle(
                       fontSize: 16.0,

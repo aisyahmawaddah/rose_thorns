@@ -6,6 +6,8 @@ import 'package:koopon/presentation/widgets/custom_button.dart';
 import 'package:koopon/presentation/widgets/custom_text_field.dart';
 
 class LoginScreen extends StatefulWidget {
+  const LoginScreen({super.key});
+
   @override
   _LoginScreenState createState() => _LoginScreenState();
 }
@@ -43,13 +45,13 @@ class _LoginScreenState extends State<LoginScreen> {
           showDialog(
             context: context,
             builder: (context) => AlertDialog(
-              title: Text('Email Not Verified'),
-              content: Text(
+              title: const Text('Email Not Verified'),
+              content: const Text(
                   'You need to verify your email before logging in. Would you like us to send another verification email?'),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: Text('Cancel'),
+                  child: const Text('Cancel'),
                 ),
                 TextButton(
                   onPressed: () async {
@@ -58,7 +60,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       // Resend verification email
                       await result.user!.sendEmailVerification();
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
+                        const SnackBar(
                             content: Text(
                                 'Verification email sent again. Please check your inbox.')),
                       );
@@ -70,7 +72,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       );
                     }
                   },
-                  child: Text('Resend Email'),
+                  child: const Text('Resend Email'),
                 ),
               ],
             ),
@@ -96,29 +98,29 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Login to Koopon'),
+        title: const Text('Login to Koopon'),
       ),
       body: SingleChildScrollView(
-        padding: EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(16.0),
         child: Form(
           key: _formKey,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              SizedBox(height: 24.0),
+              const SizedBox(height: 24.0),
               Text(
                 'Welcome Back!',
                 style: Theme.of(context).textTheme.headlineMedium,
                 textAlign: TextAlign.center,
               ),
-              SizedBox(height: 24.0),
+              const SizedBox(height: 24.0),
               CustomTextField(
                 labelText: 'University Email',
                 keyboardType: TextInputType.emailAddress,
                 validator: (val) => val!.isEmpty ? 'Enter an email' : null,
                 onChanged: (val) => setState(() => _email = val),
               ),
-              SizedBox(height: 16.0),
+              const SizedBox(height: 16.0),
               CustomTextField(
                 labelText: 'Password',
                 obscureText: true,
@@ -126,11 +128,11 @@ class _LoginScreenState extends State<LoginScreen> {
                     val!.length < 6 ? 'Password must be 6+ chars' : null,
                 onChanged: (val) => setState(() => _password = val),
               ),
-              SizedBox(height: 8.0),
+              const SizedBox(height: 8.0),
               Align(
                 alignment: Alignment.centerRight,
                 child: TextButton(
-                  child: Text('Forgot Password?'),
+                  child: const Text('Forgot Password?'),
                   onPressed: () {
                     Navigator.push(
                       context,
@@ -141,26 +143,26 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
               if (_errorMessage.isNotEmpty) ...[
-                SizedBox(height: 8.0),
+                const SizedBox(height: 8.0),
                 Text(
                   _errorMessage,
-                  style: TextStyle(color: Colors.red, fontSize: 14.0),
+                  style: const TextStyle(color: Colors.red, fontSize: 14.0),
                   textAlign: TextAlign.center,
                 ),
               ],
-              SizedBox(height: 24.0),
+              const SizedBox(height: 24.0),
               CustomButton(
                 text: 'Sign In',
                 isLoading: _isLoading,
                 onPressed: _signIn,
               ),
-              SizedBox(height: 16.0),
+              const SizedBox(height: 16.0),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text("Don't have an account?"),
+                  const Text("Don't have an account?"),
                   TextButton(
-                    child: Text('Register Now'),
+                    child: const Text('Register Now'),
                     onPressed: () {
                       Navigator.push(
                         context,
