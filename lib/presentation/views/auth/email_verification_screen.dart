@@ -4,8 +4,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../../../data/services/auth_service.dart';
 
 class EmailVerificationScreen extends StatefulWidget {
-  const EmailVerificationScreen({super.key});
-
   @override
   _EmailVerificationScreenState createState() =>
       _EmailVerificationScreenState();
@@ -27,7 +25,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
     if (!_authService.isUniversityEmail(_user.email!)) {
       // If the email is not a university email, show error and navigate to login
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please use a valid university email address.')),
+        SnackBar(content: Text('Please use a valid university email address.')),
       );
       Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
     } else {
@@ -36,7 +34,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
   }
 
   void _startVerificationCheck() {
-    _timer = Timer.periodic(const Duration(seconds: 3), (_) async {
+    _timer = Timer.periodic(Duration(seconds: 3), (_) async {
       await _checkEmailVerified();
     });
   }
@@ -58,7 +56,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
       _timer.cancel();
       // Email is verified, show success and redirect to login
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Email verified successfully!')),
+        SnackBar(content: Text('Email verified successfully!')),
       );
       // Sign out so they can log in with verified account
       await _auth.signOut();
@@ -72,7 +70,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
       await _user.sendEmailVerification();
       setState(() {});
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Verification email resent!')),
+        SnackBar(content: Text('Verification email resent!')),
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -85,7 +83,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Verify Your Email'),
+        title: Text('Verify Your Email'),
         automaticallyImplyLeading: false, // No back button
       ),
       body: Center(
@@ -99,35 +97,35 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                 size: 80,
                 color: Theme.of(context).primaryColor,
               ),
-              const SizedBox(height: 24.0),
+              SizedBox(height: 24.0),
               Text(
                 'Verify Your Email',
                 style: Theme.of(context).textTheme.headlineMedium,
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 16.0),
+              SizedBox(height: 16.0),
               Text(
                 'We\'ve sent a verification link to ${_user.email}.',
                 textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 16.0),
+                style: TextStyle(fontSize: 16.0),
               ),
-              const SizedBox(height: 8.0),
-              const Text(
+              SizedBox(height: 8.0),
+              Text(
                 'Please check your inbox (and spam folder) and click the link to verify your account.',
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 24.0),
-              const Text(
+              SizedBox(height: 24.0),
+              Text(
                 'After verification, you\'ll be redirected to the login screen.',
                 textAlign: TextAlign.center,
                 style: TextStyle(fontStyle: FontStyle.italic),
               ),
-              const SizedBox(height: 32.0),
+              SizedBox(height: 32.0),
               ElevatedButton(
                 onPressed: _resendVerificationEmail,
-                child: const Text('Resend Verification Email'),
+                child: Text('Resend Verification Email'),
               ),
-              const SizedBox(height: 16.0),
+              SizedBox(height: 16.0),
               TextButton(
                 onPressed: () async {
                   // Sign out and go back to login
@@ -135,7 +133,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                   Navigator.of(context)
                       .pushNamedAndRemoveUntil('/login', (route) => false);
                 },
-                child: const Text('Back to Login'),
+                child: Text('Back to Login'),
               ),
             ],
           ),

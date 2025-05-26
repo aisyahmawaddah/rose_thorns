@@ -2,8 +2,6 @@
 import 'package:flutter/material.dart';
 
 class OrderSummaryScreen extends StatelessWidget {
-  const OrderSummaryScreen({super.key});
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -12,10 +10,10 @@ class OrderSummaryScreen extends StatelessWidget {
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          icon: Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
+        title: Text(
           'Order Request',
           style: TextStyle(
             color: Colors.black,
@@ -25,15 +23,15 @@ class OrderSummaryScreen extends StatelessWidget {
         ),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
+        padding: EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Product Info
             Container(
-              padding: const EdgeInsets.all(16),
+              padding: EdgeInsets.all(16),
               decoration: BoxDecoration(
-                border: Border.all(color: const Color(0xFF6B46C1), width: 2),
+                border: Border.all(color: Color(0xFF6B46C1), width: 2),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Row(
@@ -44,7 +42,7 @@ class OrderSummaryScreen extends StatelessWidget {
                     height: 80,
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(8),
-                      color: const Color(0xFFDEB887),
+                      color: Color(0xFFDEB887),
                     ),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(8),
@@ -53,7 +51,7 @@ class OrderSummaryScreen extends StatelessWidget {
                         fit: BoxFit.cover,
                         errorBuilder: (context, error, stackTrace) {
                           return Container(
-                            color: const Color(0xFFDEB887),
+                            color: Color(0xFFDEB887),
                             child: Icon(
                               Icons.checkroom,
                               color: Colors.white.withOpacity(0.8),
@@ -64,12 +62,12 @@ class OrderSummaryScreen extends StatelessWidget {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 16),
+                  SizedBox(width: 16),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
+                        Text(
                           'Zara Trenched Coat',
                           style: TextStyle(
                             fontSize: 18,
@@ -77,7 +75,7 @@ class OrderSummaryScreen extends StatelessWidget {
                             color: Colors.black,
                           ),
                         ),
-                        const SizedBox(height: 4),
+                        SizedBox(height: 4),
                         Text(
                           'Lightly used',
                           style: TextStyle(
@@ -85,8 +83,8 @@ class OrderSummaryScreen extends StatelessWidget {
                             color: Colors.grey[600],
                           ),
                         ),
-                        const SizedBox(height: 4),
-                        const Text(
+                        SizedBox(height: 4),
+                        Text(
                           'RM 30.00',
                           style: TextStyle(
                             fontSize: 16,
@@ -101,7 +99,7 @@ class OrderSummaryScreen extends StatelessWidget {
               ),
             ),
 
-            const SizedBox(height: 24),
+            SizedBox(height: 24),
 
             // Deal Method
             _buildInfoSection(
@@ -113,7 +111,7 @@ class OrderSummaryScreen extends StatelessWidget {
               },
             ),
 
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
 
             // Meetup Location
             _buildInfoSection(
@@ -126,7 +124,7 @@ class OrderSummaryScreen extends StatelessWidget {
               },
             ),
 
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
 
             // Date and Time
             _buildInfoSection(
@@ -138,10 +136,10 @@ class OrderSummaryScreen extends StatelessWidget {
               },
             ),
 
-            const SizedBox(height: 24),
+            SizedBox(height: 24),
 
             // Payment Summary
-            const Text(
+            Text(
               'Payment summary',
               style: TextStyle(
                 fontSize: 16,
@@ -149,7 +147,7 @@ class OrderSummaryScreen extends StatelessWidget {
                 color: Colors.black,
               ),
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
 
             // Summary rows
             _buildSummaryRow('Subtotal (1 item)', 'RM 30.00'),
@@ -163,7 +161,7 @@ class OrderSummaryScreen extends StatelessWidget {
               isTotal: true,
             ),
 
-            const SizedBox(height: 40),
+            SizedBox(height: 40),
 
             // Place Order Button
             SizedBox(
@@ -174,14 +172,14 @@ class OrderSummaryScreen extends StatelessWidget {
                   _showOrderConfirmationDialog(context);
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFDDA0DD),
-                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  backgroundColor: Color(0xFFDDA0DD),
+                  padding: EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(25),
                   ),
                   elevation: 0,
                 ),
-                child: const Text(
+                child: Text(
                   'Place Order',
                   style: TextStyle(
                     color: Colors.black,
@@ -205,7 +203,7 @@ class OrderSummaryScreen extends StatelessWidget {
     bool showLocationTag = false,
   }) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.grey[50],
         borderRadius: BorderRadius.circular(12),
@@ -218,7 +216,7 @@ class OrderSummaryScreen extends StatelessWidget {
             children: [
               Text(
                 title,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
                   color: Colors.black,
@@ -228,7 +226,7 @@ class OrderSummaryScreen extends StatelessWidget {
                 onTap: onTap,
                 child: Text(
                   actionText,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
                     color: Color(0xFF6B46C1),
                     fontWeight: FontWeight.w500,
@@ -237,7 +235,7 @@ class OrderSummaryScreen extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           Text(
             content,
             style: TextStyle(
@@ -247,8 +245,8 @@ class OrderSummaryScreen extends StatelessWidget {
             ),
           ),
           if (showLocationTag) ...[
-            const SizedBox(height: 8),
-            const Text(
+            SizedBox(height: 8),
+            Text(
               'view location picture',
               style: TextStyle(
                 fontSize: 12,
@@ -264,7 +262,7 @@ class OrderSummaryScreen extends StatelessWidget {
 
   Widget _buildSummaryRow(String label, String value, {bool isTotal = false}) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: EdgeInsets.symmetric(vertical: 4),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -294,15 +292,15 @@ class OrderSummaryScreen extends StatelessWidget {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Order Placed Successfully!'),
-          content: const Text('Your order request has been sent to the seller.'),
+          title: Text('Order Placed Successfully!'),
+          content: Text('Your order request has been sent to the seller.'),
           actions: [
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop();
                 // Navigate to purchase history or home
               },
-              child: const Text('OK'),
+              child: Text('OK'),
             ),
           ],
         );

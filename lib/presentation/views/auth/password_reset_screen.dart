@@ -3,8 +3,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:koopon/data/services/auth_service.dart'; // Import AuthService for validation
 
 class PasswordResetScreen extends StatefulWidget {
-  const PasswordResetScreen({super.key});
-
   @override
   _PasswordResetScreenState createState() => _PasswordResetScreenState();
 }
@@ -59,38 +57,38 @@ class _PasswordResetScreenState extends State<PasswordResetScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Reset Password'),
+        title: Text('Reset Password'),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
+        padding: EdgeInsets.all(16.0),
         child: Form(
           key: _formKey,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const SizedBox(height: 24.0),
+              SizedBox(height: 24.0),
               Icon(
                 Icons.lock_reset,
                 size: 80,
                 color: Theme.of(context).primaryColor,
               ),
-              const SizedBox(height: 24.0),
+              SizedBox(height: 24.0),
               Text(
                 'Reset Your Password',
                 style: Theme.of(context).textTheme.headlineMedium,
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 16.0),
+              SizedBox(height: 16.0),
               Text(
                 'Enter your university email address and we\'ll send you a link to reset your password.',
                 textAlign: TextAlign.center,
                 style: TextStyle(color: Colors.grey[700]),
               ),
-              const SizedBox(height: 24.0),
+              SizedBox(height: 24.0),
               TextFormField(
                 controller: _emailController,
                 keyboardType: TextInputType.emailAddress,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: 'University Email',
                   prefixIcon: Icon(Icons.email),
                 ),
@@ -101,17 +99,17 @@ class _PasswordResetScreenState extends State<PasswordResetScreen> {
                 },
               ),
               if (_errorMessage.isNotEmpty) ...[
-                const SizedBox(height: 16.0),
+                SizedBox(height: 16.0),
                 Text(
                   _errorMessage,
-                  style: const TextStyle(color: Colors.red, fontSize: 14.0),
+                  style: TextStyle(color: Colors.red, fontSize: 14.0),
                   textAlign: TextAlign.center,
                 ),
               ],
               if (_resetSent) ...[
-                const SizedBox(height: 16.0),
+                SizedBox(height: 16.0),
                 Container(
-                  padding: const EdgeInsets.all(12),
+                  padding: EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: Colors.green[50],
                     borderRadius: BorderRadius.circular(8),
@@ -124,16 +122,16 @@ class _PasswordResetScreenState extends State<PasswordResetScreen> {
                   ),
                 ),
               ],
-              const SizedBox(height: 24.0),
+              SizedBox(height: 24.0),
               ElevatedButton(
                 onPressed: _isLoading ? null : _resetPassword,
                 child: _isLoading
-                    ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text('Send Reset Link'),
+                    ? CircularProgressIndicator(color: Colors.white)
+                    : Text('Send Reset Link'),
               ),
-              const SizedBox(height: 16.0),
+              SizedBox(height: 16.0),
               TextButton(
-                child: const Text('Back to Login'),
+                child: Text('Back to Login'),
                 onPressed: () {
                   Navigator.pop(context);
                 },

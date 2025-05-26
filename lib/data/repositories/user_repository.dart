@@ -34,7 +34,7 @@ class UserRepository {
       await _firestore.collection('users').doc(userId).update(data);
     } catch (e) {
       print('Error updating user data: $e');
-      rethrow;
+      throw e;
     }
   }
 

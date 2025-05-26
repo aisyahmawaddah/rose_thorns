@@ -13,8 +13,6 @@ void main() {
 }
 
 class WelcomeScreen extends StatelessWidget {
-  const WelcomeScreen({super.key});
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -39,7 +37,7 @@ class WelcomeScreen extends StatelessWidget {
                     ),
                     
                     // App name
-                    const Text(
+                    Text(
                       'KOOPON',
                       style: TextStyle(
                         fontSize: 28.0,
@@ -48,7 +46,7 @@ class WelcomeScreen extends StatelessWidget {
                     ),
                     
                     // Tagline
-                    const Text(
+                    Text(
                       'U N I  D E A L S,  R E A L  F E E L S',
                       style: TextStyle(
                         fontSize: 14.0,
@@ -64,19 +62,19 @@ class WelcomeScreen extends StatelessWidget {
           // Blue section with welcome text and buttons
           Container(
             width: double.infinity,
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               color: Color(0xFF1E64A0), // Blue color
               borderRadius: BorderRadius.only(
                 topLeft: Radius.circular(24.0),
                 topRight: Radius.circular(24.0),
               ),
             ),
-            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
+            padding: EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Welcome text
-                const Text(
+                Text(
                   'Welcome !',
                   style: TextStyle(
                     color: Colors.white,
@@ -85,10 +83,10 @@ class WelcomeScreen extends StatelessWidget {
                   ),
                 ),
                 
-                const SizedBox(height: 12.0),
+                SizedBox(height: 12.0),
                 
                 // Welcome description
-                const Text(
+                Text(
                   'Where university students connect, buy & sell preloved treasures - verified, trusted, and just for you.',
                   style: TextStyle(
                     color: Colors.white,
@@ -96,7 +94,7 @@ class WelcomeScreen extends StatelessWidget {
                   ),
                 ),
                 
-                const SizedBox(height: 40.0),
+                SizedBox(height: 40.0),
                 
                 // Sign in and Sign up buttons
                 Row(
@@ -115,14 +113,14 @@ class WelcomeScreen extends StatelessWidget {
                               ),
                             );
                           },
+                          child: Text('Sign In'),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFD7A0D7), // Light purple color
+                            backgroundColor: Color(0xFFD7A0D7), // Light purple color
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(50.0),
                             ),
-                            padding: const EdgeInsets.symmetric(vertical: 12.0),
+                            padding: EdgeInsets.symmetric(vertical: 12.0),
                           ),
-                          child: Text('Sign In'),
                         ),
                       ),
                     ),
@@ -140,25 +138,25 @@ class WelcomeScreen extends StatelessWidget {
                               ),
                             );
                           },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.white, // White color
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(50.0),
-                            ),
-                            padding: const EdgeInsets.symmetric(vertical: 12.0),
-                          ),
                           child: Text(
                             'Sign Up',
                             style: TextStyle(
                               color: Colors.black,
                             ),
                           ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.white, // White color
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(50.0),
+                            ),
+                            padding: EdgeInsets.symmetric(vertical: 12.0),
+                          ),
                         ),
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 20.0),
+                SizedBox(height: 20.0),
               ],
             ),
           ),

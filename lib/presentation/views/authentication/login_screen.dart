@@ -11,8 +11,6 @@ void main() {
 }
 
 class LoginPageScreen extends StatefulWidget {
-  const LoginPageScreen({super.key});
-
   @override
   _LoginPageScreenState createState() => _LoginPageScreenState();
 }
@@ -30,7 +28,7 @@ class _LoginPageScreenState extends State<LoginPageScreen> {
       // Allow the screen to resize when keyboard appears
       resizeToAvoidBottomInset: true,
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
@@ -47,21 +45,21 @@ class _LoginPageScreenState extends State<LoginPageScreen> {
             children: [
               // Top navigation bar
               Padding(
-                padding: const EdgeInsets.only(top: 8.0),
+                padding: EdgeInsets.only(top: 8.0),
                 child: Row(
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.arrow_back, color: Colors.white),
+                      icon: Icon(Icons.arrow_back, color: Colors.white),
                       onPressed: () {
                         Navigator.pop(context);
                       },
                     ),
-                    const Spacer(),
+                    Spacer(),
                     TextButton(
                       onPressed: () {
                         // Navigate to registration page
                       },
-                      child: const Text(
+                      child: Text(
                         'Register',
                         style: TextStyle(
                           color: Colors.white,
@@ -75,8 +73,8 @@ class _LoginPageScreenState extends State<LoginPageScreen> {
               ),
               
               // Sign In header
-              const Padding(
-                padding: EdgeInsets.only(left: 8.0, top: 8.0),
+              Padding(
+                padding: const EdgeInsets.only(left: 8.0, top: 8.0),
                 child: Text(
                   'Sign In',
                   style: TextStyle(
@@ -88,8 +86,8 @@ class _LoginPageScreenState extends State<LoginPageScreen> {
               ),
               
               // Description text
-              const Padding(
-                padding: EdgeInsets.only(left: 8.0, top: 8.0, right: 30.0, bottom: 10.0),
+              Padding(
+                padding: const EdgeInsets.only(left: 8.0, top: 8.0, right: 30.0, bottom: 10.0),
                 child: Text(
                   'This is your student-friendly corner of the internet. Sign in to reconnect with your favorites, discover new preloved gems.',
                   style: TextStyle(
@@ -116,13 +114,13 @@ class _LoginPageScreenState extends State<LoginPageScreen> {
               // Username/Email field
               Container(
                 decoration: BoxDecoration(
-                  color: const Color(0xFFEBEBEB),
+                  color: Color(0xFFEBEBEB),
                   borderRadius: BorderRadius.circular(30.0),
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                padding: EdgeInsets.symmetric(horizontal: 20.0),
                 child: TextField(
                   controller: _emailController,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     hintText: 'Username',
                     hintStyle: TextStyle(
                       color: Colors.grey,
@@ -134,19 +132,19 @@ class _LoginPageScreenState extends State<LoginPageScreen> {
                 ),
               ),
               
-              const SizedBox(height: 16.0),
+              SizedBox(height: 16.0),
               
               // Password field
               Container(
                 decoration: BoxDecoration(
-                  color: const Color(0xFFEBEBEB),
+                  color: Color(0xFFEBEBEB),
                   borderRadius: BorderRadius.circular(30.0),
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                padding: EdgeInsets.symmetric(horizontal: 20.0),
                 child: TextField(
                   controller: _passwordController,
                   obscureText: true,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     hintText: 'Password',
                     hintStyle: TextStyle(
                       color: Colors.grey,
@@ -165,7 +163,7 @@ class _LoginPageScreenState extends State<LoginPageScreen> {
                   onPressed: () {
                     // Navigate to forgot password page
                   },
-                  child: const Text(
+                  child: Text(
                     'Forgot Password?',
                     style: TextStyle(
                       color: Colors.black87,
@@ -175,12 +173,12 @@ class _LoginPageScreenState extends State<LoginPageScreen> {
                 ),
               ),
               
-              const SizedBox(height: 8.0),
+              SizedBox(height: 8.0),
               
               // Sign In button
               Container(
                 width: double.infinity,
-                margin: const EdgeInsets.only(bottom: 80.0), // Extra bottom margin to ensure visibility with keyboard
+                margin: EdgeInsets.only(bottom: 80.0), // Extra bottom margin to ensure visibility with keyboard
                 child: ElevatedButton(
                   onPressed: () {
                     // Handle login
@@ -190,9 +188,9 @@ class _LoginPageScreenState extends State<LoginPageScreen> {
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(30.0),
                     ),
-                    padding: const EdgeInsets.symmetric(vertical: 15.0),
+                    padding: EdgeInsets.symmetric(vertical: 15.0),
                   ),
-                  child: const Text(
+                  child: Text(
                     'Sign In',
                     style: TextStyle(
                       fontSize: 16.0,
