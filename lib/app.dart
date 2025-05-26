@@ -11,6 +11,7 @@ class KooponApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Koopon',
+      
       theme: AppTheme.lightTheme,
       home: AuthWrapper(),
       routes: AppRoutes.routes,
