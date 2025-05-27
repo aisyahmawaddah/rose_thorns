@@ -27,8 +27,8 @@ flutter:
   uses-material-design: true
   
   # Add assets, fonts, etc. as needed
-  # assets:
-  #   - images/
+  assets:
+    - images/
   
   # fonts:
   #   - family: Poppins

@@ -1,10 +1,17 @@
-// lib/services/auth_service.dart
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  // List of allowed university domains
+  final List<String> allowedDomains = [
+    'utm.my',
+    'edu.my',
+    'edu',
+    // Add more domains as needed
+  ];
 
   // Get current user
   User? get currentUser => _auth.currentUser;
@@ -29,7 +36,7 @@ class AuthService {
       if (!isUniversityEmail(email)) {
         throw FirebaseAuthException(
           code: 'invalid-email',
-          message: 'Please use your university email address to register.',
+          message: 'Please use a valid university email address to register.',
         );
       }
 
@@ -39,7 +46,18 @@ class AuthService {
         password: password,
       );
 
-      // Add user profile to Firestore
+      // Send email verification
+      await sendVerificationEmail();
+
+      // Wait for the user to verify their email before proceeding
+      bool emailVerified = await waitForEmailVerification();
+      if (!emailVerified) {
+        throw FirebaseAuthException(
+            code: 'email-not-verified',
+            message: 'Please verify your email address.');
+      }
+
+      // Add user profile to Firestore after email verification
       await _firestore.collection('users').doc(result.user!.uid).set({
         'email': email,
         'displayName': displayName,
@@ -55,6 +73,15 @@ class AuthService {
     } catch (e) {
       throw e;
     }
+  }
+
+  // Wait for email verification
+  Future<bool> waitForEmailVerification() async {
+    while (_auth.currentUser != null && !_auth.currentUser!.emailVerified) {
+      await Future.delayed(Duration(seconds: 3)); // Check every 3 seconds
+      await _auth.currentUser!.reload(); // Reload user to update emailVerified
+    }
+    return _auth.currentUser!.emailVerified;
   }
 
   // Reset password
@@ -73,29 +100,30 @@ class AuthService {
 
   // Check if email is a university email
   bool isUniversityEmail(String email) {
-    // Add your university domain validation logic here
-    return email.endsWith('.edu.my') ||
-        email.endsWith('.edu') ||
-        email.contains('utm.my');
+    return allowedDomains.any((domain) => email.endsWith(domain));
   }
 
   // Extract university name from email
   String _extractUniversityFromEmail(String email) {
-    // Basic extraction logic - can be improved
     final domain = email.split('@').last;
     if (domain.contains('utm.my')) return 'UTM';
-    // Add more universities as needed
     return domain.split('.').first.toUpperCase();
-  }
-
-  // Check if the current user's email is verified
-  bool isEmailVerified() {
-    User? user = _auth.currentUser;
-    return user != null ? user.emailVerified : false;
   }
 
   // Send verification email to the user
   Future<void> sendVerificationEmail() async {
+    try {
+      User? user = _auth.currentUser;
+      if (user != null && !user.emailVerified) {
+        await user.sendEmailVerification();
+      }
+    } catch (e) {
+      throw e;
+    }
+  }
+
+  // Resend the verification email
+  Future<void> resendVerificationEmail() async {
     try {
       User? user = _auth.currentUser;
       if (user != null && !user.emailVerified) {

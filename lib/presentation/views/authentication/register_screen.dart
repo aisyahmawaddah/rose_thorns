@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:koopon/data/services/auth_service.dart'; // Import AuthService for validation
-import 'email_verification_screen.dart'; // Import the EmailVerificationScreen
+import 'email_verification_screen.dart'; // Import EmailVerificationScreen here
 
 class RegisterScreen extends StatefulWidget {
   @override
@@ -13,27 +11,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _fullnameController = TextEditingController();
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _confirmPasswordController =
-      TextEditingController(); // Added confirm password controller
-  final _matricNumberController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
   final _emailController = TextEditingController();
-
-  final AuthService _authService =
-      AuthService(); // Instance for university email validation
 
   bool _isLoading = false;
   String _errorMessage = '';
 
-  bool _isUniversityEmail(String email) {
-    return email.endsWith('.edu.my') ||
-        email.endsWith('.edu') ||
-        email.contains('utm.my');
-  }
-
   // Register Method
   Future<void> _register() async {
-    if (_isUniversityEmail(_emailController.text.trim()) &&
-        _passwordController.text == _confirmPasswordController.text) {
+    if (_passwordController.text == _confirmPasswordController.text) {
       setState(() {
         _isLoading = true;
         _errorMessage = '';
@@ -52,30 +38,22 @@ class _RegisterScreenState extends State<RegisterScreen> {
         // Send email verification
         await result.user!.sendEmailVerification();
 
-        // Save user profile to Firestore
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(result.user!.uid)
-            .set({
-          'displayName': _fullnameController.text.trim(),
-          'email': email,
-          'role': 'buyer', // Default role
-          'dateCreated': FieldValue.serverTimestamp(),
-        });
+        // Wait for email verification before proceeding
+        bool emailVerified = await waitForEmailVerification();
 
-        // Show success message
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-                'Registration successful! Please check your email to verify your account.'),
-            duration: Duration(seconds: 8),
-          ),
-        );
+        if (!emailVerified) {
+          setState(() {
+            _errorMessage = "Please verify your email address first.";
+            _isLoading = false;
+          });
+          return;
+        }
 
-        // After successful registration, navigate to EmailVerificationScreen
+        // Navigate to EmailVerificationScreen
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => EmailVerificationScreen()),
+          MaterialPageRoute(
+              builder: (context) => EmailVerificationScreen(email: email)),
         );
       } catch (e) {
         setState(() {
@@ -85,10 +63,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
       }
     } else {
       setState(() {
-        _errorMessage =
-            "Please make sure the email is valid and passwords match.";
+        _errorMessage = "Please make sure the passwords match.";
       });
     }
+  }
+
+  // Wait for email verification
+  Future<bool> waitForEmailVerification() async {
+    while (FirebaseAuth.instance.currentUser != null &&
+        !FirebaseAuth.instance.currentUser!.emailVerified) {
+      await Future.delayed(Duration(seconds: 3)); // Check every 3 seconds
+      await FirebaseAuth.instance.currentUser!
+          .reload(); // Reload user to update emailVerified
+    }
+    return FirebaseAuth.instance.currentUser!.emailVerified;
   }
 
   @override
@@ -142,98 +130,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       ),
                     ),
                     SizedBox(height: 30.0),
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(30.0),
-                      ),
-                      child: TextField(
-                        controller: _fullnameController,
-                        decoration: InputDecoration(
-                          hintText: 'Fullname',
-                          hintStyle:
-                              TextStyle(color: Colors.grey, fontSize: 16.0),
-                          border: InputBorder.none,
-                          contentPadding: EdgeInsets.symmetric(
-                              horizontal: 20.0, vertical: 15.0),
-                        ),
-                      ),
-                    ),
+                    _buildTextField(_fullnameController, 'Fullname'),
                     SizedBox(height: 15.0),
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(30.0),
-                      ),
-                      child: TextField(
-                        controller: _usernameController,
-                        decoration: InputDecoration(
-                          hintText: 'Username',
-                          hintStyle:
-                              TextStyle(color: Colors.grey, fontSize: 16.0),
-                          border: InputBorder.none,
-                          contentPadding: EdgeInsets.symmetric(
-                              horizontal: 20.0, vertical: 15.0),
-                        ),
-                      ),
-                    ),
+                    _buildTextField(_usernameController, 'Username'),
                     SizedBox(height: 15.0),
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(30.0),
-                      ),
-                      child: TextField(
-                        controller: _passwordController,
-                        obscureText: true,
-                        decoration: InputDecoration(
-                          hintText: 'Password',
-                          hintStyle:
-                              TextStyle(color: Colors.grey, fontSize: 16.0),
-                          border: InputBorder.none,
-                          contentPadding: EdgeInsets.symmetric(
-                              horizontal: 20.0, vertical: 15.0),
-                        ),
-                      ),
-                    ),
+                    _buildPasswordField(_passwordController, 'Password'),
                     SizedBox(height: 15.0),
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(30.0),
-                      ),
-                      child: TextField(
-                        controller: _confirmPasswordController,
-                        obscureText: true,
-                        decoration: InputDecoration(
-                          hintText: 'Confirm Password',
-                          hintStyle:
-                              TextStyle(color: Colors.grey, fontSize: 16.0),
-                          border: InputBorder.none,
-                          contentPadding: EdgeInsets.symmetric(
-                              horizontal: 20.0, vertical: 15.0),
-                        ),
-                      ),
-                    ),
+                    _buildPasswordField(
+                        _confirmPasswordController, 'Confirm Password'),
                     SizedBox(height: 15.0),
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(30.0),
-                      ),
-                      child: TextField(
-                        controller: _emailController,
-                        keyboardType: TextInputType.emailAddress,
-                        decoration: InputDecoration(
-                          hintText: 'University Email',
-                          hintStyle:
-                              TextStyle(color: Colors.grey, fontSize: 16.0),
-                          border: InputBorder.none,
-                          contentPadding: EdgeInsets.symmetric(
-                              horizontal: 20.0, vertical: 15.0),
-                        ),
-                      ),
-                    ),
+                    _buildTextField(_emailController, 'University Email',
+                        isEmail: true),
                     SizedBox(height: 30.0),
                     Container(
                       width: double.infinity,
@@ -266,6 +173,48 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTextField(TextEditingController controller, String hintText,
+      {bool isEmail = false}) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(30.0),
+      ),
+      child: TextField(
+        controller: controller,
+        keyboardType: isEmail ? TextInputType.emailAddress : TextInputType.text,
+        decoration: InputDecoration(
+          hintText: hintText,
+          hintStyle: TextStyle(color: Colors.grey, fontSize: 16.0),
+          border: InputBorder.none,
+          contentPadding:
+              EdgeInsets.symmetric(horizontal: 20.0, vertical: 15.0),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPasswordField(
+      TextEditingController controller, String hintText) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(30.0),
+      ),
+      child: TextField(
+        controller: controller,
+        obscureText: true,
+        decoration: InputDecoration(
+          hintText: hintText,
+          hintStyle: TextStyle(color: Colors.grey, fontSize: 16.0),
+          border: InputBorder.none,
+          contentPadding:
+              EdgeInsets.symmetric(horizontal: 20.0, vertical: 15.0),
         ),
       ),
     );

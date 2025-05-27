@@ -1,9 +1,12 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../../../data/services/auth_service.dart'; // Import AuthService for university email validation
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class EmailVerificationScreen extends StatefulWidget {
+  final String email;
+  EmailVerificationScreen({required this.email});
+
   @override
   _EmailVerificationScreenState createState() =>
       _EmailVerificationScreenState();
@@ -11,8 +14,6 @@ class EmailVerificationScreen extends StatefulWidget {
 
 class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  final AuthService _authService =
-      AuthService(); // Instance for university email validation
   late User _user;
   late Timer _timer;
 
@@ -20,16 +21,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
   void initState() {
     super.initState();
     _user = _auth.currentUser!; // Get the currently logged-in user
-
-    // Validate if the email is a valid university email before proceeding
-    if (!_authService.isUniversityEmail(_user.email!)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Please use a valid university email address.')),
-      );
-      Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
-    } else {
-      _startVerificationCheck();
-    }
+    _startVerificationCheck();
   }
 
   // Start a periodic check to verify the email status
@@ -46,6 +38,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
 
     if (_user.emailVerified) {
       _timer.cancel(); // Stop checking once the email is verified
+      await _saveUserData(); // Save the user data to Firestore after verification
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Email verified successfully!')),
       );
@@ -54,11 +47,31 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
     }
   }
 
+  // Save user data to Firestore after email verification
+  Future<void> _saveUserData() async {
+    try {
+      final user = _auth.currentUser!;
+      final displayName =
+          widget.email.split('@')[0]; // Use email as displayName for now
+
+      // Save user details to Firestore after email verification
+      await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+        'email': user.email,
+        'displayName': displayName,
+        'role': 'buyer', // Default role
+        'dateCreated': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to save user data: $e')),
+      );
+    }
+  }
+
   // Resend the email verification link
   Future<void> _resendVerificationEmail() async {
     try {
       await _user.sendEmailVerification();
-      setState(() {});
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Verification email resent!')),
       );
@@ -101,7 +114,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
               ),
               SizedBox(height: 16.0),
               Text(
-                'We\'ve sent a verification link to ${_user.email}.',
+                'We\'ve sent a verification link to ${widget.email}.',
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 16.0),
               ),
@@ -122,7 +135,6 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                 child: Text('Resend Verification Email'),
               ),
               SizedBox(height: 16.0),
-              // Button to sign out and go back to login
               TextButton(
                 onPressed: () async {
                   await _auth.signOut();

@@ -7,13 +7,36 @@ import 'package:koopon/presentation/views/profile/profile_screen.dart';
 
 class AppRoutes {
   static Map<String, WidgetBuilder> routes = {
-    '/login': (context) =>
-        LoginPageScreen(), // Use LoginPageScreen here if needed
-    '/register': (context) => RegisterScreen(),
-    '/email_verification': (context) => EmailVerificationScreen(),
-    '/password_reset': (context) => PasswordResetScreen(),
-    '/profile': (context) => ProfileScreen(),
+    '/login': (context) => LoginPageScreen(), // Login page
+    '/register': (context) => RegisterScreen(), // Register page
+    '/email_verification': (context) => EmailVerificationScreen(
+          email: '',
+        ), // Email verification page
+    '/password_reset': (context) =>
+        PasswordResetScreen(), // Password reset page
+    '/profile': (context) => ProfileScreen(), // Profile page
     '/home': (context) =>
-        ProfileScreen(), // Temporary until you create a home screen
+        ProfileScreen(), // Temporary home screen while you're working on it
   };
+
+  // Example of navigation helper to push routes dynamically
+  static void navigateToLogin(BuildContext context) {
+    Navigator.pushReplacementNamed(context, '/login');
+  }
+
+  static void navigateToRegister(BuildContext context) {
+    Navigator.pushReplacementNamed(context, '/register');
+  }
+
+  static void navigateToProfile(BuildContext context) {
+    Navigator.pushReplacementNamed(context, '/profile');
+  }
+
+  static void navigateToPasswordReset(BuildContext context) {
+    Navigator.pushReplacementNamed(context, '/password_reset');
+  }
+
+  static void navigateToEmailVerification(BuildContext context) {
+    Navigator.pushReplacementNamed(context, '/email_verification');
+  }
 }
