@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:koopon/core/config/routes.dart';
 import 'package:koopon/core/config/themes.dart';
-import 'package:koopon/presentation/views/auth/login_screen.dart';
 import 'package:koopon/presentation/views/authentication/welcome_screen.dart';
 import 'package:koopon/presentation/views/splash_screen.dart';
 
@@ -11,7 +10,6 @@ class KooponApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Koopon',
-      
       theme: AppTheme.lightTheme,
       home: AuthWrapper(),
       routes: AppRoutes.routes,

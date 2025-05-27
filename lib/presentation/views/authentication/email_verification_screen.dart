@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../../../data/services/auth_service.dart';
+import '../../../data/services/auth_service.dart'; // Import AuthService for university email validation
 
 class EmailVerificationScreen extends StatefulWidget {
   @override
@@ -19,11 +19,10 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
   @override
   void initState() {
     super.initState();
-    _user = _auth.currentUser!; // The user just registered
+    _user = _auth.currentUser!; // Get the currently logged-in user
 
-    // Validate the email domain before proceeding
+    // Validate if the email is a valid university email before proceeding
     if (!_authService.isUniversityEmail(_user.email!)) {
-      // If the email is not a university email, show error and navigate to login
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Please use a valid university email address.')),
       );
@@ -33,38 +32,29 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
     }
   }
 
+  // Start a periodic check to verify the email status
   void _startVerificationCheck() {
     _timer = Timer.periodic(Duration(seconds: 3), (_) async {
       await _checkEmailVerified();
     });
   }
 
-  @override
-  void dispose() {
-    _timer.cancel();
-    super.dispose();
-  }
-
+  // Check if the email is verified
   Future<void> _checkEmailVerified() async {
-    // Reload user to check verification status
-    await _user.reload();
-
-    // Get updated user
+    await _user.reload(); // Reload the user to get updated information
     _user = _auth.currentUser!;
 
     if (_user.emailVerified) {
-      _timer.cancel();
-      // Email is verified, show success and redirect to login
+      _timer.cancel(); // Stop checking once the email is verified
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Email verified successfully!')),
       );
-      // Sign out so they can log in with verified account
-      await _auth.signOut();
-      // Navigate to login screen
+      await _auth.signOut(); // Sign out after verification
       Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
     }
   }
 
+  // Resend the email verification link
   Future<void> _resendVerificationEmail() async {
     try {
       await _user.sendEmailVerification();
@@ -80,11 +70,17 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
   }
 
   @override
+  void dispose() {
+    _timer.cancel(); // Cancel the timer to avoid memory leaks
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text('Verify Your Email'),
-        automaticallyImplyLeading: false, // No back button
+        automaticallyImplyLeading: false, // Disable back button
       ),
       body: Center(
         child: Padding(
@@ -126,9 +122,9 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                 child: Text('Resend Verification Email'),
               ),
               SizedBox(height: 16.0),
+              // Button to sign out and go back to login
               TextButton(
                 onPressed: () async {
-                  // Sign out and go back to login
                   await _auth.signOut();
                   Navigator.of(context)
                       .pushNamedAndRemoveUntil('/login', (route) => false);
