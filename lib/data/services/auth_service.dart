@@ -24,11 +24,11 @@ class AuthService {
           email: email, password: password);
       return result;
     } catch (e) {
-      throw e;
+      rethrow;
     }
   }
 
-  // Register with email and password
+  // Simple register with email and password (without waiting for verification)
   Future<UserCredential> registerWithEmailAndPassword(
       String email, String password, String displayName) async {
     try {
@@ -46,42 +46,35 @@ class AuthService {
         password: password,
       );
 
-      // Send email verification
+      // Send email verification (but don't wait for it)
       await sendVerificationEmail();
 
-      // Wait for the user to verify their email before proceeding
-      bool emailVerified = await waitForEmailVerification();
-      if (!emailVerified) {
-        throw FirebaseAuthException(
-            code: 'email-not-verified',
-            message: 'Please verify your email address.');
-      }
-
-      // Add user profile to Firestore after email verification
-      await _firestore.collection('users').doc(result.user!.uid).set({
-        'email': email,
-        'displayName': displayName,
-        'role': 'buyer', // Default role
-        'dateCreated': FieldValue.serverTimestamp(),
-        'universityName': _extractUniversityFromEmail(email),
-      });
-
-      // Update display name
+      // Update display name immediately
       await result.user!.updateDisplayName(displayName);
 
       return result;
     } catch (e) {
-      throw e;
+      rethrow;
     }
   }
 
-  // Wait for email verification
-  Future<bool> waitForEmailVerification() async {
-    while (_auth.currentUser != null && !_auth.currentUser!.emailVerified) {
-      await Future.delayed(Duration(seconds: 3)); // Check every 3 seconds
-      await _auth.currentUser!.reload(); // Reload user to update emailVerified
+  // Save user data to Firestore after email verification (call this from EmailVerificationScreen)
+  Future<void> saveUserDataAfterVerification(
+      String email, String displayName) async {
+    try {
+      User? user = _auth.currentUser;
+      if (user != null && user.emailVerified) {
+        await _firestore.collection('users').doc(user.uid).set({
+          'email': email,
+          'displayName': displayName,
+          'role': 'buyer', // Default role
+          'dateCreated': FieldValue.serverTimestamp(),
+          'universityName': _extractUniversityFromEmail(email),
+        });
+      }
+    } catch (e) {
+      rethrow;
     }
-    return _auth.currentUser!.emailVerified;
   }
 
   // Reset password
@@ -89,7 +82,7 @@ class AuthService {
     try {
       await _auth.sendPasswordResetEmail(email: email);
     } catch (e) {
-      throw e;
+      rethrow;
     }
   }
 
@@ -118,7 +111,7 @@ class AuthService {
         await user.sendEmailVerification();
       }
     } catch (e) {
-      throw e;
+      rethrow;
     }
   }
 
@@ -130,7 +123,7 @@ class AuthService {
         await user.sendEmailVerification();
       }
     } catch (e) {
-      throw e;
+      rethrow;
     }
   }
 }

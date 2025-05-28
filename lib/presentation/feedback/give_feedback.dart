@@ -5,6 +5,8 @@ void main() {
 }
 
 class SellerReviewApp extends StatelessWidget {
+  const SellerReviewApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -16,6 +18,8 @@ class SellerReviewApp extends StatelessWidget {
 }
 
 class GiveFeedback extends StatefulWidget {
+  const GiveFeedback({super.key});
+
   @override
   _GiveFeedbackState createState() => _GiveFeedbackState();
 }
@@ -47,21 +51,21 @@ class _GiveFeedbackState extends State<GiveFeedback> {
             padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10),
             child: Column(
               children: [
-                Align(
+                const Align(
                   alignment: Alignment.topLeft,
                   child: Icon(Icons.menu, size: 28),
                 ),
-                SizedBox(height: 10),
-                CircleAvatar(
+                const SizedBox(height: 10),
+                const CircleAvatar(
                   radius: 40,
                   backgroundImage: AssetImage('assets/profile.jpg'),
                 ),
-                SizedBox(height: 10),
-                Text(
+                const SizedBox(height: 10),
+                const Text(
                   "Seller Name",
                   style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
                 ),
-                SizedBox(height: 5),
+                const SizedBox(height: 5),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: List.generate(5, (index) {
@@ -78,15 +82,15 @@ class _GiveFeedbackState extends State<GiveFeedback> {
                     );
                   }),
                 ),
-                SizedBox(height: 10),
-                Align(
+                const SizedBox(height: 10),
+                const Align(
                   alignment: Alignment.centerLeft,
                   child: Text(
                     "Tell us about your experience",
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                   ),
                 ),
-                SizedBox(height: 10),
+                const SizedBox(height: 10),
                 TextField(
                   controller: _commentController,
                   maxLines: 5,
@@ -99,8 +103,8 @@ class _GiveFeedbackState extends State<GiveFeedback> {
                     ),
                   ),
                 ),
-                SizedBox(height: 20),
-                Align(
+                const SizedBox(height: 20),
+                const Align(
                   alignment: Alignment.centerLeft,
                   child: Text(
                     "Add tags",
@@ -127,13 +131,13 @@ class _GiveFeedbackState extends State<GiveFeedback> {
                     );
                   }).toList(),
                 ),
-                Spacer(),
+                const Spacer(),
                 GestureDetector(
                   onTap: () {
                     if (_rating == 0 ||
                         _commentController.text.trim().isEmpty) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
+                        const SnackBar(
                             content:
                                 Text("Please provide a rating and comment.")),
                       );
@@ -156,12 +160,12 @@ class _GiveFeedbackState extends State<GiveFeedback> {
                     width: double.infinity,
                     height: 50,
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(
+                      gradient: const LinearGradient(
                         colors: [Color(0xFF6A11CB), Color(0xFF2575FC)],
                       ),
                       borderRadius: BorderRadius.circular(30),
                     ),
-                    child: Center(
+                    child: const Center(
                       child: Text(
                         "Submit",
                         style: TextStyle(
@@ -173,7 +177,7 @@ class _GiveFeedbackState extends State<GiveFeedback> {
                     ),
                   ),
                 ),
-                SizedBox(height: 10),
+                const SizedBox(height: 10),
               ],
             ),
           ),
@@ -204,11 +208,11 @@ class ReviewPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Your Review"),
-        backgroundColor: Color(0xFF6A11CB),
+        title: const Text("Your Review"),
+        backgroundColor: const Color(0xFF6A11CB),
       ),
       body: Container(
-        padding: EdgeInsets.all(20),
+        padding: const EdgeInsets.all(20),
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             colors: [Color(0xFFB2D7FF), Color(0xFFD9A7FF)],
@@ -225,14 +229,15 @@ class ReviewPage extends StatelessWidget {
                 backgroundImage: AssetImage(image),
               ),
             ),
-            SizedBox(height: 15),
+            const SizedBox(height: 15),
             Center(
               child: Text(
                 name,
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                style:
+                    const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               ),
             ),
-            SizedBox(height: 15),
+            const SizedBox(height: 15),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: List.generate(5, (index) {
@@ -243,30 +248,30 @@ class ReviewPage extends StatelessWidget {
                 );
               }),
             ),
-            SizedBox(height: 20),
-            Text(
+            const SizedBox(height: 20),
+            const Text(
               "Comment:",
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
             ),
-            SizedBox(height: 8),
+            const SizedBox(height: 8),
             Container(
               width: double.infinity,
-              padding: EdgeInsets.all(12),
+              padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: Colors.white.withOpacity(0.8),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(
                 comment,
-                style: TextStyle(fontSize: 16),
+                style: const TextStyle(fontSize: 16),
               ),
             ),
-            SizedBox(height: 20),
-            Text(
+            const SizedBox(height: 20),
+            const Text(
               "Tags:",
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
             ),
-            SizedBox(height: 8),
+            const SizedBox(height: 8),
             Wrap(
               spacing: 10,
               children: tags.map((tag) {
@@ -276,12 +281,13 @@ class ReviewPage extends StatelessWidget {
                 );
               }).toList(),
             ),
-            Spacer(),
+            const Spacer(),
             Center(
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Color(0xFF6A11CB),
-                  padding: EdgeInsets.symmetric(horizontal: 40, vertical: 15),
+                  backgroundColor: const Color(0xFF6A11CB),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(30),
                   ),
@@ -289,13 +295,13 @@ class ReviewPage extends StatelessWidget {
                 onPressed: () {
                   Navigator.pop(context);
                 },
-                child: Text(
+                child: const Text(
                   "Back to Feedback",
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
               ),
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
           ],
         ),
       ),

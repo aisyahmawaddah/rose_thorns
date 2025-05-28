@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 
 class OrderSummaryScreen extends StatelessWidget {
   final Map<String, dynamic>? itemData;
-  
-  OrderSummaryScreen({this.itemData});
+
+  const OrderSummaryScreen({super.key, this.itemData});
 
   @override
   Widget build(BuildContext context) {
@@ -13,7 +13,7 @@ class OrderSummaryScreen extends StatelessWidget {
     String condition = itemData?['condition'] ?? 'Lightly used';
     String price = itemData?['price'] ?? 'RM 30.00';
     String total = itemData?['total'] ?? 'RM 30.00';
-    Color imageColor = itemData?['imageColor'] ?? Color(0xFFDEB887);
+    Color imageColor = itemData?['imageColor'] ?? const Color(0xFFDEB887);
     String selectedMethod = itemData?['selectedMethod'] ?? 'campus';
     double deliveryFee = itemData?['deliveryFee'] ?? 0.0;
 
@@ -23,10 +23,10 @@ class OrderSummaryScreen extends StatelessWidget {
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.black),
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text(
+        title: const Text(
           'Order Request',
           style: TextStyle(
             color: Colors.black,
@@ -36,15 +36,15 @@ class OrderSummaryScreen extends StatelessWidget {
         ),
       ),
       body: SingleChildScrollView(
-        padding: EdgeInsets.all(20),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Product Info
             Container(
-              padding: EdgeInsets.all(16),
+              padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                border: Border.all(color: Color(0xFF6B46C1), width: 2),
+                border: Border.all(color: const Color(0xFF6B46C1), width: 2),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Row(
@@ -66,20 +66,20 @@ class OrderSummaryScreen extends StatelessWidget {
                       ),
                     ),
                   ),
-                  SizedBox(width: 16),
+                  const SizedBox(width: 16),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
                           title,
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w600,
                             color: Colors.black,
                           ),
                         ),
-                        SizedBox(height: 4),
+                        const SizedBox(height: 4),
                         Text(
                           condition,
                           style: TextStyle(
@@ -87,10 +87,10 @@ class OrderSummaryScreen extends StatelessWidget {
                             color: Colors.grey[600],
                           ),
                         ),
-                        SizedBox(height: 4),
+                        const SizedBox(height: 4),
                         Text(
                           price,
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
                             color: Colors.black,
@@ -103,12 +103,12 @@ class OrderSummaryScreen extends StatelessWidget {
               ),
             ),
 
-            SizedBox(height: 24),
+            const SizedBox(height: 24),
 
             // Deal Method
             _buildInfoSection(
               title: 'Deal method',
-              content: selectedMethod == 'campus' 
+              content: selectedMethod == 'campus'
                   ? 'In Campus Meetup\nRM 0.00'
                   : 'Delivery\nRM ${deliveryFee.toStringAsFixed(2)}',
               actionText: 'Edit',
@@ -117,12 +117,15 @@ class OrderSummaryScreen extends StatelessWidget {
               },
             ),
 
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
 
             // Meetup Location
             _buildInfoSection(
-              title: selectedMethod == 'campus' ? 'Meetup Location' : 'Delivery Address',
-              content: 'Alicia Amin\n011-19016774\nMAJ, Kolej Tun Dr Ismail\nDepan medan air',
+              title: selectedMethod == 'campus'
+                  ? 'Meetup Location'
+                  : 'Delivery Address',
+              content:
+                  'Alicia Amin\n011-19016774\nMAJ, Kolej Tun Dr Ismail\nDepan medan air',
               actionText: 'Edit',
               showLocationTag: true,
               onTap: () {
@@ -130,7 +133,7 @@ class OrderSummaryScreen extends StatelessWidget {
               },
             ),
 
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
 
             // Date and Time
             _buildInfoSection(
@@ -142,10 +145,10 @@ class OrderSummaryScreen extends StatelessWidget {
               },
             ),
 
-            SizedBox(height: 24),
+            const SizedBox(height: 24),
 
             // Payment Summary
-            Text(
+            const Text(
               'Payment summary',
               style: TextStyle(
                 fontSize: 16,
@@ -153,24 +156,25 @@ class OrderSummaryScreen extends StatelessWidget {
                 color: Colors.black,
               ),
             ),
-            SizedBox(height: 12),
+            const SizedBox(height: 12),
 
             // Summary rows
             _buildSummaryRow('Subtotal (1 item)', price),
             _buildSummaryRow(
-              selectedMethod == 'campus' ? 'In Campus Meetup' : 'Delivery Fee', 
-              'RM ${deliveryFee.toStringAsFixed(2)}'
-            ),
-            
+                selectedMethod == 'campus'
+                    ? 'In Campus Meetup'
+                    : 'Delivery Fee',
+                'RM ${deliveryFee.toStringAsFixed(2)}'),
+
             Divider(height: 24, color: Colors.grey[300]),
-            
+
             _buildSummaryRow(
               'Total',
               total,
               isTotal: true,
             ),
 
-            SizedBox(height: 40),
+            const SizedBox(height: 40),
 
             // Place Order Button
             SizedBox(
@@ -181,14 +185,14 @@ class OrderSummaryScreen extends StatelessWidget {
                   _showOrderConfirmationDialog(context);
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Color(0xFFDDA0DD),
-                  padding: EdgeInsets.symmetric(vertical: 16),
+                  backgroundColor: const Color(0xFFDDA0DD),
+                  padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(25),
                   ),
                   elevation: 0,
                 ),
-                child: Text(
+                child: const Text(
                   'Place Order',
                   style: TextStyle(
                     color: Colors.black,
@@ -212,7 +216,7 @@ class OrderSummaryScreen extends StatelessWidget {
     bool showLocationTag = false,
   }) {
     return Container(
-      padding: EdgeInsets.all(16),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.grey[50],
         borderRadius: BorderRadius.circular(12),
@@ -225,7 +229,7 @@ class OrderSummaryScreen extends StatelessWidget {
             children: [
               Text(
                 title,
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
                   color: Colors.black,
@@ -235,7 +239,7 @@ class OrderSummaryScreen extends StatelessWidget {
                 onTap: onTap,
                 child: Text(
                   actionText,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 14,
                     color: Color(0xFF6B46C1),
                     fontWeight: FontWeight.w500,
@@ -244,7 +248,7 @@ class OrderSummaryScreen extends StatelessWidget {
               ),
             ],
           ),
-          SizedBox(height: 8),
+          const SizedBox(height: 8),
           Text(
             content,
             style: TextStyle(
@@ -254,8 +258,8 @@ class OrderSummaryScreen extends StatelessWidget {
             ),
           ),
           if (showLocationTag) ...[
-            SizedBox(height: 8),
-            Text(
+            const SizedBox(height: 8),
+            const Text(
               'view location picture',
               style: TextStyle(
                 fontSize: 12,
@@ -271,7 +275,7 @@ class OrderSummaryScreen extends StatelessWidget {
 
   Widget _buildSummaryRow(String label, String value, {bool isTotal = false}) {
     return Padding(
-      padding: EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -301,29 +305,29 @@ class OrderSummaryScreen extends StatelessWidget {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text('Order Placed Successfully!'),
+          title: const Text('Order Placed Successfully!'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(
+              const Icon(
                 Icons.check_circle,
                 color: Colors.green,
                 size: 60,
               ),
-              SizedBox(height: 16),
-              Text(
+              const SizedBox(height: 16),
+              const Text(
                 'Your order request has been sent to the seller.',
                 textAlign: TextAlign.center,
               ),
               if (itemData != null) ...[
-                SizedBox(height: 12),
+                const SizedBox(height: 12),
                 Text(
                   'Item: ${itemData!['title']}',
-                  style: TextStyle(fontWeight: FontWeight.w600),
+                  style: const TextStyle(fontWeight: FontWeight.w600),
                 ),
                 Text(
                   'Total: ${itemData!['total']}',
-                  style: TextStyle(color: Colors.green),
+                  style: const TextStyle(color: Colors.green),
                 ),
               ],
             ],
@@ -337,7 +341,7 @@ class OrderSummaryScreen extends StatelessWidget {
                 Navigator.of(context).pop();
                 // Navigate back to cart/home
               },
-              child: Text('OK'),
+              child: const Text('OK'),
             ),
           ],
         );
@@ -347,7 +351,8 @@ class OrderSummaryScreen extends StatelessWidget {
 
   // Add the _getItemIcon method inside the class
   IconData _getItemIcon(String title) {
-    if (title.toLowerCase().contains('coat') || title.toLowerCase().contains('sweater')) {
+    if (title.toLowerCase().contains('coat') ||
+        title.toLowerCase().contains('sweater')) {
       return Icons.checkroom;
     } else if (title.toLowerCase().contains('iphone')) {
       return Icons.phone_iphone;

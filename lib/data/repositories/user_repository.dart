@@ -10,13 +10,11 @@ class UserRepository {
   Future<UserModel?> getCurrentUserData() async {
     try {
       User? currentUser = _auth.currentUser;
-      
+
       if (currentUser != null) {
-        DocumentSnapshot doc = await _firestore
-            .collection('users')
-            .doc(currentUser.uid)
-            .get();
-            
+        DocumentSnapshot doc =
+            await _firestore.collection('users').doc(currentUser.uid).get();
+
         if (doc.exists) {
           return UserModel.fromMap(doc.data() as Map<String, dynamic>, doc.id);
         }
@@ -34,7 +32,7 @@ class UserRepository {
       await _firestore.collection('users').doc(userId).update(data);
     } catch (e) {
       print('Error updating user data: $e');
-      throw e;
+      rethrow;
     }
   }
 
