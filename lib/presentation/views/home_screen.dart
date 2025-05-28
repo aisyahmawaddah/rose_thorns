@@ -12,18 +12,18 @@ class ItemListPage extends StatelessWidget {
           children: [
             // Header Section
             _buildHeader(),
-            
+
             // Action Buttons Section
             _buildActionButtons(),
-            
+
             // Category Section
             _buildCategorySection(),
-            
+
             // Items Grid
             Expanded(
               child: _buildItemsGrid(),
             ),
-            
+
             // Bottom Navigation
             _buildBottomNavigation(),
           ],
@@ -33,20 +33,20 @@ class ItemListPage extends StatelessWidget {
   }
 
   Widget _buildHeader() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+    return const Padding(
+      padding: EdgeInsets.fromLTRB(16, 8, 16, 8),
       child: Row(
         children: [
           // Menu Icon
-          const Icon(
+          Icon(
             Icons.menu,
             color: Color(0xFF473173),
             size: 28,
           ),
-          const SizedBox(width: 16),
-          
+          SizedBox(width: 16),
+
           // Personalized Greeting with Username
-          const Column(
+          Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
@@ -68,9 +68,9 @@ class ItemListPage extends StatelessWidget {
               ),
             ],
           ),
-          
-          const Spacer(),
-          
+
+          Spacer(),
+
           // Profile Avatar
           CircleAvatar(
             radius: 24,
@@ -114,9 +114,9 @@ class ItemListPage extends StatelessWidget {
               ),
             ),
           ),
-          
+
           const SizedBox(width: 16),
-          
+
           // Order History Button
           Expanded(
             child: ElevatedButton.icon(
@@ -255,7 +255,8 @@ class ItemListPage extends StatelessWidget {
               // Item Image or Icon
               Expanded(
                 child: ClipRRect(
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                  borderRadius:
+                      const BorderRadius.vertical(top: Radius.circular(12)),
                   child: Container(
                     width: double.infinity,
                     color: index % 4 == 0
@@ -312,10 +313,10 @@ class ItemListPage extends StatelessWidget {
                     Row(
                       children: [
                         // Seller Icon
-                        CircleAvatar(
+                        const CircleAvatar(
                           radius: 10,
-                          backgroundColor: const Color(0xFFF9E7FF),
-                          child: const Icon(
+                          backgroundColor: Color(0xFFF9E7FF),
+                          child: Icon(
                             Icons.person,
                             size: 12,
                             color: Color(0xFF8A56AC),

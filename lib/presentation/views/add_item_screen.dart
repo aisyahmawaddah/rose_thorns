@@ -1,10 +1,9 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import '../../data/image_picker.dart';
 
 void main() {
   runApp(MaterialApp(
-    home: AddItemPage(),
+    home: const AddItemPage(),
     theme: ThemeData(
       primarySwatch: Colors.blue,
       visualDensity: VisualDensity.adaptivePlatformDensity,
@@ -25,9 +24,9 @@ class _AddItemPageState extends State<AddItemPage> {
   final TextEditingController _priceController = TextEditingController();
   final TextEditingController _sizeController = TextEditingController();
   final TextEditingController _brandController = TextEditingController();
-  
+
   String _selectedCategory = 'Choose category';
-  String _selectedStatus = 'Lightly used';
+  final String _selectedStatus = 'Lightly used';
   File? _imageFile;
   final ImagePicker _picker = ImagePicker();
 
@@ -39,14 +38,6 @@ class _AddItemPageState extends State<AddItemPage> {
     'Shoes',
     'Electronics',
     'Food'
-  ];
-
-  // Status options
-  final List<String> _statusOptions = [
-    'Lightly used',
-    'Moderately used',
-    'Heavily used',
-    'New'
   ];
 
   // Map to store dynamic fields for each category
@@ -82,7 +73,7 @@ class _AddItemPageState extends State<AddItemPage> {
     _priceController.dispose();
     _sizeController.dispose();
     _brandController.dispose();
-    
+
     // Dispose all dynamic controllers
     for (var controller in _dynamicControllers.values) {
       controller.dispose();
@@ -99,7 +90,8 @@ class _AddItemPageState extends State<AddItemPage> {
 
   // Pick image from gallery
   Future<void> _pickImage(dynamic ImageSource) async {
-    final XFile? pickedFile = await _picker.pickImage(source: ImageSource.gallery);
+    final XFile? pickedFile =
+        await _picker.pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
       setState(() {
         _imageFile = File(pickedFile.path);
@@ -127,7 +119,8 @@ class _AddItemPageState extends State<AddItemPage> {
               child: Row(
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.arrow_back, color: Color(0xFF473173)),
+                    icon:
+                        const Icon(Icons.arrow_back, color: Color(0xFF473173)),
                     onPressed: () => Navigator.of(context).pop(),
                   ),
                   const Expanded(
@@ -142,10 +135,10 @@ class _AddItemPageState extends State<AddItemPage> {
                       ),
                     ),
                   ),
-                  CircleAvatar(
+                  const CircleAvatar(
                     radius: 20,
                     backgroundColor: Colors.white,
-                    child: const Icon(
+                    child: Icon(
                       Icons.person,
                       color: Color(0xFF8A56AC),
                     ),
@@ -172,11 +165,13 @@ class _AddItemPageState extends State<AddItemPage> {
                 ),
                 child: DropdownButtonFormField<String>(
                   decoration: const InputDecoration(
-                    contentPadding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8),
+                    contentPadding:
+                        EdgeInsets.symmetric(horizontal: 16.0, vertical: 8),
                     border: InputBorder.none,
                   ),
                   value: _selectedCategory,
-                  icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF8A56AC)),
+                  icon: const Icon(Icons.keyboard_arrow_down,
+                      color: Color(0xFF8A56AC)),
                   isExpanded: true,
                   onChanged: (String? newValue) {
                     setState(() {
@@ -188,7 +183,8 @@ class _AddItemPageState extends State<AddItemPage> {
                       }
                     });
                   },
-                  items: _categories.map<DropdownMenuItem<String>>((String value) {
+                  items:
+                      _categories.map<DropdownMenuItem<String>>((String value) {
                     return DropdownMenuItem<String>(
                       value: value,
                       child: Text(
@@ -282,7 +278,8 @@ class _AddItemPageState extends State<AddItemPage> {
                   child: TextField(
                     controller: _nameController,
                     decoration: const InputDecoration(
-                      contentPadding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+                      contentPadding: EdgeInsets.symmetric(
+                          horizontal: 16.0, vertical: 12.0),
                       border: InputBorder.none,
                     ),
                   ),
@@ -308,7 +305,8 @@ class _AddItemPageState extends State<AddItemPage> {
                     readOnly: true,
                     controller: TextEditingController(text: _selectedStatus),
                     decoration: const InputDecoration(
-                      contentPadding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+                      contentPadding: EdgeInsets.symmetric(
+                          horizontal: 16.0, vertical: 12.0),
                       border: InputBorder.none,
                     ),
                   ),
@@ -317,7 +315,7 @@ class _AddItemPageState extends State<AddItemPage> {
                 // Dynamic Fields based on Category
                 ..._currentFields.map((field) {
                   if (field == "Description") return Container();
-                  
+
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -339,7 +337,8 @@ class _AddItemPageState extends State<AddItemPage> {
                         child: TextField(
                           controller: _dynamicControllers[field],
                           decoration: const InputDecoration(
-                            contentPadding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+                            contentPadding: EdgeInsets.symmetric(
+                                horizontal: 16.0, vertical: 12.0),
                             border: InputBorder.none,
                           ),
                         ),
@@ -366,9 +365,11 @@ class _AddItemPageState extends State<AddItemPage> {
                   ),
                   child: TextField(
                     controller: _priceController,
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
                     decoration: const InputDecoration(
-                      contentPadding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+                      contentPadding: EdgeInsets.symmetric(
+                          horizontal: 16.0, vertical: 12.0),
                       border: InputBorder.none,
                     ),
                   ),
@@ -551,8 +552,7 @@ class _AddItemPageState extends State<AddItemPage> {
   }
 }
 
-class ImageSource {
-}
+class ImageSource {}
 
 class XFile {
   final String path;

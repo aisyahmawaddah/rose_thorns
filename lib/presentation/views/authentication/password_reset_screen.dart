@@ -3,6 +3,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:koopon/data/services/auth_service.dart'; // Import AuthService for validation
 
 class PasswordResetScreen extends StatefulWidget {
+  const PasswordResetScreen({super.key});
+
   @override
   _PasswordResetScreenState createState() => _PasswordResetScreenState();
 }
@@ -118,8 +120,8 @@ class _PasswordResetScreenState extends State<PasswordResetScreen> {
                 ),
 
                 // Lock reset icon
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 20.0),
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 20.0),
                   child: Center(
                     child: Icon(
                       Icons.lock_reset,
@@ -177,7 +179,7 @@ class _PasswordResetScreenState extends State<PasswordResetScreen> {
                 if (_resetSent) ...[
                   const SizedBox(height: 16.0),
                   Container(
-                    padding: EdgeInsets.all(12),
+                    padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
                       color: Colors.green[50],
                       borderRadius: BorderRadius.circular(8),

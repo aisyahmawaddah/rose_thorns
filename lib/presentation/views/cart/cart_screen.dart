@@ -3,34 +3,36 @@ import 'package:flutter/material.dart';
 import '../order_request/deal_method_screen.dart';
 
 class CartScreen extends StatelessWidget {
+  const CartScreen({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFF87CEEB), // Light blue background
+      backgroundColor: const Color(0xFF87CEEB), // Light blue background
       body: SafeArea(
         child: Column(
           children: [
             // Header with back arrow and cart title
             Container(
-              padding: EdgeInsets.all(16),
+              padding: const EdgeInsets.all(16),
               child: Row(
                 children: [
                   GestureDetector(
                     onTap: () => Navigator.pop(context),
-                    child: Icon(
+                    child: const Icon(
                       Icons.arrow_back,
                       color: Colors.black,
                       size: 24,
                     ),
                   ),
-                  SizedBox(width: 16),
-                  Icon(
+                  const SizedBox(width: 16),
+                  const Icon(
                     Icons.shopping_cart_outlined,
                     color: Colors.black,
                     size: 28,
                   ),
-                  SizedBox(width: 8),
-                  Text(
+                  const SizedBox(width: 8),
+                  const Text(
                     'My Cart',
                     style: TextStyle(
                       fontSize: 24,
@@ -41,11 +43,11 @@ class CartScreen extends StatelessWidget {
                 ],
               ),
             ),
-            
+
             // Cart Items List
             Expanded(
               child: ListView(
-                padding: EdgeInsets.all(16),
+                padding: const EdgeInsets.all(16),
                 children: [
                   // Item 1 - Zara Trenched Coat
                   _buildCartItem(
@@ -56,9 +58,9 @@ class CartScreen extends StatelessWidget {
                     price: 'RM 30.00',
                     itemCount: '1 item',
                     total: 'RM 30.00',
-                    imageColor: Color(0xFFDEB887), // Beige color for coat
+                    imageColor: const Color(0xFFDEB887), // Beige color for coat
                   ),
-                  
+
                   // Item 2 - Astrid McStella Sweater
                   _buildCartItem(
                     context: context,
@@ -68,9 +70,10 @@ class CartScreen extends StatelessWidget {
                     price: 'RM 15.00',
                     itemCount: '1 item',
                     total: 'RM 15.00',
-                    imageColor: Color(0xFF4682B4), // Blue color for sweater
+                    imageColor:
+                        const Color(0xFF4682B4), // Blue color for sweater
                   ),
-                  
+
                   // Item 3 - iPhone 12
                   _buildCartItem(
                     context: context,
@@ -80,9 +83,10 @@ class CartScreen extends StatelessWidget {
                     price: 'RM 1,500.00',
                     itemCount: '1 item',
                     total: 'RM 1,500.00',
-                    imageColor: Color(0xFFF5F5DC), // Light color for phone
+                    imageColor:
+                        const Color(0xFFF5F5DC), // Light color for phone
                   ),
-                  
+
                   // Item 4 - iPad 9 (with Remove button)
                   _buildCartItem(
                     context: context,
@@ -92,10 +96,10 @@ class CartScreen extends StatelessWidget {
                     price: 'RM 1,000.00',
                     itemCount: '1 item',
                     total: 'RM 1,000.00',
-                    imageColor: Color(0xFF2F4F4F), // Dark color for iPad
+                    imageColor: const Color(0xFF2F4F4F), // Dark color for iPad
                     showRemoveButton: true,
                   ),
-                  
+
                   // Item 5 - AI Book
                   _buildCartItem(
                     context: context,
@@ -105,7 +109,7 @@ class CartScreen extends StatelessWidget {
                     price: 'RM 10.00',
                     itemCount: '1 item',
                     total: 'RM 10.00',
-                    imageColor: Color(0xFF32CD32), // Green color for book
+                    imageColor: const Color(0xFF32CD32), // Green color for book
                   ),
                 ],
               ),
@@ -128,7 +132,7 @@ class CartScreen extends StatelessWidget {
     bool showRemoveButton = false,
   }) {
     return Container(
-      margin: EdgeInsets.only(bottom: 16),
+      margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.9),
         borderRadius: BorderRadius.circular(20),
@@ -136,12 +140,12 @@ class CartScreen extends StatelessWidget {
           BoxShadow(
             color: Colors.black.withOpacity(0.1),
             blurRadius: 10,
-            offset: Offset(0, 2),
+            offset: const Offset(0, 2),
           ),
         ],
       ),
       child: Padding(
-        padding: EdgeInsets.all(16),
+        padding: const EdgeInsets.all(16),
         child: Column(
           children: [
             // Seller info with avatar
@@ -156,7 +160,7 @@ class CartScreen extends StatelessWidget {
                     color: Colors.grey[600],
                   ),
                 ),
-                SizedBox(width: 8),
+                const SizedBox(width: 8),
                 Text(
                   seller,
                   style: TextStyle(
@@ -166,9 +170,9 @@ class CartScreen extends StatelessWidget {
                 ),
               ],
             ),
-            
-            SizedBox(height: 12),
-            
+
+            const SizedBox(height: 12),
+
             // Item details row
             Row(
               children: [
@@ -188,9 +192,9 @@ class CartScreen extends StatelessWidget {
                     ),
                   ),
                 ),
-                
-                SizedBox(width: 16),
-                
+
+                const SizedBox(width: 16),
+
                 // Item information
                 Expanded(
                   child: Column(
@@ -198,13 +202,13 @@ class CartScreen extends StatelessWidget {
                     children: [
                       Text(
                         title,
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
                           color: Colors.black,
                         ),
                       ),
-                      SizedBox(height: 4),
+                      const SizedBox(height: 4),
                       Text(
                         condition,
                         style: TextStyle(
@@ -212,7 +216,7 @@ class CartScreen extends StatelessWidget {
                           color: Colors.grey[600],
                         ),
                       ),
-                      SizedBox(height: 4),
+                      const SizedBox(height: 4),
                       Text(
                         price,
                         style: TextStyle(
@@ -225,9 +229,9 @@ class CartScreen extends StatelessWidget {
                 ),
               ],
             ),
-            
-            SizedBox(height: 16),
-            
+
+            const SizedBox(height: 16),
+
             // Quantity and total row
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -241,7 +245,7 @@ class CartScreen extends StatelessWidget {
                 ),
                 Text(
                   total,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
                     color: Colors.black,
@@ -249,9 +253,9 @@ class CartScreen extends StatelessWidget {
                 ),
               ],
             ),
-            
-            SizedBox(height: 16),
-            
+
+            const SizedBox(height: 16),
+
             // Action buttons
             Row(
               children: [
@@ -265,12 +269,12 @@ class CartScreen extends StatelessWidget {
                         // You can add remove functionality here
                       },
                       child: Container(
-                        padding: EdgeInsets.symmetric(vertical: 12),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
                         decoration: BoxDecoration(
                           color: Colors.grey[400],
                           borderRadius: BorderRadius.circular(25),
                         ),
-                        child: Center(
+                        child: const Center(
                           child: Text(
                             'Remove',
                             style: TextStyle(
@@ -282,9 +286,9 @@ class CartScreen extends StatelessWidget {
                       ),
                     ),
                   ),
-                  SizedBox(width: 16),
+                  const SizedBox(width: 16),
                 ],
-                
+
                 // Checkout button
                 Expanded(
                   child: GestureDetector(
@@ -298,12 +302,12 @@ class CartScreen extends StatelessWidget {
                       );
                     },
                     child: Container(
-                      padding: EdgeInsets.symmetric(vertical: 12),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
                       decoration: BoxDecoration(
-                        color: Color(0xFF9C27B0), // Purple color
+                        color: const Color(0xFF9C27B0), // Purple color
                         borderRadius: BorderRadius.circular(25),
                       ),
-                      child: Center(
+                      child: const Center(
                         child: Text(
                           'Checkout',
                           style: TextStyle(
@@ -324,7 +328,8 @@ class CartScreen extends StatelessWidget {
   }
 
   IconData _getItemIcon(String title) {
-    if (title.toLowerCase().contains('coat') || title.toLowerCase().contains('sweater')) {
+    if (title.toLowerCase().contains('coat') ||
+        title.toLowerCase().contains('sweater')) {
       return Icons.checkroom;
     } else if (title.toLowerCase().contains('iphone')) {
       return Icons.phone_iphone;

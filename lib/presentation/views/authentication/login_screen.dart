@@ -2,10 +2,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:koopon/presentation/viewmodels/login_viewmodel.dart';
-import 'package:koopon/presentation/views/auth/password_reset_screen.dart';
+import 'package:koopon/presentation/views/authentication/password_reset_screen.dart';
 import 'package:koopon/presentation/views/home_screen.dart'; // Import the ItemListPage
 
 class LoginPageScreen extends StatefulWidget {
+  const LoginPageScreen({super.key});
+
   @override
   _LoginPageScreenState createState() => _LoginPageScreenState();
 }
@@ -236,7 +238,7 @@ class _LoginPageScreenState extends State<LoginPageScreen> {
                                         context,
                                         MaterialPageRoute(
                                             builder: (context) =>
-                                                ItemListPage()),
+                                                const ItemListPage()),
                                       );
                                     }
                                   }
