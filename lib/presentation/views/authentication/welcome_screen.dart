@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:koopon/presentation/views/authentication/login_screen.dart';
 import 'package:koopon/presentation/views/authentication/register_screen.dart';
-import 'package:koopon/presentation/views/profile/profile_screen.dart';
 
 class WelcomeScreen extends StatelessWidget {
   const WelcomeScreen({super.key});
