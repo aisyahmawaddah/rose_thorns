@@ -3,7 +3,6 @@ import 'package:koopon/presentation/views/authentication/email_verification_scre
 import 'package:koopon/presentation/views/authentication/login_screen.dart';
 import 'package:koopon/presentation/views/authentication/register_screen.dart';
 import 'package:koopon/presentation/views/authentication/password_reset_screen.dart';
-import 'package:koopon/presentation/views/authentication/welcome_screen.dart';
 import 'package:koopon/presentation/views/home_screen.dart';
 
 class AppRoutes {
