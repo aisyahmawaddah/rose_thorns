@@ -297,7 +297,7 @@ class CartScreen extends StatelessWidget {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => DealMethodScreen(),
+                          builder: (context) => const DealMethodScreen(),
                         ),
                       );
                     },
@@ -344,7 +344,7 @@ class CartScreen extends StatelessWidget {
 
 // Add this to run the screen directly
 void main() {
-  runApp(MaterialApp(
+  runApp(const MaterialApp(
     home: CartScreen(),
     debugShowCheckedModeBanner: false,
   ));

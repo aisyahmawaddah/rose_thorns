@@ -2,274 +2,459 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({super.key});
-
-  @override
-  _ProfileScreenState createState() => _ProfileScreenState();
-}
-
-class _ProfileScreenState extends State<ProfileScreen> {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-
-  bool _isLoading = true;
-  Map<String, dynamic>? _userData;
-  String _errorMessage = '';
-
-  @override
-  void initState() {
-    super.initState();
-    _loadUserData();
-  }
-
-  Future<void> _loadUserData() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = '';
-    });
-
-    try {
-      User? currentUser = _auth.currentUser;
-
-      if (currentUser != null) {
-        DocumentSnapshot doc =
-            await _firestore.collection('users').doc(currentUser.uid).get();
-
-        if (doc.exists) {
-          setState(() {
-            _userData = doc.data() as Map<String, dynamic>;
-            _isLoading = false;
-          });
-        } else {
-          setState(() {
-            _errorMessage = 'User profile not found';
-            _isLoading = false;
-          });
-        }
-      } else {
-        setState(() {
-          _errorMessage = 'No user logged in';
-          _isLoading = false;
-        });
-      }
-    } catch (e) {
-      setState(() {
-        _errorMessage = e.toString();
-        _isLoading = false;
-      });
-    }
-  }
-
-  Future<void> _signOut() async {
-    try {
-      await _auth.signOut();
-      // AuthWrapper will handle navigation
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error signing out: ${e.toString()}')),
-      );
-    }
-  }
+class ItemListPage extends StatelessWidget {
+  const ItemListPage({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('My Profile'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.exit_to_app),
-            onPressed: _signOut,
-            tooltip: 'Sign Out',
-          ),
-        ],
+      backgroundColor: const Color(0xFFE5F6FF),
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Header Section
+            _buildHeader(),
+
+            // Action Buttons Section
+            _buildActionButtons(),
+
+            // Category Section
+            _buildCategorySection(),
+
+            // Items Grid
+            Expanded(
+              child: _buildItemsGrid(),
+            ),
+
+            // Bottom Navigation
+            _buildBottomNavigation(),
+          ],
+        ),
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _errorMessage.isNotEmpty
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        'Error: $_errorMessage',
-                        style: const TextStyle(color: Colors.red),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 16),
-                      ElevatedButton(
-                        onPressed: _loadUserData,
-                        child: const Text('Retry'),
-                      ),
-                    ],
-                  ),
-                )
-              : SingleChildScrollView(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      // Profile picture
-                      CircleAvatar(
-                        radius: 60,
-                        backgroundColor:
-                            Theme.of(context).primaryColor.withOpacity(0.2),
-                        child: Icon(
-                          Icons.person,
-                          size: 60,
-                          color: Theme.of(context).primaryColor,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Display name
-                      Text(
-                        _userData?['displayName'] ?? 'User',
-                        style: Theme.of(context).textTheme.headlineMedium,
-                      ),
-                      const SizedBox(height: 8),
-
-                      // Email
-                      Text(
-                        _userData?['email'] ?? '',
-                        style: TextStyle(
-                          color: Colors.grey[600],
-                          fontSize: 16,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-
-                      // University
-                      Text(
-                        _userData?['universityName'] ?? 'University Student',
-                        style: TextStyle(
-                          color: Colors.grey[600],
-                          fontSize: 14,
-                        ),
-                      ),
-                      const SizedBox(height: 32),
-
-                      // User role badge
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 8),
-                        decoration: BoxDecoration(
-                          color:
-                              Theme.of(context).primaryColor.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          'Role: ${_userData?['role'] ?? 'User'}'.toUpperCase(),
-                          style: TextStyle(
-                            color: Theme.of(context).primaryColor,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 32),
-
-                      // Account info section
-                      _buildInfoSection('Account Information'),
-                      _buildInfoRow('Account Created',
-                          _formatTimestamp(_userData?['dateCreated'])),
-
-                      const SizedBox(height: 24),
-
-                      // Actions section
-                      _buildInfoSection('Account Actions'),
-
-                      // Edit profile button
-                      ListTile(
-                        leading: const Icon(Icons.edit),
-                        title: const Text('Edit Profile'),
-                        trailing: const Icon(Icons.chevron_right),
-                        onTap: () {
-                          // TODO: Navigate to edit profile screen
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                                content: Text('Edit profile coming soon')),
-                          );
-                        },
-                      ),
-
-                      // Change password button
-                      ListTile(
-                        leading: const Icon(Icons.lock_outline),
-                        title: const Text('Change Password'),
-                        trailing: const Icon(Icons.chevron_right),
-                        onTap: () {
-                          // TODO: Navigate to change password screen
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                                content: Text('Change password coming soon')),
-                          );
-                        },
-                      ),
-
-                      // Sign out button
-                      ListTile(
-                        leading:
-                            const Icon(Icons.exit_to_app, color: Colors.red),
-                        title: const Text('Sign Out',
-                            style: TextStyle(color: Colors.red)),
-                        onTap: _signOut,
-                      ),
-                    ],
-                  ),
-                ),
     );
   }
 
-  Widget _buildInfoSection(String title) {
+  Widget _buildHeader() {
+    return const Padding(
+      padding: EdgeInsets.fromLTRB(16, 8, 16, 8),
+      child: Row(
+        children: [
+          // Menu Icon
+          Icon(
+            Icons.menu,
+            color: Color(0xFF473173),
+            size: 28,
+          ),
+          SizedBox(width: 16),
+
+          // Personalized Greeting with Username
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Hi, Izzati!',
+                style: TextStyle(
+                  color: Color(0xFF473173),
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  fontFamily: 'Poppins',
+                ),
+              ),
+              Text(
+                'What do you want to sell today?',
+                style: TextStyle(
+                  color: Color(0xFF473173),
+                  fontSize: 12,
+                  fontFamily: 'Poppins',
+                ),
+              ),
+            ],
+          ),
+
+          Spacer(),
+
+          // Profile Avatar
+          CircleAvatar(
+            radius: 24,
+            backgroundColor: Colors.white,
+            child: Icon(
+              Icons.person,
+              size: 30,
+              color: Color(0xFF8A56AC),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActionButtons() {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+      child: Row(
+        children: [
+          // Add Item Button
+          Expanded(
+            child: ElevatedButton.icon(
+              onPressed: () {},
+              icon: const Icon(Icons.add, color: Colors.white),
+              label: const Text(
+                'Click here\nto add item',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                ),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFAF5DC2),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(30),
+                ),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+              ),
+            ),
+          ),
+
+          const SizedBox(width: 16),
+
+          // Order History Button
+          Expanded(
+            child: ElevatedButton.icon(
+              onPressed: () {},
+              icon: const Icon(Icons.history, color: Colors.white),
+              label: const Text(
+                'View Order\nHistory',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                ),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF8A56AC),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(30),
+                ),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCategorySection() {
+    final categories = [
+      {'name': 'Clothes', 'icon': Icons.checkroom},
+      {'name': 'Cosmetics', 'icon': Icons.face},
+      {'name': 'Shoes', 'icon': Icons.hiking},
+      {'name': 'Electronics', 'icon': Icons.devices},
+      {'name': 'Food', 'icon': Icons.restaurant},
+    ];
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+        const Padding(
+          padding: EdgeInsets.only(left: 16, bottom: 8),
           child: Text(
-            title,
+            'Category',
             style: TextStyle(
-              fontSize: 18,
+              color: Color(0xFF473173),
+              fontSize: 16,
               fontWeight: FontWeight.bold,
-              color: Colors.grey[800],
+              fontFamily: 'Poppins',
             ),
           ),
         ),
-        const Divider(),
+        SizedBox(
+          height: 70,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: categories.map((category) {
+              return Column(
+                children: [
+                  CircleAvatar(
+                    radius: 24,
+                    backgroundColor: const Color(0xFFF9E7FF),
+                    child: Icon(
+                      category['icon'] as IconData,
+                      color: const Color(0xFF8A56AC),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    category['name'] as String,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFF473173),
+                    ),
+                  ),
+                ],
+              );
+            }).toList(),
+          ),
+        ),
       ],
     );
   }
 
-  Widget _buildInfoRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+  Widget _buildItemsGrid() {
+    final items = [
+      {
+        'name': 'Zara Trench Coat',
+        'status': 'Lightly used',
+        'price': 'RM 30.00',
+        'seller': 'uzziefern',
+        'icon': Icons.checkroom, // IconData
+      },
+      {
+        'name': 'Astrid McStella Sweater',
+        'status': 'Lightly used',
+        'price': 'RM 10.00',
+        'seller': 'uzziefern',
+        'icon': Icons.style, // IconData
+      },
+      {
+        'name': 'AI Textbook',
+        'status': 'Lightly used',
+        'price': 'RM 25.00',
+        'seller': 'uzziefern',
+        'icon': Icons.menu_book, // IconData
+      },
+      {
+        'name': 'iPad 3rd Generation',
+        'status': 'Lightly used',
+        'price': 'RM 450.00',
+        'seller': 'uzziefern',
+        'icon': Icons.tablet, // IconData
+      },
+    ];
+
+    return GridView.builder(
+      padding: const EdgeInsets.fromLTRB(8, 0, 8, 0),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        childAspectRatio: 0.75,
+        crossAxisSpacing: 8,
+        mainAxisSpacing: 8,
+      ),
+      itemCount: items.length,
+      itemBuilder: (context, index) {
+        final item = items[index];
+        return Card(
+          elevation: 1,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Item Image or Icon
+              Expanded(
+                child: ClipRRect(
+                  borderRadius:
+                      const BorderRadius.vertical(top: Radius.circular(12)),
+                  child: Container(
+                    width: double.infinity,
+                    color: index % 4 == 0
+                        ? const Color(0xFFE8DCCA)
+                        : index % 4 == 1
+                            ? const Color(0xFF6B94B3)
+                            : index % 4 == 2
+                                ? const Color(0xFF98D973)
+                                : const Color(0xFF808080),
+                    child: Center(
+                      child: Icon(
+                        item['icon'] as IconData, // Explicitly cast as IconData
+                        size: 50,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+
+              // Item Details
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      item['name'] as String,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                        color: Color(0xFF473173),
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Text(
+                      item['status'] as String,
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      item['price'] as String,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                        color: Color(0xFFFF80AB),
+                      ),
+                    ),
+                    Row(
+                      children: [
+                        // Seller Icon
+                        const CircleAvatar(
+                          radius: 10,
+                          backgroundColor: Color(0xFFF9E7FF),
+                          child: Icon(
+                            Icons.person,
+                            size: 12,
+                            color: Color(0xFF8A56AC),
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        // Seller Name
+                        Text(
+                          item['seller'] as String,
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                        const Spacer(),
+                        // Edit Icon
+                        GestureDetector(
+                          onTap: () {},
+                          child: const Icon(
+                            Icons.edit,
+                            size: 16,
+                            color: Color(0xFF8A56AC),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        // Delete Icon
+                        GestureDetector(
+                          onTap: () {},
+                          child: const Icon(
+                            Icons.delete,
+                            size: 16,
+                            color: Color(0xFF8A56AC),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildBottomNavigation() {
+    return Container(
+      height: 60,
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black12,
+            blurRadius: 5,
+            spreadRadius: 1,
+          ),
+        ],
+      ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 16,
-              color: Colors.grey[600],
-            ),
-          ),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
+          _buildNavItem(Icons.home, 'Home', true),
+          _buildNavItem(Icons.bookmark_border, 'Wishlist', false),
+          _buildSellButton(),
+          _buildNavItem(Icons.notifications_none, 'Updates', false),
+          _buildNavItem(Icons.person_outline, 'Profile', false),
         ],
       ),
     );
   }
 
-  String _formatTimestamp(Timestamp? timestamp) {
-    if (timestamp == null) return 'N/A';
+  Widget _buildNavItem(IconData icon, String label, bool isSelected) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(
+          icon,
+          color: isSelected ? const Color(0xFF8A56AC) : Colors.grey,
+          size: 24,
+        ),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 10,
+            color: isSelected ? const Color(0xFF8A56AC) : Colors.grey,
+          ),
+        ),
+      ],
+    );
+  }
 
-    DateTime dateTime = timestamp.toDate();
-    return '${dateTime.day}/${dateTime.month}/${dateTime.year}';
+  Widget _buildSellButton() {
+    return Container(
+      width: 50,
+      height: 50,
+      decoration: BoxDecoration(
+        color: const Color(0xFF8A56AC),
+        shape: BoxShape.circle,
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF8A56AC).withOpacity(0.4),
+            blurRadius: 10,
+            spreadRadius: 2,
+          ),
+        ],
+      ),
+      child: const Icon(
+        Icons.add,
+        color: Colors.white,
+        size: 30,
+      ),
+    );
   }
 }
+
+// // Main App
+// class PrelovedApp extends StatelessWidget {
+//   const PrelovedApp({Key? key}) : super(key: key);
+
+//   @override
+//   Widget build(BuildContext context) {
+//     return MaterialApp(
+//       debugShowCheckedModeBanner: false,
+//       title: 'Preloved App',
+//       theme: ThemeData(
+//         primaryColor: const Color(0xFF8A56AC),
+//         fontFamily: 'Poppins',
+//         scaffoldBackgroundColor: const Color(0xFFE5F6FF),
+//       ),
+//       home: const ItemListPage(),
+//     );
+//   }
+// }
+
+// void main() {
+//   runApp(const PrelovedApp());
+// }

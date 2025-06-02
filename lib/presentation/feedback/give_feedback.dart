@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 void main() {
-  runApp(SellerReviewApp());
+  runApp(const SellerReviewApp());
 }
 
 class SellerReviewApp extends StatelessWidget {
@@ -9,7 +9,7 @@ class SellerReviewApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return const MaterialApp(
       title: 'Seller Review',
       home: GiveFeedback(),
       debugShowCheckedModeBanner: false,

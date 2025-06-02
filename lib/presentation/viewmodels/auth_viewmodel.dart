@@ -1,60 +1,36 @@
-import '../../data/services/auth_service.dart';
+import 'package:koopon/data/services/auth_service.dart';
 
 class AuthViewModel {
   final AuthService _authService = AuthService();
 
-  // Login Method
-  Future<bool> login(String email, String password) async {
-    try {
-      await _authService.signInWithEmailAndPassword(email, password);
-      return true;
-    } catch (error) {
-      print('Login error: $error');
-      return false;
-    }
-  }
+  Future<bool> login(String email, String password) => _authService
+          .signInWithEmailAndPassword(email, password)
+          .then((_) => true)
+          .catchError((error) {
+        print('Login error: $error');
+        return false;
+      });
 
-  // Register Method with University Email Validation
-  Future<bool> register(
-      String email, String password, String displayName) async {
-    // Check if the email is a university email before registering
-    if (!_authService.isUniversityEmail(email)) {
-      print('Please use your university email address to register.');
-      return false; // Prevent registration if email is not from the university domain
-    }
+  Future<bool> register(String email, String password, String displayName) =>
+      _authService
+          .registerWithEmailAndPassword(email, password, displayName)
+          .then((_) => true)
+          .catchError((error) {
+        print('Registration error: $error');
+        return false;
+      });
 
-    try {
-      await _authService.registerWithEmailAndPassword(
-          email, password, displayName);
-      return true;
-    } catch (error) {
-      print('Registration error: $error');
-      return false;
-    }
-  }
+  Future<bool> resetPassword(String email) =>
+      _authService.resetPassword(email).then((_) => true).catchError((error) {
+        print('Password reset error: $error');
+        return false;
+      });
 
-  // Password Reset Method
-  Future<bool> resetPassword(String email) async {
-    try {
-      await _authService.resetPassword(email);
-      return true;
-    } catch (error) {
-      print('Password reset error: $error');
-      return false;
-    }
-  }
+  Future<void> logout() => _authService.signOut();
 
-  // Logout Method
-  Future<void> logout() async {
-    await _authService.signOut();
-  }
-
-  // Check if User is Logged In
   bool isLoggedIn() => _authService.currentUser != null;
 
-  // Get Current User ID
   String? getCurrentUserId() => _authService.currentUser?.uid;
 
-  // Check if Email is a University Email
   bool isUniversityEmail(String email) => _authService.isUniversityEmail(email);
 }

@@ -2,12 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:koopon/core/config/routes.dart';
 import 'package:koopon/core/config/themes.dart';
-import 'package:koopon/presentation/views/authentication/welcome_screen.dart';
+import 'package:koopon/presentation/views/authentication/login_screen.dart';
 import 'package:koopon/presentation/views/splash_screen.dart';
 
 class KooponApp extends StatelessWidget {
-  const KooponApp({super.key});
-
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -20,8 +18,6 @@ class KooponApp extends StatelessWidget {
 }
 
 class AuthWrapper extends StatelessWidget {
-  const AuthWrapper({super.key});
-
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<User?>(
@@ -29,16 +25,16 @@ class AuthWrapper extends StatelessWidget {
       builder: (context, snapshot) {
         // Show splash screen while checking auth state
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const SplashScreen();
+          return SplashScreen();
         }
 
-        // // If user is logged in, go to home screen
-        // if (snapshot.hasData) {
-        //   return AppRoutes.routes['/home']!(context);
-        // }
+        // If user is logged in, go to home screen
+        if (snapshot.hasData) {
+          return AppRoutes.routes['/profile']!(context);
+        }
 
         // Otherwise, go to login screen
-        return WelcomeScreen();
+        return LoginScreen();
       },
     );
   }

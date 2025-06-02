@@ -224,7 +224,7 @@ class _TimeslotSelectionScreenState extends State<TimeslotSelectionScreen> {
 
 // Add this main function to run this screen directly
 void main() {
-  runApp(MaterialApp(
+  runApp(const MaterialApp(
     home: TimeslotSelectionScreen(),
     debugShowCheckedModeBanner: false,
   ));

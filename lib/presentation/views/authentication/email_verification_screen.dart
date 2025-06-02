@@ -1,15 +1,12 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart'; // Add this import
 
 class EmailVerificationScreen extends StatefulWidget {
-  final String email;
-  const EmailVerificationScreen({super.key, required this.email});
+  const EmailVerificationScreen({super.key});
 
   @override
-  _EmailVerificationScreenState createState() =>
-      _EmailVerificationScreenState();
+  _EmailVerificationScreenState createState() => _EmailVerificationScreenState();
 }
 
 class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
@@ -20,58 +17,47 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
   @override
   void initState() {
     super.initState();
-    _user = _auth.currentUser!; // Get the currently logged-in user
+    _user = _auth.currentUser!; // The user just registered
     _startVerificationCheck();
   }
 
-  // Start a periodic check to verify the email status
   void _startVerificationCheck() {
     _timer = Timer.periodic(const Duration(seconds: 3), (_) async {
       await _checkEmailVerified();
     });
   }
 
-  // Check if the email is verified
-  Future<void> _checkEmailVerified() async {
-    await _user.reload(); // Reload the user to get updated information
-    _user = _auth.currentUser!;
+  @override
+  void dispose() {
+    _timer.cancel();
+    super.dispose();
+  }
 
+  Future<void> _checkEmailVerified() async {
+    // Reload user to check verification status
+    await _user.reload();
+    
+    // Get updated user
+    _user = _auth.currentUser!;
+    
     if (_user.emailVerified) {
-      _timer.cancel(); // Stop checking once the email is verified
-      await _saveUserData(); // Save the user data to Firestore after verification
+      _timer.cancel();
+      // Email is verified, show success and redirect to login
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Email verified successfully!')),
       );
-      await _auth.signOut(); // Sign out after verification
+      // Sign out so they can log in with verified account
+      await _auth.signOut();
+      // Navigate to login screen
       Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
     }
   }
 
-  // Save user data to Firestore after email verification
-  Future<void> _saveUserData() async {
-    try {
-      final user = _auth.currentUser!;
-      final displayName =
-          widget.email.split('@')[0]; // Use email as displayName for now
-
-      // Save user details to Firestore after email verification
-      await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
-        'email': user.email,
-        'displayName': displayName,
-        'role': 'buyer', // Default role
-        'dateCreated': FieldValue.serverTimestamp(),
-      });
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to save user data: $e')),
-      );
-    }
-  }
-
-  // Resend the email verification link
   Future<void> _resendVerificationEmail() async {
     try {
       await _user.sendEmailVerification();
+      setState(() {
+      });
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Verification email resent!')),
       );
@@ -83,17 +69,11 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
   }
 
   @override
-  void dispose() {
-    _timer.cancel(); // Cancel the timer to avoid memory leaks
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Verify Your Email'),
-        automaticallyImplyLeading: false, // Disable back button
+        automaticallyImplyLeading: false, // No back button
       ),
       body: Center(
         child: Padding(
@@ -114,7 +94,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
               ),
               const SizedBox(height: 16.0),
               Text(
-                'We\'ve sent a verification link to ${widget.email}.',
+                'We\'ve sent a verification link to ${_user.email}.',
                 textAlign: TextAlign.center,
                 style: const TextStyle(fontSize: 16.0),
               ),
@@ -137,9 +117,9 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
               const SizedBox(height: 16.0),
               TextButton(
                 onPressed: () async {
+                  // Sign out and go back to login
                   await _auth.signOut();
-                  Navigator.of(context)
-                      .pushNamedAndRemoveUntil('/login', (route) => false);
+                  Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
                 },
                 child: const Text('Back to Login'),
               ),

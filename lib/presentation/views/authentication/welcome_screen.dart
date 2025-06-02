@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:koopon/presentation/views/authentication/login_screen.dart';
 import 'package:koopon/presentation/views/authentication/register_screen.dart';
+import 'package:koopon/presentation/views/profile/profile_screen.dart';
 
 class WelcomeScreen extends StatelessWidget {
   const WelcomeScreen({super.key});
@@ -101,7 +102,7 @@ class WelcomeScreen extends StatelessWidget {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => LoginPageScreen(),
+                                builder: (context) => const LoginScreen(),
                               ),
                             );
                           },
@@ -113,7 +114,7 @@ class WelcomeScreen extends StatelessWidget {
                             ),
                             padding: const EdgeInsets.symmetric(vertical: 12.0),
                           ),
-                          child: Text('Sign In'),
+                          child: const Text('Sign In'),
                         ),
                       ),
                     ),
@@ -127,7 +128,7 @@ class WelcomeScreen extends StatelessWidget {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => RegisterScreen(),
+                                builder: (context) => const RegisterScreen(),
                               ),
                             );
                           },
@@ -138,7 +139,7 @@ class WelcomeScreen extends StatelessWidget {
                             ),
                             padding: const EdgeInsets.symmetric(vertical: 12.0),
                           ),
-                          child: Text(
+                          child: const Text(
                             'Sign Up',
                             style: TextStyle(
                               color: Colors.black,
@@ -158,3 +159,4 @@ class WelcomeScreen extends StatelessWidget {
     );
   }
 }
+

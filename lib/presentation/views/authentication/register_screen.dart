@@ -1,22 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:koopon/data/services/auth_service.dart'; // Import AuthService for validation
-import 'email_verification_screen.dart'; // Import EmailVerificationScreen
-
-class PigeonUserDetails {
-  final String username;
-  final String email;
-
-  PigeonUserDetails({required this.username, required this.email});
-
-  // Factory method to convert map to PigeonUserDetails
-  factory PigeonUserDetails.fromMap(Map<String, dynamic> map) {
-    return PigeonUserDetails(
-      username: map['username'] ?? '',
-      email: map['email'] ?? '',
-    );
-  }
-}
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:koopon/presentation/views/authentication/email_verification_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -27,78 +12,108 @@ class RegisterScreen extends StatefulWidget {
 
 class _RegisterScreenState extends State<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _fullnameController = TextEditingController();
+  final _nameController = TextEditingController();
   final _usernameController = TextEditingController();
+  final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
-  final _emailController = TextEditingController();
-
-  final AuthService _authService =
-      AuthService(); // For university email validation
 
   bool _isLoading = false;
   String _errorMessage = '';
 
-  // Register Method
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _usernameController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
+  }
+
+  bool _isUniversityEmail(String email) {
+    return email.endsWith('.edu.my') ||
+        email.endsWith('.edu') ||
+        email.contains('utm.my') ||
+        email.contains('upm.edu.my') ||
+        email.contains('um.edu.my') ||
+        email.contains('usm.my');
+  }
+
+  String _extractUniversityFromEmail(String email) {
+    final domain = email.split('@').last;
+    if (domain.contains('utm.my')) return 'UTM';
+    if (domain.contains('upm.edu.my')) return 'UPM';
+    if (domain.contains('um.edu.my')) return 'UM';
+    if (domain.contains('usm.my')) return 'USM';
+    return domain.split('.').first.toUpperCase();
+  }
+
   Future<void> _register() async {
-    if (_passwordController.text == _confirmPasswordController.text) {
+    // Hide keyboard
+    FocusScope.of(context).unfocus();
+
+    if (_formKey.currentState!.validate()) {
       setState(() {
         _isLoading = true;
         _errorMessage = '';
       });
 
-      final email = _emailController.text.trim();
-
-      // Validate university email before proceeding
-      if (!_authService.isUniversityEmail(email)) {
-        setState(() {
-          _errorMessage = 'Please use your university email address.';
-          _isLoading = false;
-        });
-        return;
-      }
-
       try {
-        // Register user with email and password
+        // Check if email is a university email
+        final email = _emailController.text.trim();
+        if (!_isUniversityEmail(email)) {
+          throw Exception('Please use a university email address');
+        }
+
+        // Check if passwords match
+        if (_passwordController.text != _confirmPasswordController.text) {
+          throw Exception('Passwords do not match');
+        }
+
+        // Create user in Firebase Auth
         UserCredential result =
             await FirebaseAuth.instance.createUserWithEmailAndPassword(
           email: email,
           password: _passwordController.text,
         );
 
-        // Log that the user was created
-        print("User created successfully: ${result.user!.email}");
+        // Add user profile to Firestore
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(result.user!.uid)
+            .set({
+          'displayName': _nameController.text.trim(),
+          'username': _usernameController.text.trim().isNotEmpty
+              ? _usernameController.text.trim()
+              : null,
+          'email': email,
+          'role': 'buyer', // Default role
+          'dateCreated': FieldValue.serverTimestamp(),
+          'universityName': _extractUniversityFromEmail(email),
+        });
+
+        // Update display name
+        await result.user!.updateDisplayName(_nameController.text.trim());
 
         // Send email verification
         await result.user!.sendEmailVerification();
 
-        // Log email verification sent
-        print("Email verification sent to: ${result.user!.email}");
-
-        setState(() {
-          _isLoading = false;
-          _errorMessage =
-              "A verification email has been sent. Please verify your email address before continuing.";
-        });
-
-        // Navigate to email verification screen to let user know they need to verify their email
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => EmailVerificationScreen(email: email),
-          ),
-        );
+        // Navigate to email verification screen
+        if (mounted) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => EmailVerificationScreen(),
+            ),
+          );
+        }
       } catch (e) {
         setState(() {
           _errorMessage = e.toString();
           _isLoading = false;
         });
-        print("Error occurred during registration: $e");
       }
-    } else {
-      setState(() {
-        _errorMessage = "Please make sure the passwords match.";
-      });
     }
   }
 
@@ -121,8 +136,24 @@ class _RegisterScreenState extends State<RegisterScreen> {
           child: SafeArea(
             child: ListView(
               padding: const EdgeInsets.symmetric(horizontal: 20.0),
+              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
               children: [
-                const SizedBox(height: 10.0),
+                // Back button
+                Padding(
+                  padding: const EdgeInsets.only(top: 8.0, bottom: 10.0),
+                  child: Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.arrow_back, color: Colors.white),
+                        onPressed: () {
+                          Navigator.pop(context);
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Sign Up header
                 const Text(
                   'Sign Up',
                   style: TextStyle(
@@ -131,46 +162,238 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                const SizedBox(height: 10.0),
-                _buildTextField(_fullnameController, 'Fullname'),
+
+                const SizedBox(height: 8.0),
+
+                // Description text
+                const Text(
+                  'Join the Koopon community and start buying/selling preloved items with fellow students!',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 14.0,
+                    height: 1.4,
+                  ),
+                ),
+
+                const SizedBox(height: 20.0),
+
+                // Full Name field
+                _buildTextField(
+                  _nameController,
+                  'Full Name',
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Please enter your full name';
+                    }
+                    if (value.trim().length < 2) {
+                      return 'Full name must be at least 2 characters';
+                    }
+                    return null;
+                  },
+                  onChanged: (value) {
+                    if (_errorMessage.isNotEmpty) {
+                      setState(() => _errorMessage = '');
+                    }
+                  },
+                ),
+
                 const SizedBox(height: 15.0),
-                _buildTextField(_usernameController, 'Username'),
+
+                // Username field (optional)
+                _buildTextField(
+                  _usernameController,
+                  'Username (Optional)',
+                  validator: (value) {
+                    // Username is optional, so no validation required
+                    return null;
+                  },
+                  onChanged: (value) {
+                    if (_errorMessage.isNotEmpty) {
+                      setState(() => _errorMessage = '');
+                    }
+                  },
+                ),
+
                 const SizedBox(height: 15.0),
-                _buildPasswordField(_passwordController, 'Password'),
+
+                // University Email field
+                _buildTextField(
+                  _emailController,
+                  'University Email',
+                  isEmail: true,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter your email';
+                    }
+                    if (!value.contains('@')) {
+                      return 'Please enter a valid email';
+                    }
+                    return null;
+                  },
+                  onChanged: (value) {
+                    if (_errorMessage.isNotEmpty) {
+                      setState(() => _errorMessage = '');
+                    }
+                  },
+                ),
+
                 const SizedBox(height: 15.0),
+
+                // Password field
                 _buildPasswordField(
-                    _confirmPasswordController, 'Confirm Password'),
+                  _passwordController,
+                  'Password',
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter a password';
+                    }
+                    if (value.length < 6) {
+                      return 'Password must be at least 6 characters';
+                    }
+                    return null;
+                  },
+                  onChanged: (value) {
+                    if (_errorMessage.isNotEmpty) {
+                      setState(() => _errorMessage = '');
+                    }
+                  },
+                ),
+
                 const SizedBox(height: 15.0),
-                _buildTextField(_emailController, 'University Email',
-                    isEmail: true),
-                const SizedBox(height: 30.0),
+
+                // Confirm Password field
+                _buildPasswordField(
+                  _confirmPasswordController,
+                  'Confirm Password',
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please confirm your password';
+                    }
+                    if (value != _passwordController.text) {
+                      return 'Passwords do not match';
+                    }
+                    return null;
+                  },
+                  onChanged: (value) {
+                    if (_errorMessage.isNotEmpty) {
+                      setState(() => _errorMessage = '');
+                    }
+                  },
+                ),
+
+                const SizedBox(height: 20.0),
+
+                // Error message
+                if (_errorMessage.isNotEmpty) ...[
+                  Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 8.0),
+                    padding: const EdgeInsets.all(12.0),
+                    decoration: BoxDecoration(
+                      color: Colors.red[50],
+                      borderRadius: BorderRadius.circular(8.0),
+                      border: Border.all(color: Colors.red[300]!),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.error_outline,
+                          color: Colors.red[700],
+                          size: 20.0,
+                        ),
+                        const SizedBox(width: 8.0),
+                        Expanded(
+                          child: Text(
+                            _errorMessage,
+                            style: TextStyle(
+                              color: Colors.red[700],
+                              fontSize: 14.0,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16.0),
+                ],
+
+                // Sign Up button
                 Container(
                   width: double.infinity,
-                  margin: const EdgeInsets.only(bottom: 30.0),
+                  margin: const EdgeInsets.only(bottom: 20.0),
                   child: ElevatedButton(
                     onPressed: _isLoading ? null : _register,
                     style: ElevatedButton.styleFrom(
                       foregroundColor: Colors.white,
-                      backgroundColor: Colors.black,
+                      backgroundColor:
+                          _isLoading ? Colors.grey[600] : Colors.black,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(30.0),
                       ),
                       padding: const EdgeInsets.symmetric(vertical: 15.0),
+                      elevation: _isLoading ? 0 : 2,
                     ),
                     child: _isLoading
-                        ? const CircularProgressIndicator(color: Colors.white)
-                        : const Text('Sign Up',
-                            style: TextStyle(fontSize: 16.0)),
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2.0,
+                            ),
+                          )
+                        : const Text(
+                            'Sign Up',
+                            style: TextStyle(
+                              fontSize: 16.0,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
                   ),
                 ),
-                if (_errorMessage.isNotEmpty) ...[
-                  const SizedBox(height: 16.0),
-                  Text(
-                    _errorMessage,
-                    style: const TextStyle(color: Colors.red, fontSize: 14.0),
+
+                // Already have account link
+                Container(
+                  margin: const EdgeInsets.only(bottom: 10.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Text(
+                        "Already have an account? ",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 14.0,
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          Navigator.pop(context);
+                        },
+                        child: const Text(
+                          'Sign In',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 14.0,
+                            fontWeight: FontWeight.bold,
+                            decoration: TextDecoration.underline,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Terms and conditions
+                Container(
+                  margin: const EdgeInsets.only(bottom: 20.0),
+                  child: const Text(
+                    'By signing up, you agree to our Terms of Service and Privacy Policy.',
+                    style: TextStyle(
+                      color: Colors.white70,
+                      fontSize: 12.0,
+                    ),
                     textAlign: TextAlign.center,
                   ),
-                ],
+                ),
               ],
             ),
           ),
@@ -179,8 +402,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
-  Widget _buildTextField(TextEditingController controller, String hintText,
-      {bool isEmail = false}) {
+  Widget _buildTextField(
+    TextEditingController controller,
+    String hintText, {
+    bool isEmail = false,
+    String? Function(String?)? validator,
+    void Function(String)? onChanged,
+  }) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -196,21 +424,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
           contentPadding:
               const EdgeInsets.symmetric(horizontal: 20.0, vertical: 15.0),
         ),
-        validator: (value) {
-          if (value == null || value.isEmpty) {
-            return 'Please enter your email';
-          }
-          if (!value.contains('@')) {
-            return 'Please enter a valid email';
-          }
-          return null;
-        },
+        validator: validator,
+        onChanged: onChanged,
       ),
     );
   }
 
   Widget _buildPasswordField(
-      TextEditingController controller, String hintText) {
+    TextEditingController controller,
+    String hintText, {
+    String? Function(String?)? validator,
+    void Function(String)? onChanged,
+  }) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -226,17 +451,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
           contentPadding:
               const EdgeInsets.symmetric(horizontal: 20.0, vertical: 15.0),
         ),
+        validator: validator,
+        onChanged: onChanged,
       ),
     );
-  }
-
-  @override
-  void dispose() {
-    _fullnameController.dispose();
-    _usernameController.dispose();
-    _passwordController.dispose();
-    _confirmPasswordController.dispose();
-    _emailController.dispose();
-    super.dispose();
   }
 }

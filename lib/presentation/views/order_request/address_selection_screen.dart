@@ -45,7 +45,7 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => AddNewAddressScreen(),
+                    builder: (context) => const AddNewAddressScreen(),
                   ),
                 );
               },
@@ -289,7 +289,7 @@ class AddNewAddressScreen extends StatelessWidget {
 
 // Add this main function to run this screen directly
 void main() {
-  runApp(MaterialApp(
+  runApp(const MaterialApp(
     home: AddressSelectionScreen(),
     debugShowCheckedModeBanner: false,
   ));
