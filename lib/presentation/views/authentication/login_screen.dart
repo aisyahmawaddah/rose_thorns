@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:koopon/data/services/auth_service.dart';
+import 'package:koopon/data/repositories/login_repository.dart';
+import 'package:koopon/data/models/login_model.dart';
 import 'package:koopon/presentation/views/authentication/register_screen.dart';
 import 'package:koopon/presentation/views/authentication/password_reset_screen.dart';
 import 'package:koopon/presentation/views/authentication/welcome_screen.dart';
+import 'package:koopon/presentation/views/home_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -12,15 +14,12 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final AuthService _authService = AuthService();
+  final LoginRepository _loginRepository = LoginRepository();
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
 
-  String _email = '';
-  String _password = '';
-  String _errorMessage = '';
-  bool _isLoading = false;
+  LoginModel _loginModel = const LoginModel(email: '', password: '');
 
   @override
   void dispose() {
@@ -33,27 +32,35 @@ class _LoginScreenState extends State<LoginScreen> {
     // Hide keyboard
     FocusScope.of(context).unfocus();
 
-    if (_formKey.currentState!.validate()) {
+    if (_formKey.currentState?.validate() ?? false) {
+      if (!mounted) return;
       setState(() {
-        _isLoading = true;
-        _errorMessage = '';
+        _loginModel = _loginModel.copyWith(
+          isLoading: true,
+          errorMessage: null,
+        );
       });
 
       try {
         // Sign in with email and password
-        await _authService.signInWithEmailAndPassword(_email, _password);
+        final userCredential = await _loginRepository.login(
+          _emailController.text.trim(),
+          _passwordController.text.trim(),
+        );
 
         // Check if email is verified
-        if (_authService.currentUser != null &&
-            !_authService.currentUser!.emailVerified) {
+        if (userCredential.user != null && !userCredential.user!.emailVerified) {
           // Show error and don't proceed
+          if (!mounted) return;
           setState(() {
-            _errorMessage =
-                'Please verify your email before logging in. Check your inbox for the verification link.';
-            _isLoading = false;
+            _loginModel = _loginModel.copyWith(
+              errorMessage: 'Please verify your email before logging in. Check your inbox for the verification link.',
+              isLoading: false,
+            );
           });
 
           // Show dialog with option to resend
+          if (!mounted) return;
           showDialog(
             context: context,
             builder: (context) => AlertDialog(
@@ -69,13 +76,15 @@ class _LoginScreenState extends State<LoginScreen> {
                   onPressed: () async {
                     Navigator.pop(context);
                     try {
-                      await _authService.currentUser!.sendEmailVerification();
+                      await userCredential.user!.sendEmailVerification();
+                      if (!mounted) return;
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
                             content: Text(
                                 'Verification email sent again. Please check your inbox.')),
                       );
                     } catch (e) {
+                      if (!mounted) return;
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                             content:
@@ -90,18 +99,41 @@ class _LoginScreenState extends State<LoginScreen> {
           );
 
           // Sign out since they shouldn't be logged in yet
-          await _authService.signOut();
+          await _loginRepository.logout();
           return;
         }
 
-        // If verified, proceed to home
-        Navigator.pushReplacementNamed(context, '/profile');
+        // If verified, proceed to home page
+        if (!mounted) return;
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const HomeScreen()),
+        );
       } catch (e) {
+        if (!mounted) return;
         setState(() {
-          _errorMessage = e.toString();
-          _isLoading = false;
+          _loginModel = _loginModel.copyWith(
+            errorMessage: _getErrorMessage(e.toString()),
+            isLoading: false,
+          );
         });
       }
+    }
+  }
+
+  String _getErrorMessage(String error) {
+    if (error.contains('user-not-found')) {
+      return 'No user found with this email address.';
+    } else if (error.contains('wrong-password')) {
+      return 'Incorrect password. Please try again.';
+    } else if (error.contains('invalid-email')) {
+      return 'Invalid email address format.';
+    } else if (error.contains('user-disabled')) {
+      return 'This account has been disabled.';
+    } else if (error.contains('too-many-requests')) {
+      return 'Too many failed attempts. Please try again later.';
+    } else {
+      return 'Login failed. Please check your credentials and try again.';
     }
   }
 
@@ -188,6 +220,17 @@ class _LoginScreenState extends State<LoginScreen> {
                       height: screenHeight * 0.25,
                       width: double.infinity,
                       fit: BoxFit.contain,
+                      errorBuilder: (context, error, stackTrace) {
+                        // Fallback if image is not found
+                        return SizedBox(
+                          height: screenHeight * 0.25,
+                          child: const Icon(
+                            Icons.shopping_cart,
+                            size: 100,
+                            color: Colors.white,
+                          ),
+                        );
+                      },
                     ),
                   ),
                 ),
@@ -221,11 +264,12 @@ class _LoginScreenState extends State<LoginScreen> {
                       return null;
                     },
                     onChanged: (val) {
-                      setState(() => _email = val);
-                      // Clear errors when user starts typing
-                      if (_errorMessage.isNotEmpty) {
-                        setState(() => _errorMessage = '');
-                      }
+                      setState(() {
+                        _loginModel = _loginModel.copyWith(
+                          email: val,
+                          errorMessage: null,
+                        );
+                      });
                     },
                   ),
                 ),
@@ -261,11 +305,12 @@ class _LoginScreenState extends State<LoginScreen> {
                       return null;
                     },
                     onChanged: (val) {
-                      setState(() => _password = val);
-                      // Clear errors when user starts typing
-                      if (_errorMessage.isNotEmpty) {
-                        setState(() => _errorMessage = '');
-                      }
+                      setState(() {
+                        _loginModel = _loginModel.copyWith(
+                          password: val,
+                          errorMessage: null,
+                        );
+                      });
                     },
                   ),
                 ),
@@ -273,7 +318,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 const SizedBox(height: 16.0),
 
                 // Error message
-                if (_errorMessage.isNotEmpty) ...[
+                if (_loginModel.errorMessage?.isNotEmpty == true) ...[
                   Container(
                     margin: const EdgeInsets.symmetric(horizontal: 8.0),
                     padding: const EdgeInsets.all(12.0),
@@ -292,7 +337,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         const SizedBox(width: 8.0),
                         Expanded(
                           child: Text(
-                            _errorMessage,
+                            _loginModel.errorMessage!,
                             style: TextStyle(
                               color: Colors.red[700],
                               fontSize: 14.0,
@@ -334,18 +379,18 @@ class _LoginScreenState extends State<LoginScreen> {
                   width: double.infinity,
                   margin: const EdgeInsets.only(bottom: 20.0),
                   child: ElevatedButton(
-                    onPressed: _isLoading ? null : _signIn,
+                    onPressed: _loginModel.isLoading ? null : _signIn,
                     style: ElevatedButton.styleFrom(
                       foregroundColor: Colors.white,
                       backgroundColor:
-                          _isLoading ? Colors.grey[600] : Colors.black,
+                          _loginModel.isLoading ? Colors.grey[600] : Colors.black,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(30.0),
                       ),
                       padding: const EdgeInsets.symmetric(vertical: 15.0),
-                      elevation: _isLoading ? 0 : 2,
+                      elevation: _loginModel.isLoading ? 0 : 2,
                     ),
-                    child: _isLoading
+                    child: _loginModel.isLoading
                         ? const SizedBox(
                             height: 20,
                             width: 20,

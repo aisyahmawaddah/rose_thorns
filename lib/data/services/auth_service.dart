@@ -17,7 +17,7 @@ class AuthService {
           email: email, password: password);
       return result;
     } catch (e) {
-      throw e;
+      rethrow;
     }
   }
 
@@ -45,7 +45,7 @@ class AuthService {
 
       return result;
     } catch (e) {
-      throw e;
+      rethrow;
     }
   }
 
@@ -54,7 +54,7 @@ class AuthService {
     try {
       await _auth.sendPasswordResetEmail(email: email);
     } catch (e) {
-      throw e;
+      rethrow;
     }
   }
 

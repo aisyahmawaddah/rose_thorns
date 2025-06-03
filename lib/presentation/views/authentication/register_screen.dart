@@ -104,7 +104,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
-              builder: (context) => EmailVerificationScreen(),
+              builder: (context) => const EmailVerificationScreen(),
             ),
           );
         }

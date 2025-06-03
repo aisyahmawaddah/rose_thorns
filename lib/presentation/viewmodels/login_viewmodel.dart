@@ -12,7 +12,7 @@ class LoginViewModel extends ChangeNotifier {
   LoginViewModel({LoginRepository? repository})
       : _repository = repository ?? LoginRepository();
 
-  LoginModel _state = LoginModel(email: '', password: '');
+  LoginModel _state = const LoginModel(email: '', password: '');
 
   LoginModel get state => _state;
 

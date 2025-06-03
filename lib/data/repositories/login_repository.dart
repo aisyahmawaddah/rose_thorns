@@ -1,4 +1,3 @@
-// login_repository.dart
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:koopon/data/services/login_service.dart';
 
@@ -10,18 +9,67 @@ class LoginRepository {
 
   Future<UserCredential> login(String email, String password) async {
     try {
-      return await _loginService.signInWithEmailAndPassword(email, password);
+      // Validate inputs
+      if (email.trim().isEmpty) {
+        throw Exception('Email cannot be empty');
+      }
+      if (password.trim().isEmpty) {
+        throw Exception('Password cannot be empty');
+      }
+
+      return await _loginService.signInWithEmailAndPassword(
+        email.trim(), 
+        password.trim()
+      );
+    } on FirebaseAuthException catch (e) {
+      // Handle specific Firebase Auth errors
+      switch (e.code) {
+        case 'user-not-found':
+          throw Exception('No user found with this email address.');
+        case 'wrong-password':
+          throw Exception('Incorrect password. Please try again.');
+        case 'invalid-email':
+          throw Exception('Invalid email address format.');
+        case 'user-disabled':
+          throw Exception('This account has been disabled.');
+        case 'too-many-requests':
+          throw Exception('Too many failed attempts. Please try again later.');
+        case 'network-request-failed':
+          throw Exception('Network error. Please check your connection.');
+        default:
+          throw Exception('Login failed: ${e.message ?? 'Unknown error'}');
+      }
     } catch (e) {
-      // You can add additional error handling logic here if needed
-      rethrow;
+      // Handle other types of errors
+      if (e is Exception) {
+        rethrow;
+      } else {
+        throw Exception('An unexpected error occurred: ${e.toString()}');
+      }
     }
   }
 
   Future<void> resetPassword(String email) async {
     try {
-      await _loginService.resetPassword(email);
+      if (email.trim().isEmpty) {
+        throw Exception('Email cannot be empty');
+      }
+      await _loginService.resetPassword(email.trim());
+    } on FirebaseAuthException catch (e) {
+      switch (e.code) {
+        case 'user-not-found':
+          throw Exception('No user found with this email address.');
+        case 'invalid-email':
+          throw Exception('Invalid email address format.');
+        default:
+          throw Exception('Password reset failed: ${e.message ?? 'Unknown error'}');
+      }
     } catch (e) {
-      rethrow;
+      if (e is Exception) {
+        rethrow;
+      } else {
+        throw Exception('An unexpected error occurred: ${e.toString()}');
+      }
     }
   }
 
@@ -29,7 +77,7 @@ class LoginRepository {
     try {
       await _loginService.signOut();
     } catch (e) {
-      rethrow;
+      throw Exception('Logout failed: ${e.toString()}');
     }
   }
 

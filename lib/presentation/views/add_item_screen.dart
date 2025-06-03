@@ -1,15 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-
-void main() {
-  runApp(MaterialApp(
-    home: const AddItemPage(),
-    theme: ThemeData(
-      primarySwatch: Colors.blue,
-      visualDensity: VisualDensity.adaptivePlatformDensity,
-    ),
-  ));
-}
+import 'package:image_picker/image_picker.dart';
+import 'package:koopon/data/services/item_services.dart';
 
 class AddItemPage extends StatefulWidget {
   const AddItemPage({Key? key}) : super(key: key);
@@ -20,15 +12,16 @@ class AddItemPage extends StatefulWidget {
 
 class _AddItemPageState extends State<AddItemPage> {
   final TextEditingController _nameController = TextEditingController();
-  final TextEditingController _descriptionController = TextEditingController();
   final TextEditingController _priceController = TextEditingController();
-  final TextEditingController _sizeController = TextEditingController();
-  final TextEditingController _brandController = TextEditingController();
 
   String _selectedCategory = 'Choose category';
   final String _selectedStatus = 'Lightly used';
   File? _imageFile;
   final ImagePicker _picker = ImagePicker();
+  bool _isLoading = false;
+
+  // Instance of ItemService
+  final ItemService _itemService = ItemService();
 
   // List of categories
   final List<String> _categories = [
@@ -69,10 +62,7 @@ class _AddItemPageState extends State<AddItemPage> {
   @override
   void dispose() {
     _nameController.dispose();
-    _descriptionController.dispose();
     _priceController.dispose();
-    _sizeController.dispose();
-    _brandController.dispose();
 
     // Dispose all dynamic controllers
     for (var controller in _dynamicControllers.values) {
@@ -89,13 +79,22 @@ class _AddItemPageState extends State<AddItemPage> {
   }
 
   // Pick image from gallery
-  Future<void> _pickImage(dynamic ImageSource) async {
-    final XFile? pickedFile =
-        await _picker.pickImage(source: ImageSource.gallery);
-    if (pickedFile != null) {
-      setState(() {
-        _imageFile = File(pickedFile.path);
-      });
+  Future<void> _pickImage() async {
+    try {
+      final XFile? pickedFile = await _picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1000,
+        maxHeight: 1000,
+        imageQuality: 80,
+      );
+      
+      if (pickedFile != null) {
+        setState(() {
+          _imageFile = File(pickedFile.path);
+        });
+      }
+    } catch (e) {
+      _showErrorSnackBar('Error picking image: ${e.toString()}');
     }
   }
 
@@ -119,8 +118,7 @@ class _AddItemPageState extends State<AddItemPage> {
               child: Row(
                 children: [
                   IconButton(
-                    icon:
-                        const Icon(Icons.arrow_back, color: Color(0xFF473173)),
+                    icon: const Icon(Icons.arrow_back, color: Color(0xFF473173)),
                     onPressed: () => Navigator.of(context).pop(),
                   ),
                   const Expanded(
@@ -183,8 +181,7 @@ class _AddItemPageState extends State<AddItemPage> {
                       }
                     });
                   },
-                  items:
-                      _categories.map<DropdownMenuItem<String>>((String value) {
+                  items: _categories.map<DropdownMenuItem<String>>((String value) {
                     return DropdownMenuItem<String>(
                       value: value,
                       child: Text(
@@ -203,7 +200,7 @@ class _AddItemPageState extends State<AddItemPage> {
                 // Image Upload Section
                 Center(
                   child: GestureDetector(
-                    onTap: () => _pickImage(ImageSource),
+                    onTap: _pickImage,
                     child: Container(
                       width: 120,
                       height: 120,
@@ -223,10 +220,23 @@ class _AddItemPageState extends State<AddItemPage> {
                         alignment: Alignment.center,
                         children: [
                           if (_imageFile == null)
-                            const Icon(
-                              Icons.add_photo_alternate,
-                              color: Color(0xFF8A56AC),
-                              size: 40,
+                            Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(
+                                  Icons.add_photo_alternate,
+                                  color: Color(0xFF8A56AC),
+                                  size: 40,
+                                ),
+                                const SizedBox(height: 4),
+                                const Text(
+                                  'Optional',
+                                  style: TextStyle(
+                                    color: Color(0xFF8A56AC),
+                                    fontSize: 10,
+                                  ),
+                                ),
+                              ],
                             )
                           else
                             ClipOval(
@@ -246,8 +256,8 @@ class _AddItemPageState extends State<AddItemPage> {
                                 color: Color(0xFF8A56AC),
                                 shape: BoxShape.circle,
                               ),
-                              child: const Icon(
-                                Icons.add,
+                              child: Icon(
+                                _imageFile == null ? Icons.add : Icons.edit,
                                 color: Colors.white,
                                 size: 18,
                               ),
@@ -281,6 +291,7 @@ class _AddItemPageState extends State<AddItemPage> {
                       contentPadding: EdgeInsets.symmetric(
                           horizontal: 16.0, vertical: 12.0),
                       border: InputBorder.none,
+                      hintText: 'Enter item name',
                     ),
                   ),
                 ),
@@ -314,8 +325,6 @@ class _AddItemPageState extends State<AddItemPage> {
 
                 // Dynamic Fields based on Category
                 ..._currentFields.map((field) {
-                  if (field == "Description") return Container();
-
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -336,10 +345,11 @@ class _AddItemPageState extends State<AddItemPage> {
                         ),
                         child: TextField(
                           controller: _dynamicControllers[field],
-                          decoration: const InputDecoration(
-                            contentPadding: EdgeInsets.symmetric(
+                          decoration: InputDecoration(
+                            contentPadding: const EdgeInsets.symmetric(
                                 horizontal: 16.0, vertical: 12.0),
                             border: InputBorder.none,
+                            hintText: 'Enter $field',
                           ),
                         ),
                       ),
@@ -371,6 +381,7 @@ class _AddItemPageState extends State<AddItemPage> {
                       contentPadding: EdgeInsets.symmetric(
                           horizontal: 16.0, vertical: 12.0),
                       border: InputBorder.none,
+                      hintText: 'Enter price',
                     ),
                   ),
                 ),
@@ -381,24 +392,33 @@ class _AddItemPageState extends State<AddItemPage> {
                     width: 200,
                     margin: const EdgeInsets.symmetric(vertical: 16.0),
                     child: ElevatedButton(
-                      onPressed: () {
-                        _saveItem();
-                      },
+                      onPressed: _isLoading ? null : _saveItem,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF8BC34A),
+                        backgroundColor: _isLoading 
+                            ? Colors.grey 
+                            : const Color(0xFF8BC34A),
                         foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(30),
                         ),
                         padding: const EdgeInsets.symmetric(vertical: 12),
                       ),
-                      child: const Text(
-                        'Save',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                      child: _isLoading
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                              ),
+                            )
+                          : const Text(
+                              'Save',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                     ),
                   ),
                 ),
@@ -414,6 +434,13 @@ class _AddItemPageState extends State<AddItemPage> {
         showSelectedLabels: true,
         showUnselectedLabels: true,
         type: BottomNavigationBarType.fixed,
+        onTap: (index) {
+          if (index == 0) {
+            // Home - Go back to home screen
+            Navigator.of(context).pop();
+          }
+          // Add other navigation logic as needed
+        },
         items: [
           const BottomNavigationBarItem(
             icon: Icon(Icons.home),
@@ -448,10 +475,10 @@ class _AddItemPageState extends State<AddItemPage> {
     );
   }
 
-  // Save item method
+  // Save item method with Firebase integration
   void _saveItem() async {
     // Validate form
-    if (_nameController.text.isEmpty) {
+    if (_nameController.text.trim().isEmpty) {
       _showErrorSnackBar('Please enter item name');
       return;
     }
@@ -461,104 +488,94 @@ class _AddItemPageState extends State<AddItemPage> {
       return;
     }
 
-    if (_priceController.text.isEmpty) {
+    if (_priceController.text.trim().isEmpty) {
       _showErrorSnackBar('Please enter price');
       return;
     }
 
-    if (_imageFile == null) {
-      _showErrorSnackBar('Please add an image');
+    // Validate price
+    double? price;
+    try {
+      price = double.parse(_priceController.text.trim());
+      if (price <= 0) {
+        _showErrorSnackBar('Please enter a valid price');
+        return;
+      }
+    } catch (e) {
+      _showErrorSnackBar('Please enter a valid price');
       return;
     }
 
-    // Here you would upload the image to your database
-    // For example with Firebase Storage:
-    /*
+    // Image is now optional - no validation needed
+
+    setState(() {
+      _isLoading = true;
+    });
+
     try {
-      // Show loading indicator
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => const Center(child: CircularProgressIndicator()),
-      );
-      
-      // Upload image to Firebase Storage
-      final storageRef = FirebaseStorage.instance.ref();
-      final imageRef = storageRef.child('item_images/${DateTime.now().millisecondsSinceEpoch}.jpg');
-      await imageRef.putFile(_imageFile!);
-      final imageUrl = await imageRef.getDownloadURL();
-      
-      // Create item data
-      final itemData = {
-        'name': _nameController.text,
-        'category': _selectedCategory,
-        'status': _selectedStatus,
-        'price': double.parse(_priceController.text),
-        'imageUrl': imageUrl,
-        'createdAt': DateTime.now(),
-        // Add other fields based on category
-      };
-      
-      // Add dynamic fields
+      // Collect additional fields
+      final additionalFields = <String, dynamic>{};
       for (var field in _currentFields) {
-        if (_dynamicControllers[field]?.text.isNotEmpty ?? false) {
-          itemData[field.toLowerCase()] = _dynamicControllers[field]!.text;
+        final controller = _dynamicControllers[field];
+        if (controller != null && controller.text.trim().isNotEmpty) {
+          additionalFields[field.toLowerCase()] = controller.text.trim();
         }
       }
-      
-      // Save to Firestore
-      await FirebaseFirestore.instance.collection('items').add(itemData);
-      
-      // Close loading dialog
-      Navigator.of(context).pop();
-      
-      // Show success and navigate back
-      _showSuccessSnackBar('Item saved successfully');
-      Future.delayed(const Duration(seconds: 1), () {
-        Navigator.of(context).pop();
-      });
-    } catch (e) {
-      // Close loading dialog
-      Navigator.of(context).pop();
-      _showErrorSnackBar('Error saving item: ${e.toString()}');
-    }
-    */
 
-    // For now, just show success and navigate back
-    _showSuccessSnackBar('Item saved successfully');
-    Future.delayed(const Duration(seconds: 1), () {
-      Navigator.of(context).pop();
-    });
+      // Save item using ItemService
+      await _itemService.addItem(
+        name: _nameController.text.trim(),
+        category: _selectedCategory,
+        status: _selectedStatus,
+        price: price,
+        imageFile: _imageFile,
+        additionalFields: additionalFields,
+      );
+
+      // Show success and navigate back
+      _showSuccessSnackBar('Item saved successfully!');
+      
+      // Wait a moment for user to see the success message
+      await Future.delayed(const Duration(seconds: 1));
+      
+      // Navigate back to home screen
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
+    } catch (e) {
+      _showErrorSnackBar('Error saving item: ${e.toString()}');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   // Show error SnackBar
   void _showErrorSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.red,
-      ),
-    );
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
   }
 
   // Show success SnackBar
   void _showSuccessSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.green,
-      ),
-    );
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: Colors.green,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
   }
-}
-
-class ImageSource {}
-
-class XFile {
-  final String path;
-  XFile(this.path);
-}
-
-class ImagePicker {
-  pickImage({required source}) {}
 }
