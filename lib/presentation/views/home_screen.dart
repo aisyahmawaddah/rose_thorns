@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:koopon/presentation/views/add_item_screen.dart';
+import 'package:koopon/presentation/viewmodels/home_viewmodel.dart';
+import 'package:koopon/data/models/item_model.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -12,30 +15,46 @@ class _HomeScreenState extends State<HomeScreen> {
   int _selectedNavIndex = 0;
 
   @override
+  void initState() {
+    super.initState();
+    // Initialize the view model when the page loads
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<HomeViewModel>(context, listen: false).initialize();
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFE8D4F1), // Light purple background
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Header Section
-            _buildHeader(),
-            
-            // Action Buttons Section
-            _buildActionButtons(),
-            
-            // Category Section
-            _buildCategorySection(),
-            
-            // Items Grid
-            Expanded(
-              child: _buildItemsGrid(),
+    return ChangeNotifierProvider(
+      create: (context) => HomeViewModel(),
+      child: Consumer<HomeViewModel>(
+        builder: (context, viewModel, child) {
+          return Scaffold(
+            backgroundColor: const Color(0xFFE8D4F1), // Light purple background
+            body: SafeArea(
+              child: Column(
+                children: [
+                  // Header Section
+                  _buildHeader(),
+                  
+                  // Action Buttons Section
+                  _buildActionButtons(viewModel),
+                  
+                  // Category Section
+                  _buildCategorySection(viewModel),
+                  
+                  // Items Grid
+                  Expanded(
+                    child: _buildItemsGrid(viewModel),
+                  ),
+                  
+                  // Bottom Navigation
+                  _buildBottomNavigation(),
+                ],
+              ),
             ),
-            
-            // Bottom Navigation
-            _buildBottomNavigation(),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
@@ -59,7 +78,7 @@ class _HomeScreenState extends State<HomeScreen> {
           
           // Title
           const Text(
-            'Item List',
+            'Graduate Marketplace',
             style: TextStyle(
               color: Color(0xFF2D1B35),
               fontSize: 20,
@@ -99,7 +118,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildActionButtons() {
+  Widget _buildActionButtons(HomeViewModel viewModel) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Row(
@@ -110,11 +129,16 @@ class _HomeScreenState extends State<HomeScreen> {
               height: 60,
               margin: const EdgeInsets.only(right: 8),
               child: ElevatedButton(
-                onPressed: () {
-                  Navigator.push(
+                onPressed: () async {
+                  final result = await Navigator.push(
                     context,
                     MaterialPageRoute(builder: (context) => const AddItemPage()),
                   );
+                  
+                  // Refresh items when returning from add item page
+                  if (result == true) {
+                    viewModel.refreshItems();
+                  }
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFFE91E63), // Pink color
@@ -209,13 +233,13 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildCategorySection() {
+  Widget _buildCategorySection(HomeViewModel viewModel) {
     final categories = [
       {'name': 'Clothes', 'icon': Icons.checkroom, 'color': const Color(0xFF9C27B0)},
       {'name': 'Cosmetics', 'icon': Icons.face, 'color': const Color(0xFF9C27B0)},
       {'name': 'Shoes', 'icon': Icons.directions_walk, 'color': const Color(0xFF9C27B0)},
       {'name': 'Electronics', 'icon': Icons.devices, 'color': const Color(0xFF9C27B0)},
-      {'name': 'Food', 'icon': Icons.close, 'color': const Color(0xFF9C27B0)}, // X for "more" categories
+      {'name': 'Food', 'icon': Icons.restaurant, 'color': const Color(0xFF9C27B0)},
     ];
 
     return Container(
@@ -223,23 +247,40 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Category',
-            style: TextStyle(
-              color: Color(0xFF2D1B35),
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-            ),
+          Row(
+            children: [
+              const Text(
+                'Category',
+                style: TextStyle(
+                  color: Color(0xFF2D1B35),
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const Spacer(),
+              if (viewModel.selectedCategory.isNotEmpty)
+                TextButton(
+                  onPressed: () {
+                    viewModel.fetchAllItems();
+                  },
+                  child: const Text(
+                    'Show All',
+                    style: TextStyle(
+                      color: Color(0xFF9C27B0),
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+            ],
           ),
           const SizedBox(height: 12),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: categories.map((category) {
+              final isSelected = viewModel.selectedCategory == category['name'];
               return GestureDetector(
                 onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('${category['name']} category selected')),
-                  );
+                  viewModel.fetchItemsByCategory(category['name'] as String);
                 },
                 child: Column(
                   children: [
@@ -247,7 +288,9 @@ class _HomeScreenState extends State<HomeScreen> {
                       width: 50,
                       height: 50,
                       decoration: BoxDecoration(
-                        color: category['color'] as Color,
+                        color: isSelected 
+                            ? const Color(0xFF6A1B9A) 
+                            : category['color'] as Color,
                         shape: BoxShape.circle,
                       ),
                       child: Icon(
@@ -259,10 +302,12 @@ class _HomeScreenState extends State<HomeScreen> {
                     const SizedBox(height: 4),
                     Text(
                       category['name'] as String,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 10,
-                        color: Color(0xFF2D1B35),
-                        fontWeight: FontWeight.w500,
+                        color: isSelected 
+                            ? const Color(0xFF6A1B9A) 
+                            : const Color(0xFF2D1B35),
+                        fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
                       ),
                     ),
                   ],
@@ -275,61 +320,115 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildItemsGrid() {
-    final items = [
-      {
-        'name': 'Zara Trench Coat',
-        'status': 'Lightly used',
-        'price': 'RM 30.00',
-        'seller': 'uzziefern',
-        'image': 'https://images.unsplash.com/photo-1544022613-e87ca75a784a?w=200&h=200&fit=crop',
-        'liked': false,
-      },
-      {
-        'name': 'Astrid McStella Sweater',
-        'status': 'Lightly used',
-        'price': 'RM 10.00',
-        'seller': 'uzziefern',
-        'image': 'https://images.unsplash.com/photo-1434389677669-e08b4cac3105?w=200&h=200&fit=crop',
-        'liked': false,
-      },
-      {
-        'name': 'AI Textbook',
-        'status': 'Lightly used',
-        'price': 'RM 25.00',
-        'seller': 'uzziefern',
-        'image': 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&fit=crop',
-        'liked': false,
-      },
-      {
-        'name': 'iPad 3rd Generation',
-        'status': 'Lightly used',
-        'price': 'RM 450.00',
-        'seller': 'uzziefern',
-        'image': 'https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=200&h=200&fit=crop',
-        'liked': false,
-      },
-    ];
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: GridView.builder(
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          childAspectRatio: 0.8,
-          crossAxisSpacing: 12,
-          mainAxisSpacing: 12,
+  Widget _buildItemsGrid(HomeViewModel viewModel) {
+    if (viewModel.isLoading) {
+      return const Center(
+        child: CircularProgressIndicator(
+          color: Color(0xFF9C27B0),
         ),
-        itemCount: items.length,
-        itemBuilder: (context, index) {
-          final item = items[index];
-          return _buildItemCard(item, index);
-        },
+      );
+    }
+
+    if (viewModel.errorMessage != null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons.error_outline,
+              size: 64,
+              color: Color(0xFF9C27B0),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              viewModel.errorMessage!,
+              style: const TextStyle(
+                fontSize: 16,
+                color: Color(0xFF2D1B35),
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () {
+                viewModel.refreshItems();
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF9C27B0),
+              ),
+              child: const Text('Retry', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (viewModel.items.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons.inventory_2_outlined,
+              size: 64,
+              color: Color(0xFF9C27B0),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              viewModel.selectedCategory.isEmpty 
+                  ? 'No items available\nStart by adding your first item!'
+                  : 'No items found in ${viewModel.selectedCategory}',
+              style: const TextStyle(
+                fontSize: 16,
+                color: Color(0xFF2D1B35),
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () async {
+                final result = await Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const AddItemPage()),
+                );
+                
+                if (result == true) {
+                  viewModel.refreshItems();
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF9C27B0),
+              ),
+              child: const Text('Add Item', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: viewModel.refreshItems,
+      color: const Color(0xFF9C27B0),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: GridView.builder(
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            childAspectRatio: 0.8,
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 12,
+          ),
+          itemCount: viewModel.items.length,
+          itemBuilder: (context, index) {
+            final item = viewModel.items[index];
+            return _buildItemCard(item, viewModel);
+          },
+        ),
       ),
     );
   }
 
-  Widget _buildItemCard(Map<String, dynamic> item, int index) {
+  Widget _buildItemCard(ItemModel item, HomeViewModel viewModel) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -357,40 +456,58 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
-                    Image.network(
-                      item['image'],
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Container(
-                          color: Colors.grey[200],
-                          child: const Icon(
-                            Icons.image,
-                            color: Colors.grey,
-                            size: 40,
+                    item.imageUrl != null
+                        ? Image.network(
+                            item.imageUrl!,
+                            fit: BoxFit.cover,
+                            loadingBuilder: (context, child, loadingProgress) {
+                              if (loadingProgress == null) return child;
+                              return Center(
+                                child: CircularProgressIndicator(
+                                  value: loadingProgress.expectedTotalBytes != null
+                                      ? loadingProgress.cumulativeBytesLoaded /
+                                          loadingProgress.expectedTotalBytes!
+                                      : null,
+                                  color: const Color(0xFF9C27B0),
+                                ),
+                              );
+                            },
+                            errorBuilder: (context, error, stackTrace) {
+                              return Container(
+                                color: Colors.grey[200],
+                                child: const Icon(
+                                  Icons.image,
+                                  color: Colors.grey,
+                                  size: 40,
+                                ),
+                              );
+                            },
+                          )
+                        : Container(
+                            color: Colors.grey[200],
+                            child: const Icon(
+                              Icons.image,
+                              color: Colors.grey,
+                              size: 40,
+                            ),
                           ),
-                        );
-                      },
-                    ),
-                    // Heart icon in top right
+                    
+                    // Status badge
                     Positioned(
                       top: 8,
-                      right: 8,
-                      child: GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            item['liked'] = !item['liked'];
-                          });
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.all(4),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.9),
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(
-                            item['liked'] ? Icons.favorite : Icons.favorite_border,
-                            color: item['liked'] ? Colors.red : Colors.grey,
-                            size: 16,
+                      left: 8,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.black54,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          item.status,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 8,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
                       ),
@@ -414,7 +531,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        item['name'],
+                        item.name,
                         style: const TextStyle(
                           fontWeight: FontWeight.w600,
                           fontSize: 12,
@@ -425,7 +542,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        item['status'],
+                        item.status,
                         style: TextStyle(
                           fontSize: 10,
                           color: Colors.grey[600],
@@ -433,7 +550,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        item['price'],
+                        'RM ${item.price.toStringAsFixed(2)}',
                         style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 12,
@@ -466,7 +583,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             const SizedBox(width: 4),
                             Expanded(
                               child: Text(
-                                item['seller'],
+                                item.sellerName,
                                 style: TextStyle(
                                   fontSize: 9,
                                   color: Colors.grey[600],
@@ -478,39 +595,57 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ),
                       
-                      // Action buttons
-                      Row(
-                        children: [
-                          GestureDetector(
-                            onTap: () {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('Edit ${item['name']}')),
-                              );
-                            },
-                            child: Container(
-                              padding: const EdgeInsets.all(4),
-                              child: const Icon(
-                                Icons.edit,
-                                size: 14,
-                                color: Color(0xFF9C27B0),
+                      // Action buttons (only show for current user's items)
+                      if (viewModel.isCurrentUserSeller(item.sellerId))
+                        Row(
+                          children: [
+                            GestureDetector(
+                              onTap: () {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Edit ${item.name}')),
+                                );
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.all(4),
+                                child: const Icon(
+                                  Icons.edit,
+                                  size: 14,
+                                  color: Color(0xFF9C27B0),
+                                ),
                               ),
                             ),
-                          ),
-                          GestureDetector(
-                            onTap: () {
-                              _showDeleteDialog(item['name']);
-                            },
-                            child: Container(
-                              padding: const EdgeInsets.all(4),
-                              child: const Icon(
-                                Icons.delete,
-                                size: 14,
-                                color: Color(0xFF9C27B0),
+                            GestureDetector(
+                              onTap: () {
+                                _showDeleteDialog(item, viewModel);
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.all(4),
+                                child: const Icon(
+                                  Icons.delete,
+                                  size: 14,
+                                  color: Color(0xFF9C27B0),
+                                ),
                               ),
                             ),
+                          ],
+                        )
+                      else
+                        // Show a small indicator that this is someone else's item
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.green.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8),
                           ),
-                        ],
-                      ),
+                          child: const Text(
+                            'Available',
+                            style: TextStyle(
+                              fontSize: 8,
+                              color: Colors.green,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
                     ],
                   ),
                 ],
@@ -522,24 +657,36 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  void _showDeleteDialog(String itemName) {
+  void _showDeleteDialog(ItemModel item, HomeViewModel viewModel) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         title: const Text('Delete Item'),
-        content: Text('Are you sure you want to delete "$itemName"?'),
+        content: Text('Are you sure you want to delete "${item.name}"?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text('Cancel'),
           ),
           TextButton(
-            onPressed: () {
+            onPressed: () async {
               Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('$itemName deleted successfully')),
-              );
+              
+              final success = await viewModel.deleteItem(item.id!);
+              
+              if (success) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('${item.name} deleted successfully')),
+                );
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(viewModel.errorMessage ?? 'Failed to delete item'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
             },
             child: const Text('Delete', style: TextStyle(color: Colors.red)),
           ),
@@ -613,11 +760,16 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildSellButton() {
     return GestureDetector(
-      onTap: () {
-        Navigator.push(
+      onTap: () async {
+        final result = await Navigator.push(
           context,
           MaterialPageRoute(builder: (context) => const AddItemPage()),
         );
+        
+        // Refresh items when returning from add item page
+        if (result == true) {
+          Provider.of<HomeViewModel>(context, listen: false).refreshItems();
+        }
       },
       child: Container(
         width: 56,

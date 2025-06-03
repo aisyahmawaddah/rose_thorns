@@ -3,11 +3,13 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:koopon/data/models/item_model.dart';
+import 'package:koopon/data/services/auth_service.dart';
 
 class ItemService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseStorage _storage = FirebaseStorage.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final AuthService _authService = AuthService();
 
   // Collection reference
   CollectionReference get _itemsCollection => _firestore.collection('items');
@@ -27,10 +29,9 @@ class ItemService {
         throw Exception('User not authenticated');
       }
 
-      // Get user data for seller info
-      final userDoc = await _firestore.collection('users').doc(user.uid).get();
-      final userData = userDoc.data();
-      final sellerName = userData?['displayName'] ?? user.email ?? 'Unknown';
+      // Ensure user document exists and get proper seller name
+      await _authService.ensureUserDocument(user);
+      final sellerName = await _authService.getUserDisplayName(user.uid);
 
       String? imageUrl;
       

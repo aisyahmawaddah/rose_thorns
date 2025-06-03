@@ -1,11 +1,11 @@
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:koopon/data/services/login_service.dart';
+import 'package:koopon/data/services/auth_service.dart';
 
 class LoginRepository {
-  final LoginService _loginService;
+  final AuthService _authService;
 
-  LoginRepository({LoginService? loginService})
-      : _loginService = loginService ?? LoginService();
+  LoginRepository({AuthService? authService})
+      : _authService = authService ?? AuthService();
 
   Future<UserCredential> login(String email, String password) async {
     try {
@@ -17,13 +17,15 @@ class LoginRepository {
         throw Exception('Password cannot be empty');
       }
 
-      return await _loginService.signInWithEmailAndPassword(
+      return await _authService.signInWithEmailAndPassword(
         email.trim(), 
         password.trim()
       );
     } on FirebaseAuthException catch (e) {
       // Handle specific Firebase Auth errors
       switch (e.code) {
+        case 'invalid-email-domain':
+          throw Exception(e.message ?? 'Invalid email domain');
         case 'user-not-found':
           throw Exception('No user found with this email address.');
         case 'wrong-password':
@@ -54,9 +56,11 @@ class LoginRepository {
       if (email.trim().isEmpty) {
         throw Exception('Email cannot be empty');
       }
-      await _loginService.resetPassword(email.trim());
+      await _authService.resetPassword(email.trim());
     } on FirebaseAuthException catch (e) {
       switch (e.code) {
+        case 'invalid-email-domain':
+          throw Exception(e.message ?? 'Invalid email domain');
         case 'user-not-found':
           throw Exception('No user found with this email address.');
         case 'invalid-email':
@@ -75,15 +79,15 @@ class LoginRepository {
 
   Future<void> logout() async {
     try {
-      await _loginService.signOut();
+      await _authService.signOut();
     } catch (e) {
       throw Exception('Logout failed: ${e.toString()}');
     }
   }
 
-  User? get currentUser => _loginService.currentUser;
+  User? get currentUser => _authService.currentUser;
 
   bool isUserLoggedIn() {
-    return _loginService.isUserLoggedIn();
+    return _authService.currentUser != null;
   }
 }

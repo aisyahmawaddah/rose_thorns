@@ -5,5 +5,5 @@ import 'package:koopon/data/services/firebase_service.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await FirebaseService.initialize();
-  runApp(KooponApp());
+  runApp(const KooponApp());
 }

@@ -538,9 +538,9 @@ class _AddItemPageState extends State<AddItemPage> {
       // Wait a moment for user to see the success message
       await Future.delayed(const Duration(seconds: 1));
       
-      // Navigate back to home screen
+      // Navigate back to home screen with success result
       if (mounted) {
-        Navigator.of(context).pop();
+        Navigator.of(context).pop(true); // Return true to indicate success
       }
     } catch (e) {
       _showErrorSnackBar('Error saving item: ${e.toString()}');

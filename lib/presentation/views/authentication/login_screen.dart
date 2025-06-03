@@ -19,7 +19,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
 
-  LoginModel _loginModel = const LoginModel(email: '', password: '');
+  LoginModel _loginModel = LoginModel(email: '', password: '');
 
   @override
   void dispose() {
@@ -202,7 +202,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   padding: EdgeInsets.only(
                       left: 8.0, top: 8.0, right: 30.0, bottom: 0.0),
                   child: Text(
-                    'This is your student-friendly corner of the internet. Sign in to reconnect with your favorites, discover new preloved gems.',
+                    'Welcome to the UTM Graduate Student marketplace. Sign in with your @graduate.utm.my email to reconnect with your favorites, discover new preloved gems.',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 14.0,
@@ -222,7 +222,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       fit: BoxFit.contain,
                       errorBuilder: (context, error, stackTrace) {
                         // Fallback if image is not found
-                        return SizedBox(
+                        return Container(
                           height: screenHeight * 0.25,
                           child: const Icon(
                             Icons.shopping_cart,
@@ -246,7 +246,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
                     decoration: const InputDecoration(
-                      hintText: 'University Email',
+                      hintText: 'Graduate Email (@graduate.utm.my)',
                       hintStyle: TextStyle(
                         color: Colors.grey,
                         fontSize: 16.0,
