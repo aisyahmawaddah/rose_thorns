@@ -486,7 +486,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         ? Image.network(
                             item.imageUrl!,
                             fit: BoxFit.cover,
-                            headers: {
+                            headers: const {
                               'Cache-Control': 'no-cache', // Force fresh load
                             },
                             loadingBuilder: (context, child, loadingProgress) {
