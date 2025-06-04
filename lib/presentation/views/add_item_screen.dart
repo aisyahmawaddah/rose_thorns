@@ -15,7 +15,7 @@ class _AddItemPageState extends State<AddItemPage> {
   final TextEditingController _priceController = TextEditingController();
 
   String _selectedCategory = 'Choose category';
-  final String _selectedStatus = 'Lightly used';
+  String _selectedCondition = 'Like New'; // For dropdown conditions
   File? _imageFile;
   final ImagePicker _picker = ImagePicker();
   bool _isLoading = false;
@@ -23,23 +23,35 @@ class _AddItemPageState extends State<AddItemPage> {
   // Instance of ItemService
   final ItemService _itemService = ItemService();
 
-  // List of categories
+  // List of categories (Food changed to Book)
   final List<String> _categories = [
     'Choose category',
     'Clothes',
     'Cosmetics',
     'Shoes',
     'Electronics',
-    'Food'
+    'Book'
   ];
 
-  // Map to store dynamic fields for each category
+  // Condition options for dropdown
+  final List<String> _conditionOptions = [
+    'Like New',
+    'Lightly Used',
+    'Heavily Used'
+  ];
+
+  // Map to store dynamic fields for each category (updated fields)
   final Map<String, List<String>> _categoryFields = {
-    'Clothes': ['Brand', 'Size', 'Condition', 'Material', 'Color'],
-    'Cosmetics': ['Brand', 'Type', 'Volume', 'Expiry Date'],
-    'Shoes': ['Brand', 'Size', 'Condition', 'Color', 'Material'],
-    'Electronics': ['Brand', 'Model', 'Condition', 'Age', 'Specifications'],
-    'Food': ['Type', 'Expiry Date', 'Dietary Info', 'Weight']
+    'Clothes': ['Brand', 'Size', 'Material', 'Color'],
+    'Cosmetics': ['Brand', 'Percentage Used (%)', 'Expiry Date (DD/MM/YYYY)'],
+    'Shoes': ['Brand', 'Size', 'Material', 'Color'],
+    'Electronics': ['Brand', 'Model', 'Specifications'],
+    'Book': ['Author'], // Book Title will be the item name
+  };
+
+  // Categories that need condition dropdown
+  final Set<String> _categoriesWithCondition = {
+    'Clothes', 'Shoes', 'Electronics', 'Book', 'Cosmetics'
   };
 
   // Current dynamic fields based on selected category
@@ -47,6 +59,17 @@ class _AddItemPageState extends State<AddItemPage> {
 
   // Controllers for dynamic fields
   final Map<String, TextEditingController> _dynamicControllers = {};
+
+  // Timeslot data structure
+  final Map<String, List<String?>> _weeklyTimeslots = {
+    'Monday': [null, null, null],
+    'Tuesday': [null, null, null],
+    'Wednesday': [null, null, null],
+    'Thursday': [null, null, null],
+    'Friday': [null, null, null],
+    'Saturday': [null, null, null],
+    'Sunday': [null, null, null],
+  };
 
   @override
   void initState() {
@@ -75,6 +98,8 @@ class _AddItemPageState extends State<AddItemPage> {
   void _updateFieldsForCategory(String category) {
     setState(() {
       _currentFields = _categoryFields[category] ?? [];
+      // Reset condition to default when category changes
+      _selectedCondition = 'Like New';
     });
   }
 
@@ -96,6 +121,40 @@ class _AddItemPageState extends State<AddItemPage> {
     } catch (e) {
       _showErrorSnackBar('Error picking image: ${e.toString()}');
     }
+  }
+
+  // Show time picker popup for timeslots
+  Future<void> _showTimePickerPopup(String day, int slotIndex) async {
+    TimeOfDay? selectedTime = await showTimePicker(
+      context: context,
+      initialTime: const TimeOfDay(hour: 7, minute: 0),
+      builder: (context, child) {
+        return MediaQuery(
+          data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: false),
+          child: child!,
+        );
+      },
+    );
+
+    if (selectedTime != null) {
+      // Check if time is within allowed range (7 AM - 7 PM)
+      if (selectedTime.hour < 7 || selectedTime.hour > 19) {
+        _showErrorSnackBar('Please select a time between 7:00 AM and 7:00 PM');
+        return;
+      }
+
+      setState(() {
+        String formattedTime = selectedTime.format(context);
+        _weeklyTimeslots[day]![slotIndex] = formattedTime;
+      });
+    }
+  }
+
+  // Remove timeslot
+  void _removeTimeslot(String day, int slotIndex) {
+    setState(() {
+      _weeklyTimeslots[day]![slotIndex] = null;
+    });
   }
 
   @override
@@ -269,10 +328,10 @@ class _AddItemPageState extends State<AddItemPage> {
                   ),
                 ),
 
-                // Item Name Field
-                const Text(
-                  "Item Name",
-                  style: TextStyle(
+                // Item Name / Book Title Field
+                Text(
+                  _selectedCategory == 'Book' ? "Book Title" : "Item Name",
+                  style: const TextStyle(
                     color: Color(0xFF473173),
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
@@ -287,41 +346,64 @@ class _AddItemPageState extends State<AddItemPage> {
                   ),
                   child: TextField(
                     controller: _nameController,
-                    decoration: const InputDecoration(
-                      contentPadding: EdgeInsets.symmetric(
+                    decoration: InputDecoration(
+                      contentPadding: const EdgeInsets.symmetric(
                           horizontal: 16.0, vertical: 12.0),
                       border: InputBorder.none,
-                      hintText: 'Enter item name',
+                      hintText: _selectedCategory == 'Book' 
+                          ? 'Enter book title' 
+                          : 'Enter item name',
                     ),
                   ),
                 ),
 
-                // Status Field
-                const Text(
-                  "Status",
-                  style: TextStyle(
-                    color: Color(0xFF473173),
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Container(
-                  margin: const EdgeInsets.only(bottom: 16.0),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF9E7FF),
-                    borderRadius: BorderRadius.circular(20.0),
-                  ),
-                  child: TextField(
-                    readOnly: true,
-                    controller: TextEditingController(text: _selectedStatus),
-                    decoration: const InputDecoration(
-                      contentPadding: EdgeInsets.symmetric(
-                          horizontal: 16.0, vertical: 12.0),
-                      border: InputBorder.none,
+                // Condition Field (for categories that need it, except Cosmetics)
+                if (_categoriesWithCondition.contains(_selectedCategory) && _selectedCategory != 'Cosmetics') ...[
+                  const Text(
+                    "Condition",
+                    style: TextStyle(
+                      color: Color(0xFF473173),
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
-                ),
+                  const SizedBox(height: 4),
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 16.0),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF9E7FF),
+                      borderRadius: BorderRadius.circular(20.0),
+                    ),
+                    child: DropdownButtonFormField<String>(
+                      decoration: const InputDecoration(
+                        contentPadding: EdgeInsets.symmetric(
+                            horizontal: 16.0, vertical: 12.0),
+                        border: InputBorder.none,
+                      ),
+                      value: _selectedCondition,
+                      icon: const Icon(Icons.keyboard_arrow_down,
+                          color: Color(0xFF8A56AC)),
+                      isExpanded: true,
+                      onChanged: (String? newValue) {
+                        setState(() {
+                          _selectedCondition = newValue!;
+                        });
+                      },
+                      items: _conditionOptions.map<DropdownMenuItem<String>>((String value) {
+                        return DropdownMenuItem<String>(
+                          value: value,
+                          child: Text(
+                            value,
+                            style: const TextStyle(
+                              color: Color(0xFF8A56AC),
+                              fontSize: 14,
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                ],
 
                 // Dynamic Fields based on Category
                 ..._currentFields.map((field) {
@@ -345,11 +427,18 @@ class _AddItemPageState extends State<AddItemPage> {
                         ),
                         child: TextField(
                           controller: _dynamicControllers[field],
+                          keyboardType: field == 'Percentage Used (%)' 
+                              ? TextInputType.number 
+                              : TextInputType.text,
                           decoration: InputDecoration(
                             contentPadding: const EdgeInsets.symmetric(
                                 horizontal: 16.0, vertical: 12.0),
                             border: InputBorder.none,
-                            hintText: 'Enter $field',
+                            hintText: field == 'Expiry Date (DD/MM/YYYY)'
+                                ? 'DD/MM/YYYY'
+                                : field == 'Percentage Used (%)'
+                                    ? '0-100'
+                                    : 'Enter $field',
                           ),
                         ),
                       ),
@@ -357,7 +446,7 @@ class _AddItemPageState extends State<AddItemPage> {
                   );
                 }).toList(),
 
-                // Price Field (RM)
+                // Price Field (RM) - Enhanced validation
                 const Text(
                   "Price (RM)",
                   style: TextStyle(
@@ -381,10 +470,115 @@ class _AddItemPageState extends State<AddItemPage> {
                       contentPadding: EdgeInsets.symmetric(
                           horizontal: 16.0, vertical: 12.0),
                       border: InputBorder.none,
-                      hintText: 'Enter price',
+                      hintText: 'Enter price (must be greater than 0)',
                     ),
                   ),
                 ),
+
+                // Meetup Timeslots Section
+                const Text(
+                  "Meetup Timeslot",
+                  style: TextStyle(
+                    color: Color(0xFF473173),
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  "Select up to 3 time slots per day when you're available for meetup with buyer (7AM - 7PM)",
+                  style: TextStyle(
+                    color: Color(0xFF473173),
+                    fontSize: 12,
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // Weekly Timeslot Selection
+                ..._weeklyTimeslots.keys.map((day) {
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(15),
+                      border: Border.all(color: const Color(0xFF8A56AC).withOpacity(0.3)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          day,
+                          style: const TextStyle(
+                            color: Color(0xFF473173),
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 8,
+                          children: [
+                            // Display existing time slots
+                            ...List.generate(3, (index) {
+                              final timeSlot = _weeklyTimeslots[day]![index];
+                              if (timeSlot != null) {
+                                return Chip(
+                                  label: Text(
+                                    timeSlot,
+                                    style: const TextStyle(fontSize: 12),
+                                  ),
+                                  deleteIcon: const Icon(Icons.close, size: 16),
+                                  onDeleted: () => _removeTimeslot(day, index),
+                                  backgroundColor: const Color(0xFFF9E7FF),
+                                  deleteIconColor: const Color(0xFF8A56AC),
+                                );
+                              }
+                              return const SizedBox.shrink();
+                            }),
+                            // Add time slot button (if less than 3 slots)
+                            if (_weeklyTimeslots[day]!.where((slot) => slot != null).length < 3)
+                              GestureDetector(
+                                onTap: () {
+                                  final nextIndex = _weeklyTimeslots[day]!.indexWhere((slot) => slot == null);
+                                  if (nextIndex != -1) {
+                                    _showTimePickerPopup(day, nextIndex);
+                                  }
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 12, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF8A56AC).withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(20),
+                                    border: Border.all(
+                                        color: const Color(0xFF8A56AC)),
+                                  ),
+                                  child: const Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(Icons.add,
+                                          size: 16, color: Color(0xFF8A56AC)),
+                                      SizedBox(width: 4),
+                                      Text(
+                                        'Add Time',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Color(0xFF8A56AC),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  );
+                }).toList(),
+
+                const SizedBox(height: 16),
 
                 // Save Button
                 Center(
@@ -475,11 +669,13 @@ class _AddItemPageState extends State<AddItemPage> {
     );
   }
 
-  // Save item method with Firebase integration
+  // Save item method with enhanced validation
   void _saveItem() async {
     // Validate form
     if (_nameController.text.trim().isEmpty) {
-      _showErrorSnackBar('Please enter item name');
+      _showErrorSnackBar(_selectedCategory == 'Book' 
+          ? 'Please enter book title' 
+          : 'Please enter item name');
       return;
     }
 
@@ -493,12 +689,12 @@ class _AddItemPageState extends State<AddItemPage> {
       return;
     }
 
-    // Validate price
+    // Enhanced price validation - check for 0
     double? price;
     try {
       price = double.parse(_priceController.text.trim());
       if (price <= 0) {
-        _showErrorSnackBar('Please enter a valid price');
+        _showErrorSnackBar('Price must be greater than 0');
         return;
       }
     } catch (e) {
@@ -506,7 +702,22 @@ class _AddItemPageState extends State<AddItemPage> {
       return;
     }
 
-    // Image is now optional - no validation needed
+    // Validate percentage for cosmetics
+    if (_selectedCategory == 'Cosmetics') {
+      final percentageController = _dynamicControllers['Percentage Used (%)'];
+      if (percentageController != null && percentageController.text.trim().isNotEmpty) {
+        try {
+          final percentage = double.parse(percentageController.text.trim());
+          if (percentage < 0 || percentage > 100) {
+            _showErrorSnackBar('Percentage used must be between 0 and 100');
+            return;
+          }
+        } catch (e) {
+          _showErrorSnackBar('Please enter a valid percentage');
+          return;
+        }
+      }
+    }
 
     setState(() {
       _isLoading = true;
@@ -515,18 +726,40 @@ class _AddItemPageState extends State<AddItemPage> {
     try {
       // Collect additional fields
       final additionalFields = <String, dynamic>{};
+      
+      // Add condition if category requires it (except Cosmetics)
+      if (_categoriesWithCondition.contains(_selectedCategory) && _selectedCategory != 'Cosmetics') {
+        additionalFields['condition'] = _selectedCondition;
+      }
+      
+      // Add category-specific fields
       for (var field in _currentFields) {
         final controller = _dynamicControllers[field];
         if (controller != null && controller.text.trim().isNotEmpty) {
-          additionalFields[field.toLowerCase()] = controller.text.trim();
+          additionalFields[field.toLowerCase().replaceAll(' ', '_')] = controller.text.trim();
         }
+      }
+
+      // Add timeslot data
+      final Map<String, List<String>> timeslots = {};
+      _weeklyTimeslots.forEach((day, slots) {
+        final nonNullSlots = slots.where((slot) => slot != null).cast<String>().toList();
+        if (nonNullSlots.isNotEmpty) {
+          timeslots[day.toLowerCase()] = nonNullSlots;
+        }
+      });
+      
+      if (timeslots.isNotEmpty) {
+        additionalFields['meetup_timeslots'] = timeslots;
       }
 
       // Save item using ItemService
       await _itemService.addItem(
         name: _nameController.text.trim(),
         category: _selectedCategory,
-        status: _selectedStatus,
+        status: _categoriesWithCondition.contains(_selectedCategory) && _selectedCategory != 'Cosmetics' 
+            ? _selectedCondition 
+            : 'Available', // Default status for categories without condition
         price: price,
         imageFile: _imageFile,
         additionalFields: additionalFields,

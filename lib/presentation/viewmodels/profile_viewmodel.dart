@@ -12,6 +12,7 @@ class ProfileViewModel extends ChangeNotifier {
   bool _isLoading = false;
   String? _errorMessage;
   bool _isInitialized = false;
+  bool _disposed = false; // ADD: Track if disposed
 
   // Getters
   List<ItemModel> get userItems => _userItems;
@@ -26,15 +27,31 @@ class ProfileViewModel extends ChangeNotifier {
   String? get currentUserPhotoUrl => currentUser?.photoURL;
   String get currentUserId => currentUser?.uid ?? '';
 
+  // ADD: Override dispose to track disposal
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
+  }
+
+  // ADD: Safe notifyListeners that checks disposal
+  void _safeNotifyListeners() {
+    if (!_disposed) {
+      notifyListeners();
+    }
+  }
+
   // Initialize and fetch user's items
   Future<void> initialize() async {
-    if (_isInitialized) return;
+    if (_isInitialized || _disposed) return;
     _isInitialized = true;
     await refreshUserItems();
   }
 
   // Fetch user's items from Firebase
   Future<void> refreshUserItems() async {
+    if (_disposed) return; // CHECK: Early return if disposed
+    
     _setLoading(true);
     _clearError();
     
@@ -44,34 +61,49 @@ class ProfileViewModel extends ChangeNotifier {
       }
 
       _userItems = await _itemService.getItemsBySeller(currentUser!.uid);
-      notifyListeners();
+      if (!_disposed) { // CHECK: Before notifying
+        _safeNotifyListeners();
+      }
     } catch (e) {
-      _setError('Failed to load your products: ${e.toString()}');
+      if (!_disposed) { // CHECK: Before setting error
+        _setError('Failed to load your products: ${e.toString()}');
+      }
     } finally {
-      _setLoading(false);
+      if (!_disposed) { // CHECK: Before setting loading false
+        _setLoading(false);
+      }
     }
   }
 
   // Refresh profile data
   Future<void> refreshProfile() async {
+    if (_disposed) return; // CHECK: Early return if disposed
+    
     // Refresh user authentication data
     await currentUser?.reload();
     await refreshUserItems();
-    notifyListeners();
+    if (!_disposed) { // CHECK: Before notifying
+      _safeNotifyListeners();
+    }
   }
 
   // Delete an item
   Future<bool> deleteItem(String itemId) async {
+    if (_disposed) return false; // CHECK: Early return if disposed
+    
     try {
       await _itemService.deleteItem(itemId);
       
-      // Remove from local list
-      _userItems.removeWhere((item) => item.id == itemId);
-      
-      notifyListeners();
+      if (!_disposed) { // CHECK: Before updating list
+        // Remove from local list
+        _userItems.removeWhere((item) => item.id == itemId);
+        _safeNotifyListeners();
+      }
       return true;
     } catch (e) {
-      _setError('Failed to delete product: ${e.toString()}');
+      if (!_disposed) { // CHECK: Before setting error
+        _setError('Failed to delete product: ${e.toString()}');
+      }
       return false;
     }
   }
@@ -81,6 +113,8 @@ class ProfileViewModel extends ChangeNotifier {
     String? displayName,
     String? photoURL,
   }) async {
+    if (_disposed) return false; // CHECK: Early return if disposed
+    
     try {
       final user = currentUser;
       if (user == null) return false;
@@ -95,11 +129,15 @@ class ProfileViewModel extends ChangeNotifier {
 
       // Reload user data
       await user.reload();
-      notifyListeners();
+      if (!_disposed) { // CHECK: Before notifying
+        _safeNotifyListeners();
+      }
       
       return true;
     } catch (e) {
-      _setError('Failed to update profile: ${e.toString()}');
+      if (!_disposed) { // CHECK: Before setting error
+        _setError('Failed to update profile: ${e.toString()}');
+      }
       return false;
     }
   }
@@ -128,18 +166,21 @@ class ProfileViewModel extends ChangeNotifier {
       item.category.toLowerCase().contains(query.toLowerCase())).toList();
   }
 
-  // Helper methods
+  // Helper methods with disposal checks
   void _setLoading(bool loading) {
+    if (_disposed) return; // CHECK: Before setting state
     _isLoading = loading;
-    notifyListeners();
+    _safeNotifyListeners();
   }
 
   void _setError(String error) {
+    if (_disposed) return; // CHECK: Before setting state
     _errorMessage = error;
-    notifyListeners();
+    _safeNotifyListeners();
   }
 
   void _clearError() {
+    if (_disposed) return; // CHECK: Before setting state
     _errorMessage = null;
   }
 
@@ -155,13 +196,19 @@ class ProfileViewModel extends ChangeNotifier {
 
   // Sign out user
   Future<void> signOut() async {
+    if (_disposed) return; // CHECK: Early return if disposed
+    
     try {
       await _authService.signOut();
-      _userItems.clear();
-      _isInitialized = false;
-      notifyListeners();
+      if (!_disposed) { // CHECK: Before updating state
+        _userItems.clear();
+        _isInitialized = false;
+        _safeNotifyListeners();
+      }
     } catch (e) {
-      _setError('Failed to sign out: ${e.toString()}');
+      if (!_disposed) { // CHECK: Before setting error
+        _setError('Failed to sign out: ${e.toString()}');
+      }
     }
   }
 }
