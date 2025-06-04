@@ -237,112 +237,112 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildCategorySection(HomeViewModel viewModel) {
-    final categories = [
-      {
-        'name': 'Clothes',
-        'icon': Icons.checkroom,
-        'color': const Color(0xFF9C27B0)
-      },
-      {
-        'name': 'Cosmetics',
-        'icon': Icons.face,
-        'color': const Color(0xFF9C27B0)
-      },
-      {
-        'name': 'Shoes',
-        'icon': Icons.directions_walk,
-        'color': const Color(0xFF9C27B0)
-      },
-      {
-        'name': 'Electronics',
-        'icon': Icons.devices,
-        'color': const Color(0xFF9C27B0)
-      },
-      {
-        'name': 'Food',
-        'icon': Icons.restaurant,
-        'color': const Color(0xFF9C27B0)
-      },
-    ];
+  final categories = [
+    {
+      'name': 'Clothes',
+      'icon': Icons.checkroom,
+      'color': const Color(0xFF9C27B0)
+    },
+    {
+      'name': 'Cosmetics',
+      'icon': Icons.face,
+      'color': const Color(0xFF9C27B0)
+    },
+    {
+      'name': 'Shoes',
+      'icon': Icons.directions_walk,
+      'color': const Color(0xFF9C27B0)
+    },
+    {
+      'name': 'Electronics',
+      'icon': Icons.devices,
+      'color': const Color(0xFF9C27B0)
+    },
+    {
+      'name': 'Book', // Changed from 'Food' to 'Book'
+      'icon': Icons.menu_book, // Changed from Icons.restaurant to Icons.menu_book
+      'color': const Color(0xFF9C27B0)
+    },
+  ];
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Text(
-                'Category',
-                style: TextStyle(
-                  color: Color(0xFF2D1B35),
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                ),
+  return Container(
+    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Text(
+              'Category',
+              style: TextStyle(
+                color: Color(0xFF2D1B35),
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
               ),
-              const Spacer(),
-              if (viewModel.selectedCategory.isNotEmpty)
-                TextButton(
-                  onPressed: () {
-                    viewModel.fetchAllItems();
-                  },
-                  child: const Text(
-                    'Show All',
-                    style: TextStyle(
-                      color: Color(0xFF9C27B0),
-                      fontSize: 12,
-                    ),
+            ),
+            const Spacer(),
+            if (viewModel.selectedCategory.isNotEmpty)
+              TextButton(
+                onPressed: () {
+                  viewModel.fetchAllItems();
+                },
+                child: const Text(
+                  'Show All',
+                  style: TextStyle(
+                    color: Color(0xFF9C27B0),
+                    fontSize: 12,
                   ),
                 ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: categories.map((category) {
-              final isSelected = viewModel.selectedCategory == category['name'];
-              return GestureDetector(
-                onTap: () {
-                  viewModel.fetchItemsByCategory(category['name'] as String);
-                },
-                child: Column(
-                  children: [
-                    Container(
-                      width: 50,
-                      height: 50,
-                      decoration: BoxDecoration(
-                        color: isSelected
-                            ? const Color(0xFF6A1B9A)
-                            : category['color'] as Color,
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        category['icon'] as IconData,
-                        color: Colors.white,
-                        size: 24,
-                      ),
+              ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: categories.map((category) {
+            final isSelected = viewModel.selectedCategory == category['name'];
+            return GestureDetector(
+              onTap: () {
+                viewModel.fetchItemsByCategory(category['name'] as String);
+              },
+              child: Column(
+                children: [
+                  Container(
+                    width: 50,
+                    height: 50,
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? const Color(0xFF6A1B9A)
+                          : category['color'] as Color,
+                      shape: BoxShape.circle,
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      category['name'] as String,
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: isSelected
-                            ? const Color(0xFF6A1B9A)
-                            : const Color(0xFF2D1B35),
-                        fontWeight:
-                            isSelected ? FontWeight.bold : FontWeight.w500,
-                      ),
+                    child: Icon(
+                      category['icon'] as IconData,
+                      color: Colors.white,
+                      size: 24,
                     ),
-                  ],
-                ),
-              );
-            }).toList(),
-          ),
-        ],
-      ),
-    );
-  }
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    category['name'] as String,
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: isSelected
+                          ? const Color(0xFF6A1B9A)
+                          : const Color(0xFF2D1B35),
+                      fontWeight:
+                          isSelected ? FontWeight.bold : FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }).toList(),
+        ),
+      ],
+    ),
+  );
+}
 
   Widget _buildItemsGrid(HomeViewModel viewModel) {
     if (viewModel.isLoading) {
@@ -486,7 +486,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         ? Image.network(
                             item.imageUrl!,
                             fit: BoxFit.cover,
-                            headers: {
+                            headers: const {
                               'Cache-Control': 'no-cache', // Force fresh load
                             },
                             loadingBuilder: (context, child, loadingProgress) {

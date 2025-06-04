@@ -26,7 +26,7 @@ class ItemService {
   // Collection reference
   CollectionReference get _itemsCollection => _firestore.collection('items');
 
-  // Add new item (SAME METHOD SIGNATURE - no changes needed in UI)
+  // Add new item
   Future<String> addItem({
     required String name,
     required String category,
@@ -55,7 +55,7 @@ class ItemService {
         imageUrl = null;
       }
 
-      // Create item data (SAME AS BEFORE)
+      // Create item data
       final itemData = ItemModel(
         name: name,
         category: category,
@@ -72,7 +72,7 @@ class ItemService {
       print('💾 Saving to Firebase with imageUrl: $imageUrl');
       print('📋 Item data: ${itemData.toMap()}');
 
-      // Add to Firestore (SAME AS BEFORE)
+      // Add to Firestore
       final docRef = await _itemsCollection.add(itemData.toMap());
       
       print('Item added successfully with ID: ${docRef.id}');
@@ -83,11 +83,11 @@ class ItemService {
     }
   }
 
-  // NEW: Upload image to Supabase (replaces Firebase Storage)
+  // Upload image to Supabase (private method)
   Future<String> _uploadImageToSupabase(File imageFile, String userId) async {
     try {
       // Create a custom path with user ID for organization
-      final fileName = 'user_${userId}/${DateTime.now().millisecondsSinceEpoch}_${userId}.jpg';
+      final fileName = 'user_$userId/${DateTime.now().millisecondsSinceEpoch}_$userId.jpg';
       
       final imageUrl = await imageService.uploadImage(imageFile, customPath: fileName);
       
@@ -103,7 +103,7 @@ class ItemService {
     }
   }
 
-  // Get all items (UNCHANGED)
+  // Get all items (simple orderBy - works without composite index)
   Future<List<ItemModel>> getAllItems() async {
     try {
       final querySnapshot = await _itemsCollection
@@ -121,45 +121,108 @@ class ItemService {
     }
   }
 
-  // Get items by category (UNCHANGED)
+  // Get items by category (no composite index needed)
   Future<List<ItemModel>> getItemsByCategory(String category) async {
     try {
+      // Remove orderBy to avoid composite index requirement
       final querySnapshot = await _itemsCollection
           .where('category', isEqualTo: category)
-          .orderBy('createdAt', descending: true)
           .get();
       
-      return querySnapshot.docs
+      final items = querySnapshot.docs
           .map((doc) => ItemModel.fromMap(
               doc.data() as Map<String, dynamic>, 
               doc.id))
           .toList();
+      
+      // Sort in memory instead
+      items.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      
+      return items;
     } catch (e) {
       print('Error getting items by category: $e');
       throw Exception('Failed to get items by category: ${e.toString()}');
     }
   }
 
-  // Get items by seller (UNCHANGED)
-  Future<List<ItemModel>> getItemsBySeller(String sellerId) async {
-    try {
-      final querySnapshot = await _itemsCollection
-          .where('sellerId', isEqualTo: sellerId)
-          .orderBy('createdAt', descending: true)
-          .get();
-      
-      return querySnapshot.docs
-          .map((doc) => ItemModel.fromMap(
-              doc.data() as Map<String, dynamic>, 
-              doc.id))
-          .toList();
-    } catch (e) {
-      print('Error getting items by seller: $e');
-      throw Exception('Failed to get items by seller: ${e.toString()}');
+  // Get items by seller (FIXED - no composite index needed)
+Future<List<ItemModel>> getItemsBySeller(String sellerId) async {
+  try {
+    print('🔍 DEBUG getItemsBySeller called with sellerId: $sellerId');
+    
+    if (sellerId.isEmpty) {
+      print('❌ ERROR: sellerId is empty');
+      throw Exception('Seller ID cannot be empty');
     }
+    
+    print('📡 Querying Firestore for items where sellerId == $sellerId (NO ORDER BY)');
+    
+    // CRITICAL FIX: Remove ALL orderBy operations to avoid composite index
+    final querySnapshot = await _itemsCollection
+        .where('sellerId', isEqualTo: sellerId)
+        .get(); // NO .orderBy() here!
+    
+    print('📊 Query completed. Documents found: ${querySnapshot.docs.length}');
+    
+    if (querySnapshot.docs.isEmpty) {
+      print('⚠️ No documents found for seller: $sellerId');
+      
+      // Debug: Check if there are ANY items in the collection
+      try {
+        final allItemsQuery = await _itemsCollection.limit(3).get();
+        print('📋 Total items in collection (first 3): ${allItemsQuery.docs.length}');
+        
+        for (var doc in allItemsQuery.docs) {
+          final data = doc.data() as Map<String, dynamic>;
+          print('   Item: ${data['name']} | Seller: ${data['sellerId']}');
+        }
+      } catch (debugError) {
+        print('Debug query failed: $debugError');
+      }
+      
+      return [];
+    }
+    
+    final items = <ItemModel>[];
+    
+    for (var doc in querySnapshot.docs) {
+      try {
+        final data = doc.data() as Map<String, dynamic>;
+        print('📄 Processing document ${doc.id}:');
+        print('   Name: ${data['name']}');
+        print('   Category: ${data['category']}');
+        print('   Price: ${data['price']}');
+        print('   SellerId: ${data['sellerId']}');
+        print('   ImageUrl: ${data['imageUrl']}');
+        
+        final item = ItemModel.fromMap(data, doc.id);
+        items.add(item);
+        print('✅ Successfully created ItemModel for: ${item.name}');
+      } catch (e) {
+        print('❌ Error processing document ${doc.id}: $e');
+        print('   Document data: ${doc.data()}');
+      }
+    }
+    
+    // Sort in memory by creation date (newest first)
+    try {
+      items.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      print('✅ Items sorted by creation date');
+    } catch (sortError) {
+      print('⚠️ Sort error, keeping original order: $sortError');
+      // If sorting fails, just keep the original order
+    }
+    
+    print('🎉 Successfully loaded ${items.length} items for seller: $sellerId');
+    return items;
+    
+  } catch (e) {
+    print('💥 ERROR in getItemsBySeller: $e');
+    print('   StackTrace: ${StackTrace.current}');
+    throw Exception('Failed to get items by seller: ${e.toString()}');
   }
-
-  // Update item (ENHANCED to handle image updates)
+}
+  // Update item
   Future<void> updateItem(String itemId, Map<String, dynamic> updates) async {
     try {
       await _itemsCollection.doc(itemId).update(updates);
@@ -170,7 +233,7 @@ class ItemService {
     }
   }
 
-  // NEW: Update item with optional new image
+  // Update item with optional new image
   Future<void> updateItemWithImage({
     required String itemId,
     required String name,
@@ -224,31 +287,67 @@ class ItemService {
     }
   }
 
-  // Delete item (MODIFIED to use Supabase)
+  // Delete item
   Future<void> deleteItem(String itemId) async {
-    try {
-      // Get item data first to delete associated image
-      final doc = await _itemsCollection.doc(itemId).get();
-      if (doc.exists) {
-        final data = doc.data() as Map<String, dynamic>;
-        final imageUrl = data['imageUrl'] as String?;
-        
-        // Delete image from Supabase if exists
-        if (imageUrl != null && imageUrl.isNotEmpty) {
-          await _deleteImageFromSupabase(imageUrl);
-        }
-      }
-      
-      // Delete item document from Firestore (SAME AS BEFORE)
-      await _itemsCollection.doc(itemId).delete();
-      print('Item deleted successfully');
-    } catch (e) {
-      print('Error deleting item: $e');
-      throw Exception('Failed to delete item: ${e.toString()}');
+  try {
+    print('🗑️ Starting item deletion: $itemId');
+    
+    // Get item data first to delete associated image
+    final doc = await _itemsCollection.doc(itemId).get();
+    String? imageUrl;
+    
+    if (doc.exists) {
+      final data = doc.data() as Map<String, dynamic>;
+      imageUrl = data['imageUrl'] as String?;
+      print('📷 Item has image: ${imageUrl != null ? "Yes" : "No"}');
     }
+    
+    // DELETE FROM FIRESTORE FIRST (fast operation)
+    await _itemsCollection.doc(itemId).delete();
+    print('✅ Item deleted from Firestore successfully');
+    
+    // DELETE IMAGE IN BACKGROUND (don't wait for it)
+    if (imageUrl != null && imageUrl.isNotEmpty) {
+      print('🔄 Starting background image deletion...');
+      
+      // Run image deletion in background without waiting
+      _deleteImageInBackground(imageUrl);
+    }
+    
+    print('🎉 Item deletion completed (image deletion running in background)');
+    
+  } catch (e) {
+    print('❌ Error deleting item: $e');
+    throw Exception('Failed to delete item: ${e.toString()}');
   }
+}
 
-  // NEW: Delete image from Supabase (replaces Firebase Storage deletion)
+// Helper method to delete image in background (fire-and-forget)
+void _deleteImageInBackground(String imageUrl) {
+  // Run this asynchronously without blocking the UI
+  Future.delayed(Duration.zero, () async {
+    try {
+      print('🔄 Background: Attempting to delete image from Supabase...');
+      final success = await imageService.deleteImage(imageUrl).timeout(
+        const Duration(seconds: 10), // 10 second timeout
+        onTimeout: () {
+          print('⏰ Image deletion timed out, but continuing...');
+          return false;
+        },
+      );
+      
+      if (success) {
+        print('✅ Background: Image deleted from Supabase successfully');
+      } else {
+        print('⚠️ Background: Image deletion failed, but item is already deleted from database');
+      }
+    } catch (e) {
+      print('❌ Background: Error deleting image from Supabase: $e');
+      // Don't throw error since the item is already deleted from Firestore
+    }
+  });
+}
+  // Delete image from Supabase (private method)
   Future<void> _deleteImageFromSupabase(String imageUrl) async {
     try {
       final success = await imageService.deleteImage(imageUrl);
@@ -263,7 +362,7 @@ class ItemService {
     }
   }
 
-  // Search items by name (UNCHANGED)
+  // Search items by name
   Future<List<ItemModel>> searchItems(String query) async {
     try {
       // Firestore doesn't support full-text search, so we'll use a simple approach
@@ -285,7 +384,7 @@ class ItemService {
     }
   }
 
-  // Get items stream for real-time updates (UNCHANGED)
+  // Get items stream for real-time updates
   Stream<List<ItemModel>> getItemsStream() {
     return _itemsCollection
         .orderBy('createdAt', descending: true)
@@ -297,7 +396,70 @@ class ItemService {
             .toList());
   }
 
-  // OPTIONAL: Migration helper to move existing Firebase Storage images to Supabase
+  // DEBUG METHODS (Add these for testing)
+  
+  // Test Firestore connection
+  Future<void> testFirestoreConnection() async {
+    try {
+      print('🧪 Testing Firestore connection...');
+      
+      // Test 1: Check if we can read from items collection
+      final testQuery = await _itemsCollection.limit(1).get();
+      print('✅ Firestore connection successful. Can read items collection.');
+      print('   Items collection has ${testQuery.docs.length} documents (showing first 1)');
+      
+      // Test 2: Check current user
+      final user = _auth.currentUser;
+      if (user != null) {
+        print('✅ User authenticated:');
+        print('   UID: ${user.uid}');
+        print('   Email: ${user.email}');
+        print('   Display Name: ${user.displayName}');
+      } else {
+        print('❌ No user authenticated');
+      }
+      
+    } catch (e) {
+      print('❌ Firestore connection test failed: $e');
+    }
+  }
+
+  // Debug helper: Get all items with debug prints
+  Future<List<ItemModel>> getAllItemsDebug() async {
+    try {
+      print('🔍 DEBUG getAllItemsDebug called');
+      
+      final querySnapshot = await _itemsCollection
+          .orderBy('createdAt', descending: true)
+          .get();
+      
+      print('📊 Total items in database: ${querySnapshot.docs.length}');
+      
+      final items = querySnapshot.docs
+          .map((doc) {
+            try {
+              final data = doc.data() as Map<String, dynamic>;
+              print('📄 Item: ${data['name']} | Seller: ${data['sellerId']}');
+              return ItemModel.fromMap(data, doc.id);
+            } catch (e) {
+              print('❌ Error parsing item ${doc.id}: $e');
+              return null;
+            }
+          })
+          .where((item) => item != null)
+          .cast<ItemModel>()
+          .toList();
+      
+      print('✅ Successfully parsed ${items.length} items');
+      return items;
+      
+    } catch (e) {
+      print('💥 ERROR in getAllItemsDebug: $e');
+      throw Exception('Failed to get all items: ${e.toString()}');
+    }
+  }
+
+  // Migration helper to move existing Firebase Storage images to Supabase
   Future<void> migrateImageToSupabase(String itemId) async {
     try {
       final doc = await _itemsCollection.doc(itemId).get();

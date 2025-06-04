@@ -221,9 +221,9 @@ class _EditItemPageState extends State<EditItemPage> {
                               ),
                             )
                           else
-                            Column(
+                            const Column(
                               mainAxisAlignment: MainAxisAlignment.center,
-                              children: const [
+                              children: [
                                 Icon(
                                   Icons.add_photo_alternate,
                                   color: Color(0xFF8A56AC),
