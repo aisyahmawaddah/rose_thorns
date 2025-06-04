@@ -4,6 +4,7 @@ import 'package:koopon/presentation/views/add_item_screen.dart';
 import 'package:koopon/presentation/views/edit_item_screen.dart';
 import 'package:koopon/presentation/viewmodels/home_viewmodel.dart';
 import 'package:koopon/data/models/item_model.dart';
+import 'package:koopon/presentation/views/profile/profile_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -16,20 +17,18 @@ class _HomeScreenState extends State<HomeScreen> {
   int _selectedNavIndex = 0;
 
   @override
-  void initState() {
-    super.initState();
-    // Initialize the view model when the page loads
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<HomeViewModel>(context, listen: false).initialize();
-    });
-  }
-
-  @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
       create: (context) => HomeViewModel(),
       child: Consumer<HomeViewModel>(
         builder: (context, viewModel, child) {
+          // Initialize the view model when the Consumer is first built
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!viewModel.isInitialized) {
+              viewModel.initialize();
+            }
+          });
+
           return Scaffold(
             backgroundColor: const Color(0xFFE8D4F1), // Light purple background
             body: SafeArea(
@@ -37,18 +36,18 @@ class _HomeScreenState extends State<HomeScreen> {
                 children: [
                   // Header Section
                   _buildHeader(),
-                  
+
                   // Action Buttons Section
                   _buildActionButtons(viewModel),
-                  
+
                   // Category Section
                   _buildCategorySection(viewModel),
-                  
+
                   // Items Grid
                   Expanded(
                     child: _buildItemsGrid(viewModel),
                   ),
-                  
+
                   // Bottom Navigation
                   _buildBottomNavigation(),
                 ],
@@ -74,9 +73,9 @@ class _HomeScreenState extends State<HomeScreen> {
               size: 24,
             ),
           ),
-          
+
           const Spacer(),
-          
+
           // Title
           const Text(
             'Graduate Marketplace',
@@ -86,9 +85,9 @@ class _HomeScreenState extends State<HomeScreen> {
               fontWeight: FontWeight.w600,
             ),
           ),
-          
+
           const Spacer(),
-          
+
           // Profile Avatar
           Container(
             width: 40,
@@ -133,9 +132,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 onPressed: () async {
                   final result = await Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => const AddItemPage()),
+                    MaterialPageRoute(
+                        builder: (context) => const AddItemPage()),
                   );
-                  
+
                   // Refresh items when returning from add item page
                   if (result == true) {
                     viewModel.refreshItems();
@@ -179,7 +179,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
           ),
-          
+
           // Order History Button
           Expanded(
             child: Container(
@@ -188,7 +188,9 @@ class _HomeScreenState extends State<HomeScreen> {
               child: ElevatedButton(
                 onPressed: () {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Order history functionality coming soon')),
+                    const SnackBar(
+                        content:
+                            Text('Order history functionality coming soon')),
                   );
                 },
                 style: ElevatedButton.styleFrom(
@@ -236,11 +238,31 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildCategorySection(HomeViewModel viewModel) {
     final categories = [
-      {'name': 'Clothes', 'icon': Icons.checkroom, 'color': const Color(0xFF9C27B0)},
-      {'name': 'Cosmetics', 'icon': Icons.face, 'color': const Color(0xFF9C27B0)},
-      {'name': 'Shoes', 'icon': Icons.directions_walk, 'color': const Color(0xFF9C27B0)},
-      {'name': 'Electronics', 'icon': Icons.devices, 'color': const Color(0xFF9C27B0)},
-      {'name': 'Food', 'icon': Icons.restaurant, 'color': const Color(0xFF9C27B0)},
+      {
+        'name': 'Clothes',
+        'icon': Icons.checkroom,
+        'color': const Color(0xFF9C27B0)
+      },
+      {
+        'name': 'Cosmetics',
+        'icon': Icons.face,
+        'color': const Color(0xFF9C27B0)
+      },
+      {
+        'name': 'Shoes',
+        'icon': Icons.directions_walk,
+        'color': const Color(0xFF9C27B0)
+      },
+      {
+        'name': 'Electronics',
+        'icon': Icons.devices,
+        'color': const Color(0xFF9C27B0)
+      },
+      {
+        'name': 'Food',
+        'icon': Icons.restaurant,
+        'color': const Color(0xFF9C27B0)
+      },
     ];
 
     return Container(
@@ -289,8 +311,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       width: 50,
                       height: 50,
                       decoration: BoxDecoration(
-                        color: isSelected 
-                            ? const Color(0xFF6A1B9A) 
+                        color: isSelected
+                            ? const Color(0xFF6A1B9A)
                             : category['color'] as Color,
                         shape: BoxShape.circle,
                       ),
@@ -305,10 +327,11 @@ class _HomeScreenState extends State<HomeScreen> {
                       category['name'] as String,
                       style: TextStyle(
                         fontSize: 10,
-                        color: isSelected 
-                            ? const Color(0xFF6A1B9A) 
+                        color: isSelected
+                            ? const Color(0xFF6A1B9A)
                             : const Color(0xFF2D1B35),
-                        fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                        fontWeight:
+                            isSelected ? FontWeight.bold : FontWeight.w500,
                       ),
                     ),
                   ],
@@ -376,7 +399,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             const SizedBox(height: 16),
             Text(
-              viewModel.selectedCategory.isEmpty 
+              viewModel.selectedCategory.isEmpty
                   ? 'No items available\nStart by adding your first item!'
                   : 'No items found in ${viewModel.selectedCategory}',
               style: const TextStyle(
@@ -392,7 +415,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   context,
                   MaterialPageRoute(builder: (context) => const AddItemPage()),
                 );
-                
+
                 if (result == true) {
                   viewModel.refreshItems();
                 }
@@ -400,7 +423,8 @@ class _HomeScreenState extends State<HomeScreen> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF9C27B0),
               ),
-              child: const Text('Add Item', style: TextStyle(color: Colors.white)),
+              child:
+                  const Text('Add Item', style: TextStyle(color: Colors.white)),
             ),
           ],
         ),
@@ -453,52 +477,96 @@ class _HomeScreenState extends State<HomeScreen> {
                 borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
               ),
               child: ClipRRect(
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(12)),
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
-                    item.imageUrl != null
+                    item.imageUrl != null && item.imageUrl!.isNotEmpty
                         ? Image.network(
                             item.imageUrl!,
                             fit: BoxFit.cover,
+                            headers: {
+                              'Cache-Control': 'no-cache', // Force fresh load
+                            },
                             loadingBuilder: (context, child, loadingProgress) {
                               if (loadingProgress == null) return child;
                               return Center(
-                                child: CircularProgressIndicator(
-                                  value: loadingProgress.expectedTotalBytes != null
-                                      ? loadingProgress.cumulativeBytesLoaded /
-                                          loadingProgress.expectedTotalBytes!
-                                      : null,
-                                  color: const Color(0xFF9C27B0),
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    CircularProgressIndicator(
+                                      value:
+                                          loadingProgress.expectedTotalBytes !=
+                                                  null
+                                              ? loadingProgress
+                                                      .cumulativeBytesLoaded /
+                                                  loadingProgress
+                                                      .expectedTotalBytes!
+                                              : null,
+                                      color: const Color(0xFF9C27B0),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      'Loading...',
+                                      style: TextStyle(
+                                          fontSize: 8, color: Colors.grey[600]),
+                                    ),
+                                  ],
                                 ),
                               );
                             },
                             errorBuilder: (context, error, stackTrace) {
+                              print('❌ Error loading image: $error');
+                              print('🔗 Image URL: ${item.imageUrl}');
                               return Container(
                                 color: Colors.grey[200],
-                                child: const Icon(
-                                  Icons.image,
-                                  color: Colors.grey,
-                                  size: 40,
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const Icon(
+                                      Icons.broken_image,
+                                      color: Colors.grey,
+                                      size: 40,
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      'Image failed to load',
+                                      style: TextStyle(
+                                          fontSize: 8, color: Colors.grey[600]),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ],
                                 ),
                               );
                             },
                           )
                         : Container(
                             color: Colors.grey[200],
-                            child: const Icon(
-                              Icons.image,
-                              color: Colors.grey,
-                              size: 40,
+                            child: const Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.image,
+                                  color: Colors.grey,
+                                  size: 40,
+                                ),
+                                SizedBox(height: 4),
+                                Text(
+                                  'No image',
+                                  style: TextStyle(
+                                      fontSize: 8, color: Colors.grey),
+                                ),
+                              ],
                             ),
                           ),
-                    
                     // Status badge
                     Positioned(
                       top: 8,
                       left: 8,
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
                           color: Colors.black54,
                           borderRadius: BorderRadius.circular(8),
@@ -518,7 +586,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
           ),
-          
+
           // Item Details
           Expanded(
             flex: 2,
@@ -560,7 +628,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ],
                   ),
-                  
+
                   // Seller info and action buttons
                   Row(
                     children: [
@@ -595,7 +663,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           ],
                         ),
                       ),
-                      
+
                       // Action buttons (only show for current user's items)
                       if (viewModel.isCurrentUserSeller(item.sellerId))
                         Row(
@@ -606,10 +674,11 @@ class _HomeScreenState extends State<HomeScreen> {
                                 final result = await Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) => EditItemPage(item: item),
+                                    builder: (context) =>
+                                        EditItemPage(item: item),
                                   ),
                                 );
-                                
+
                                 // Refresh items if edit was successful
                                 if (result == true) {
                                   viewModel.refreshItems();
@@ -642,7 +711,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       else
                         // Show a small indicator that this is someone else's item
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 2),
                           decoration: BoxDecoration(
                             color: Colors.green.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(8),
@@ -697,7 +767,7 @@ class _HomeScreenState extends State<HomeScreen> {
           TextButton(
             onPressed: () async {
               Navigator.pop(context);
-              
+
               // Show loading indicator
               showDialog(
                 context: context,
@@ -708,12 +778,12 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
               );
-              
+
               final success = await viewModel.deleteItem(item.id!);
-              
+
               // Hide loading indicator
               Navigator.pop(context);
-              
+
               if (success) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
@@ -724,7 +794,8 @@ class _HomeScreenState extends State<HomeScreen> {
               } else {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text(viewModel.errorMessage ?? 'Failed to delete item'),
+                    content:
+                        Text(viewModel.errorMessage ?? 'Failed to delete item'),
                     backgroundColor: Colors.red,
                   ),
                 );
@@ -768,40 +839,74 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildNavItem(IconData icon, String label, int index) {
-    final isSelected = _selectedNavIndex == index;
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          _selectedNavIndex = index;
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('$label selected')),
-        );
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              icon,
+  final isSelected = _selectedNavIndex == index;
+  return GestureDetector(
+    onTap: () {
+      setState(() {
+        _selectedNavIndex = index;
+      });
+      
+      // Handle navigation based on index
+      switch (index) {
+        case 0:
+          // Home - already on home screen, do nothing
+          break;
+        case 1:
+          // Wishlist
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Wishlist functionality coming soon')),
+          );
+          break;
+        case 3:
+          // Updates/Notifications
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Updates functionality coming soon')),
+          );
+          break;
+        case 4:
+          // Profile - Navigate to ProfileScreen
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const ProfileScreen(),
+            ),
+          ).then((value) {
+            // Reset navigation selection when returning from profile
+            setState(() {
+              _selectedNavIndex = 0;
+            });
+          });
+          break;
+        default:
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('$label selected')),
+          );
+      }
+    },
+    child: Container(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            icon,
+            color: isSelected ? const Color(0xFF9C27B0) : Colors.grey[400],
+            size: 24,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 10,
               color: isSelected ? const Color(0xFF9C27B0) : Colors.grey[400],
-              size: 24,
+              fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
             ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 10,
-                color: isSelected ? const Color(0xFF9C27B0) : Colors.grey[400],
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildSellButton() {
     return GestureDetector(
@@ -810,7 +915,7 @@ class _HomeScreenState extends State<HomeScreen> {
           context,
           MaterialPageRoute(builder: (context) => const AddItemPage()),
         );
-        
+
         // Refresh items when returning from add item page
         if (result == true) {
           Provider.of<HomeViewModel>(context, listen: false).refreshItems();

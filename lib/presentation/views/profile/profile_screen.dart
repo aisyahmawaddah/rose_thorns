@@ -1,141 +1,252 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:koopon/presentation/views/add_item_screen.dart';
+import 'package:koopon/presentation/views/edit_item_screen.dart';
+import 'package:koopon/presentation/views/profile/edit_profile_screen.dart';
+import 'package:koopon/presentation/viewmodels/profile_viewmodel.dart';
+import 'package:koopon/data/models/item_model.dart';
 
+class ProfileScreen extends StatefulWidget {
+  const ProfileScreen({Key? key}) : super(key: key);
 
-class ItemListPage extends StatelessWidget {
-  const ItemListPage({Key? key}) : super(key: key);
+  @override
+  _ProfileScreenState createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  int _selectedNavIndex = 4; // Profile tab selected
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFE5F6FF),
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Header Section
-            _buildHeader(),
+    return ChangeNotifierProvider(
+      create: (context) => ProfileViewModel(),
+      child: Consumer<ProfileViewModel>(
+        builder: (context, viewModel, child) {
+          // Initialize the view model when the Consumer is first built
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!viewModel.isInitialized) {
+              viewModel.initialize();
+            }
+          });
 
-            // Action Buttons Section
-            _buildActionButtons(),
-
-            // Category Section
-            _buildCategorySection(),
-
-            // Items Grid
-            Expanded(
-              child: _buildItemsGrid(),
+          return Scaffold(
+            backgroundColor: const Color(0xFFE8D4F1), // Same as home screen
+            body: SafeArea(
+              child: Column(
+                children: [
+                  // Header Section
+                  _buildHeader(viewModel),
+                  
+                  // Profile Info Section
+                  _buildProfileInfo(viewModel),
+                  
+                  // My Products Section Header
+                  _buildMyProductsHeader(viewModel),
+                  
+                  // User's Products Grid
+                  Expanded(
+                    child: _buildUserProductsGrid(viewModel),
+                  ),
+                  
+                  // Bottom Navigation
+                  _buildBottomNavigation(),
+                ],
+              ),
             ),
-
-            // Bottom Navigation
-            _buildBottomNavigation(),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
 
-  Widget _buildHeader() {
-    return const Padding(
-      padding: EdgeInsets.fromLTRB(16, 8, 16, 8),
+  Widget _buildHeader(ProfileViewModel viewModel) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
       child: Row(
         children: [
-          // Menu Icon
-          Icon(
-            Icons.menu,
-            color: Color(0xFF473173),
-            size: 28,
-          ),
-          SizedBox(width: 16),
-
-          // Personalized Greeting with Username
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Hi, Izzati!',
-                style: TextStyle(
-                  color: Color(0xFF473173),
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  fontFamily: 'Poppins',
-                ),
+          // Back/Menu Icon
+          Container(
+            padding: const EdgeInsets.all(4),
+            child: GestureDetector(
+              onTap: () => Navigator.of(context).pop(),
+              child: const Icon(
+                Icons.arrow_back,
+                color: Color(0xFF2D1B35),
+                size: 24,
               ),
-              Text(
-                'What do you want to sell today?',
-                style: TextStyle(
-                  color: Color(0xFF473173),
-                  fontSize: 12,
-                  fontFamily: 'Poppins',
+            ),
+          ),
+          
+          const Spacer(),
+          
+          // Title
+          const Text(
+            'My Profile',
+            style: TextStyle(
+              color: Color(0xFF2D1B35),
+              fontSize: 20,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          
+          const Spacer(),
+          
+          // Settings Icon
+          Container(
+            padding: const EdgeInsets.all(4),
+            child: GestureDetector(
+              onTap: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Settings coming soon')),
+                );
+              },
+              child: const Icon(
+                Icons.settings,
+                color: Color(0xFF2D1B35),
+                size: 24,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProfileInfo(ProfileViewModel viewModel) {
+    return Container(
+      margin: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          // Profile Picture
+          Container(
+            width: 100,
+            height: 100,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: const Color(0xFF9C27B0), width: 3),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF9C27B0).withOpacity(0.3),
+                  blurRadius: 10,
+                  spreadRadius: 2,
                 ),
+              ],
+            ),
+            child: ClipOval(
+              child: viewModel.currentUserPhotoUrl != null
+                  ? Image.network(
+                      viewModel.currentUserPhotoUrl!,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          color: const Color(0xFFE8D4F1),
+                          child: const Icon(
+                            Icons.person,
+                            color: Color(0xFF9C27B0),
+                            size: 50,
+                          ),
+                        );
+                      },
+                    )
+                  : Container(
+                      color: const Color(0xFFE8D4F1),
+                      child: const Icon(
+                        Icons.person,
+                        color: Color(0xFF9C27B0),
+                        size: 50,
+                      ),
+                    ),
+            ),
+          ),
+          
+          const SizedBox(height: 16),
+          
+          // User Name
+          Text(
+            viewModel.currentUserDisplayName,
+            style: const TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF2D1B35),
+            ),
+          ),
+          
+          const SizedBox(height: 4),
+          
+          // User Email
+          Text(
+            viewModel.currentUserEmail,
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey[600],
+            ),
+          ),
+          
+          const SizedBox(height: 20),
+          
+          // Stats Row
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _buildStatItem(
+                'Products',
+                viewModel.userItems.length.toString(),
+                Icons.inventory,
+              ),
+              _buildStatItem(
+                'Sold',
+                '0', // You can implement this later
+                Icons.sell,
+              ),
+              _buildStatItem(
+                'Rating',
+                '5.0', // You can implement this later
+                Icons.star,
               ),
             ],
           ),
-
-          Spacer(),
-
-          // Profile Avatar
-          CircleAvatar(
-            radius: 24,
-            backgroundColor: Colors.white,
-            child: Icon(
-              Icons.person,
-              size: 30,
-              color: Color(0xFF8A56AC),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildActionButtons() {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-      child: Row(
-        children: [
-          // Add Item Button
-          Expanded(
+          
+          const SizedBox(height: 20),
+          
+          // Edit Profile Button
+          SizedBox(
+            width: double.infinity,
             child: ElevatedButton.icon(
-              onPressed: () {},
-              icon: const Icon(Icons.add, color: Colors.white),
+              onPressed: () async {
+                final result = await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const EditProfileScreen(),
+                  ),
+                );
+                
+                // Refresh profile if edit was successful
+                if (result == true) {
+                  viewModel.refreshProfile();
+                }
+              },
+              icon: const Icon(Icons.edit, size: 18),
               label: const Text(
-                'Click here\nto add item',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 12,
-                ),
+                'Edit Profile',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
               ),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFAF5DC2),
+                backgroundColor: const Color(0xFF9C27B0),
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(30),
-                ),
-                padding: const EdgeInsets.symmetric(vertical: 12),
-              ),
-            ),
-          ),
-
-          const SizedBox(width: 16),
-
-          // Order History Button
-          Expanded(
-            child: ElevatedButton.icon(
-              onPressed: () {},
-              icon: const Icon(Icons.history, color: Colors.white),
-              label: const Text(
-                'View Order\nHistory',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 12,
-                ),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF8A56AC),
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(30),
+                  borderRadius: BorderRadius.circular(15),
                 ),
                 padding: const EdgeInsets.symmetric(vertical: 12),
               ),
@@ -146,314 +257,604 @@ class ItemListPage extends StatelessWidget {
     );
   }
 
-  Widget _buildCategorySection() {
-    final categories = [
-      {'name': 'Clothes', 'icon': Icons.checkroom},
-      {'name': 'Cosmetics', 'icon': Icons.face},
-      {'name': 'Shoes', 'icon': Icons.hiking},
-      {'name': 'Electronics', 'icon': Icons.devices},
-      {'name': 'Food', 'icon': Icons.restaurant},
-    ];
-
+  Widget _buildStatItem(String label, String value, IconData icon) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Padding(
-          padding: EdgeInsets.only(left: 16, bottom: 8),
-          child: Text(
-            'Category',
-            style: TextStyle(
-              color: Color(0xFF473173),
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              fontFamily: 'Poppins',
-            ),
+        Container(
+          width: 50,
+          height: 50,
+          decoration: BoxDecoration(
+            color: const Color(0xFF9C27B0).withOpacity(0.1),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(
+            icon,
+            color: const Color(0xFF9C27B0),
+            size: 24,
           ),
         ),
-        SizedBox(
-          height: 70,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: categories.map((category) {
-              return Column(
-                children: [
-                  CircleAvatar(
-                    radius: 24,
-                    backgroundColor: const Color(0xFFF9E7FF),
-                    child: Icon(
-                      category['icon'] as IconData,
-                      color: const Color(0xFF8A56AC),
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    category['name'] as String,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Color(0xFF473173),
-                    ),
-                  ),
-                ],
-              );
-            }).toList(),
+        const SizedBox(height: 8),
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF2D1B35),
+          ),
+        ),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            color: Colors.grey[600],
           ),
         ),
       ],
     );
   }
 
-  Widget _buildItemsGrid() {
-    final items = [
-      {
-        'name': 'Zara Trench Coat',
-        'status': 'Lightly used',
-        'price': 'RM 30.00',
-        'seller': 'uzziefern',
-        'icon': Icons.checkroom, // IconData
-      },
-      {
-        'name': 'Astrid McStella Sweater',
-        'status': 'Lightly used',
-        'price': 'RM 10.00',
-        'seller': 'uzziefern',
-        'icon': Icons.style, // IconData
-      },
-      {
-        'name': 'AI Textbook',
-        'status': 'Lightly used',
-        'price': 'RM 25.00',
-        'seller': 'uzziefern',
-        'icon': Icons.menu_book, // IconData
-      },
-      {
-        'name': 'iPad 3rd Generation',
-        'status': 'Lightly used',
-        'price': 'RM 450.00',
-        'seller': 'uzziefern',
-        'icon': Icons.tablet, // IconData
-      },
-    ];
-
-    return GridView.builder(
-      padding: const EdgeInsets.fromLTRB(8, 0, 8, 0),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        childAspectRatio: 0.75,
-        crossAxisSpacing: 8,
-        mainAxisSpacing: 8,
-      ),
-      itemCount: items.length,
-      itemBuilder: (context, index) {
-        final item = items[index];
-        return Card(
-          elevation: 1,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+  Widget _buildMyProductsHeader(ProfileViewModel viewModel) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        children: [
+          const Text(
+            'My Products',
+            style: TextStyle(
+              color: Color(0xFF2D1B35),
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+            ),
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Item Image or Icon
-              Expanded(
-                child: ClipRRect(
-                  borderRadius:
-                      const BorderRadius.vertical(top: Radius.circular(12)),
-                  child: Container(
-                    width: double.infinity,
-                    color: index % 4 == 0
-                        ? const Color(0xFFE8DCCA)
-                        : index % 4 == 1
-                            ? const Color(0xFF6B94B3)
-                            : index % 4 == 2
-                                ? const Color(0xFF98D973)
-                                : const Color(0xFF808080),
-                    child: Center(
-                      child: Icon(
-                        item['icon'] as IconData, // Explicitly cast as IconData
-                        size: 50,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
+          const Spacer(),
+          TextButton.icon(
+            onPressed: () async {
+              final result = await Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const AddItemPage(),
                 ),
+              );
+              
+              // Refresh products if new item was added
+              if (result == true) {
+                viewModel.refreshUserItems();
+              }
+            },
+            icon: const Icon(
+              Icons.add,
+              color: Color(0xFF9C27B0),
+              size: 18,
+            ),
+            label: const Text(
+              'Add New',
+              style: TextStyle(
+                color: Color(0xFF9C27B0),
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
               ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
-              // Item Details
-              Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
+  Widget _buildUserProductsGrid(ProfileViewModel viewModel) {
+    if (viewModel.isLoading) {
+      return const Center(
+        child: CircularProgressIndicator(
+          color: Color(0xFF9C27B0),
+        ),
+      );
+    }
+
+    if (viewModel.errorMessage != null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons.error_outline,
+              size: 64,
+              color: Color(0xFF9C27B0),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              viewModel.errorMessage!,
+              style: const TextStyle(
+                fontSize: 16,
+                color: Color(0xFF2D1B35),
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () {
+                viewModel.refreshUserItems();
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF9C27B0),
+              ),
+              child: const Text('Retry', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (viewModel.userItems.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons.inventory_2_outlined,
+              size: 64,
+              color: Color(0xFF9C27B0),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'No products yet\nStart selling by adding your first product!',
+              style: TextStyle(
+                fontSize: 16,
+                color: Color(0xFF2D1B35),
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton.icon(
+              onPressed: () async {
+                final result = await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const AddItemPage(),
+                  ),
+                );
+                
+                if (result == true) {
+                  viewModel.refreshUserItems();
+                }
+              },
+              icon: const Icon(Icons.add),
+              label: const Text('Add Product'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF9C27B0),
+                foregroundColor: Colors.white,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: viewModel.refreshUserItems,
+      color: const Color(0xFF9C27B0),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: GridView.builder(
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            childAspectRatio: 0.8,
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 12,
+          ),
+          itemCount: viewModel.userItems.length,
+          itemBuilder: (context, index) {
+            final item = viewModel.userItems[index];
+            return _buildProductCard(item, viewModel);
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProductCard(ItemModel item, ProfileViewModel viewModel) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Item Image
+          Expanded(
+            flex: 3,
+            child: Container(
+              decoration: const BoxDecoration(
+                borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+              ),
+              child: ClipRRect(
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                child: Stack(
+                  fit: StackFit.expand,
                   children: [
-                    Text(
-                      item['name'] as String,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
-                        color: Color(0xFF473173),
+                    item.imageUrl != null && item.imageUrl!.isNotEmpty
+                        ? Image.network(
+                            item.imageUrl!,
+                            fit: BoxFit.cover,
+                            headers: {
+                              'Cache-Control': 'no-cache',
+                            },
+                            loadingBuilder: (context, child, loadingProgress) {
+                              if (loadingProgress == null) return child;
+                              return Center(
+                                child: CircularProgressIndicator(
+                                  value: loadingProgress.expectedTotalBytes != null
+                                      ? loadingProgress.cumulativeBytesLoaded /
+                                          loadingProgress.expectedTotalBytes!
+                                      : null,
+                                  color: const Color(0xFF9C27B0),
+                                ),
+                              );
+                            },
+                            errorBuilder: (context, error, stackTrace) {
+                              return Container(
+                                color: Colors.grey[200],
+                                child: const Icon(
+                                  Icons.broken_image,
+                                  color: Colors.grey,
+                                  size: 40,
+                                ),
+                              );
+                            },
+                          )
+                        : Container(
+                            color: Colors.grey[200],
+                            child: const Icon(
+                              Icons.image,
+                              color: Colors.grey,
+                              size: 40,
+                            ),
+                          ),
+                    
+                    // Status badge
+                    Positioned(
+                      top: 8,
+                      left: 8,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.black54,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          item.status,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 8,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    Text(
-                      item['status'] as String,
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: Colors.grey[600],
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      item['price'] as String,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
-                        color: Color(0xFFFF80AB),
-                      ),
-                    ),
-                    Row(
-                      children: [
-                        // Seller Icon
-                        const CircleAvatar(
-                          radius: 10,
-                          backgroundColor: Color(0xFFF9E7FF),
-                          child: Icon(
-                            Icons.person,
-                            size: 12,
-                            color: Color(0xFF8A56AC),
-                          ),
-                        ),
-                        const SizedBox(width: 4),
-                        // Seller Name
-                        Text(
-                          item['seller'] as String,
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                        const Spacer(),
-                        // Edit Icon
-                        GestureDetector(
-                          onTap: () {},
-                          child: const Icon(
-                            Icons.edit,
-                            size: 16,
-                            color: Color(0xFF8A56AC),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        // Delete Icon
-                        GestureDetector(
-                          onTap: () {},
-                          child: const Icon(
-                            Icons.delete,
-                            size: 16,
-                            color: Color(0xFF8A56AC),
-                          ),
-                        ),
-                      ],
                     ),
                   ],
                 ),
               ),
-            ],
+            ),
           ),
-        );
-      },
+          
+          // Item Details
+          Expanded(
+            flex: 2,
+            child: Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        item.name,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 12,
+                          color: Color(0xFF2D1B35),
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        item.category,
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'RM ${item.price.toStringAsFixed(2)}',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                          color: Color(0xFFE91E63),
+                        ),
+                      ),
+                    ],
+                  ),
+                  
+                  // Action buttons
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      // Edit Button
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () async {
+                            final result = await Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => EditItemPage(item: item),
+                              ),
+                            );
+                            
+                            // Refresh items if edit was successful
+                            if (result == true) {
+                              viewModel.refreshUserItems();
+                            }
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 6),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF9C27B0).withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.edit,
+                                  size: 14,
+                                  color: Color(0xFF9C27B0),
+                                ),
+                                SizedBox(width: 4),
+                                Text(
+                                  'Edit',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: Color(0xFF9C27B0),
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                      
+                      const SizedBox(width: 8),
+                      
+                      // Delete Button
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () {
+                            _showDeleteDialog(item, viewModel);
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 6),
+                            decoration: BoxDecoration(
+                              color: Colors.red.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.delete,
+                                  size: 14,
+                                  color: Colors.red,
+                                ),
+                                SizedBox(width: 4),
+                                Text(
+                                  'Delete',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: Colors.red,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showDeleteDialog(ItemModel item, ProfileViewModel viewModel) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        title: const Text('Delete Product'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Are you sure you want to delete "${item.name}"?'),
+            const SizedBox(height: 8),
+            Text(
+              'This action cannot be undone.',
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey[600],
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              
+              // Show loading indicator
+              showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (context) => const Center(
+                  child: CircularProgressIndicator(
+                    color: Color(0xFF9C27B0),
+                  ),
+                ),
+              );
+              
+              final success = await viewModel.deleteItem(item.id!);
+              
+              // Hide loading indicator
+              Navigator.pop(context);
+              
+              if (success) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('${item.name} deleted successfully'),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(viewModel.errorMessage ?? 'Failed to delete product'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            },
+            child: const Text(
+              'Delete',
+              style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
   Widget _buildBottomNavigation() {
     return Container(
-      height: 60,
-      decoration: const BoxDecoration(
+      height: 70,
+      decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black12,
-            blurRadius: 5,
-            spreadRadius: 1,
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, -2),
           ),
         ],
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _buildNavItem(Icons.home, 'Home', true),
-          _buildNavItem(Icons.bookmark_border, 'Wishlist', false),
+          _buildNavItem(Icons.home, 'Home', 0),
+          _buildNavItem(Icons.bookmark_border, 'Wishlist', 1),
           _buildSellButton(),
-          _buildNavItem(Icons.notifications_none, 'Updates', false),
-          _buildNavItem(Icons.person_outline, 'Profile', false),
+          _buildNavItem(Icons.notifications_none, 'Updates', 3),
+          _buildNavItem(Icons.person, 'Profile', 4), // Selected profile
         ],
       ),
     );
   }
 
-  Widget _buildNavItem(IconData icon, String label, bool isSelected) {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Icon(
-          icon,
-          color: isSelected ? const Color(0xFF8A56AC) : Colors.grey,
-          size: 24,
+  Widget _buildNavItem(IconData icon, String label, int index) {
+    final isSelected = _selectedNavIndex == index;
+    return GestureDetector(
+      onTap: () {
+        if (index == 0) {
+          // Navigate to home
+          Navigator.of(context).pop();
+        } else {
+          setState(() {
+            _selectedNavIndex = index;
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('$label selected')),
+          );
+        }
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              color: isSelected ? const Color(0xFF9C27B0) : Colors.grey[400],
+              size: 24,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 10,
+                color: isSelected ? const Color(0xFF9C27B0) : Colors.grey[400],
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+              ),
+            ),
+          ],
         ),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 10,
-            color: isSelected ? const Color(0xFF8A56AC) : Colors.grey,
-          ),
-        ),
-      ],
+      ),
     );
   }
 
   Widget _buildSellButton() {
-    return Container(
-      width: 50,
-      height: 50,
-      decoration: BoxDecoration(
-        color: const Color(0xFF8A56AC),
-        shape: BoxShape.circle,
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF8A56AC).withOpacity(0.4),
-            blurRadius: 10,
-            spreadRadius: 2,
-          ),
-        ],
-      ),
-      child: const Icon(
-        Icons.add,
-        color: Colors.white,
-        size: 30,
+    return GestureDetector(
+      onTap: () async {
+        final result = await Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const AddItemPage()),
+        );
+        
+        // Refresh items when returning from add item page
+        if (result == true) {
+          Provider.of<ProfileViewModel>(context, listen: false).refreshUserItems();
+        }
+      },
+      child: Container(
+        width: 56,
+        height: 56,
+        decoration: BoxDecoration(
+          color: const Color(0xFF9C27B0),
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF9C27B0).withOpacity(0.3),
+              blurRadius: 8,
+              spreadRadius: 2,
+            ),
+          ],
+        ),
+        child: const Icon(
+          Icons.add,
+          color: Colors.white,
+          size: 30,
+        ),
       ),
     );
   }
 }
-
-// // Main App
-// class PrelovedApp extends StatelessWidget {
-//   const PrelovedApp({Key? key}) : super(key: key);
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return MaterialApp(
-//       debugShowCheckedModeBanner: false,
-//       title: 'Preloved App',
-//       theme: ThemeData(
-//         primaryColor: const Color(0xFF8A56AC),
-//         fontFamily: 'Poppins',
-//         scaffoldBackgroundColor: const Color(0xFFE5F6FF),
-//       ),
-//       home: const ItemListPage(),
-//     );
-//   }
-// }
-
-// void main() {
-//   runApp(const PrelovedApp());
-// }

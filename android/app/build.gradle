@@ -9,6 +9,10 @@ plugins {
 }
 
 android {
+
+    compileSdk = 35                    // Add this line
+    ndkVersion = "25.1.8937393"       // Add this line
+    
     namespace = "com.example.koopon"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion

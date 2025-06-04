@@ -13,19 +13,23 @@ class HomeViewModel extends ChangeNotifier {
   bool _isLoading = false;
   String? _errorMessage;
   String _selectedCategory = '';
+  bool _isInitialized = false; // ONLY NEW LINE ADDED
 
   // Getters
   List<ItemModel> get items => _filteredItems;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
   String get selectedCategory => _selectedCategory;
+  bool get isInitialized => _isInitialized; // ONLY NEW GETTER ADDED
 
-  // Initialize and fetch all items
+  // Initialize and fetch all items (MODIFIED to prevent double initialization)
   Future<void> initialize() async {
+    if (_isInitialized) return; // ONLY NEW LINE ADDED
+    _isInitialized = true; // ONLY NEW LINE ADDED
     await fetchAllItems();
   }
 
-  // Fetch all items from Firebase
+  // Fetch all items from Firebase (UNCHANGED)
   Future<void> fetchAllItems() async {
     _setLoading(true);
     _clearError();
@@ -42,7 +46,7 @@ class HomeViewModel extends ChangeNotifier {
     }
   }
 
-  // Filter items by category
+  // Filter items by category (UNCHANGED)
   Future<void> fetchItemsByCategory(String category) async {
     _setLoading(true);
     _clearError();
@@ -63,7 +67,7 @@ class HomeViewModel extends ChangeNotifier {
     }
   }
 
-  // Search items by name
+  // Search items by name (UNCHANGED)
   Future<void> searchItems(String query) async {
     _setLoading(true);
     _clearError();
@@ -83,7 +87,7 @@ class HomeViewModel extends ChangeNotifier {
     }
   }
 
-  // Delete an item
+  // Delete an item (UNCHANGED)
   Future<bool> deleteItem(String itemId) async {
     try {
       await _itemService.deleteItem(itemId);
@@ -100,12 +104,12 @@ class HomeViewModel extends ChangeNotifier {
     }
   }
 
-  // Refresh items (for pull-to-refresh)
+  // Refresh items (for pull-to-refresh) (UNCHANGED)
   Future<void> refreshItems() async {
     await fetchAllItems();
   }
 
-  // Helper methods
+  // Helper methods (UNCHANGED)
   void _setLoading(bool loading) {
     _isLoading = loading;
     notifyListeners();
@@ -120,16 +124,16 @@ class HomeViewModel extends ChangeNotifier {
     _errorMessage = null;
   }
 
-  // Check if current user is the seller of an item
+  // Check if current user is the seller of an item (UNCHANGED)
   bool isCurrentUserSeller(String sellerId) {
     final currentUser = _authService.currentUser;
     if (currentUser == null) return false;
     return currentUser.uid == sellerId;
   }
 
-  // Get current user info
+  // Get current user info (UNCHANGED)
   User? get currentUser => _authService.currentUser;
 
-  // Get current user display name
+  // Get current user display name (UNCHANGED)
   String get currentUserDisplayName => _authService.currentUserDisplayName;
 }
