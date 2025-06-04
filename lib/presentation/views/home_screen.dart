@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:koopon/presentation/views/add_item_screen.dart';
+import 'package:koopon/presentation/views/edit_item_screen.dart';
 import 'package:koopon/presentation/viewmodels/home_viewmodel.dart';
 import 'package:koopon/data/models/item_model.dart';
 
@@ -600,10 +601,19 @@ class _HomeScreenState extends State<HomeScreen> {
                         Row(
                           children: [
                             GestureDetector(
-                              onTap: () {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('Edit ${item.name}')),
+                              onTap: () async {
+                                // Navigate to edit item screen
+                                final result = await Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => EditItemPage(item: item),
+                                  ),
                                 );
+                                
+                                // Refresh items if edit was successful
+                                if (result == true) {
+                                  viewModel.refreshItems();
+                                }
                               },
                               child: Container(
                                 padding: const EdgeInsets.all(4),
@@ -663,7 +673,22 @@ class _HomeScreenState extends State<HomeScreen> {
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         title: const Text('Delete Item'),
-        content: Text('Are you sure you want to delete "${item.name}"?'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Are you sure you want to delete "${item.name}"?'),
+            const SizedBox(height: 8),
+            Text(
+              'This action cannot be undone.',
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey[600],
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          ],
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -673,11 +698,28 @@ class _HomeScreenState extends State<HomeScreen> {
             onPressed: () async {
               Navigator.pop(context);
               
+              // Show loading indicator
+              showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (context) => const Center(
+                  child: CircularProgressIndicator(
+                    color: Color(0xFF9C27B0),
+                  ),
+                ),
+              );
+              
               final success = await viewModel.deleteItem(item.id!);
+              
+              // Hide loading indicator
+              Navigator.pop(context);
               
               if (success) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('${item.name} deleted successfully')),
+                  SnackBar(
+                    content: Text('${item.name} deleted successfully'),
+                    backgroundColor: Colors.green,
+                  ),
                 );
               } else {
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -688,7 +730,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 );
               }
             },
-            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+            child: const Text(
+              'Delete',
+              style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+            ),
           ),
         ],
       ),

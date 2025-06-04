@@ -35,7 +35,8 @@ class ItemService {
 
       String? imageUrl;
       
-      // Upload image if provided (now optional)
+
+        // Upload image if provided (now optional)
       if (imageFile != null) {
         imageUrl = await _uploadImage(imageFile, user.uid);
       } else {

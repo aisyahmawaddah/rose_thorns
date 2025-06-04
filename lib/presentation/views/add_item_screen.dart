@@ -220,16 +220,16 @@ class _AddItemPageState extends State<AddItemPage> {
                         alignment: Alignment.center,
                         children: [
                           if (_imageFile == null)
-                            Column(
+                            const Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                const Icon(
+                                Icon(
                                   Icons.add_photo_alternate,
                                   color: Color(0xFF8A56AC),
                                   size: 40,
                                 ),
-                                const SizedBox(height: 4),
-                                const Text(
+                                SizedBox(height: 4),
+                                Text(
                                   'Optional',
                                   style: TextStyle(
                                     color: Color(0xFF8A56AC),

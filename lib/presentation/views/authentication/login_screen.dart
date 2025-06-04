@@ -19,7 +19,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
 
-  LoginModel _loginModel = LoginModel(email: '', password: '');
+  LoginModel _loginModel = const LoginModel(email: '', password: '');
 
   @override
   void dispose() {
@@ -222,7 +222,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       fit: BoxFit.contain,
                       errorBuilder: (context, error, stackTrace) {
                         // Fallback if image is not found
-                        return Container(
+                        return SizedBox(
                           height: screenHeight * 0.25,
                           child: const Icon(
                             Icons.shopping_cart,
