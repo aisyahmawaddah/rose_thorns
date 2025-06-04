@@ -49,109 +49,108 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   Future<void> _register() async {
-  // Hide keyboard
-  FocusScope.of(context).unfocus();
+    // Hide keyboard
+    FocusScope.of(context).unfocus();
 
-  if (_formKey.currentState!.validate()) {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = '';
-    });
-
-    final email = _emailController.text.trim();
-    final password = _passwordController.text;
-    final displayName = _nameController.text.trim();
-    bool userCreated = false;
-
-    try {
-      // Check if email is a university email
-      if (!_isUniversityEmail(email)) {
-        throw Exception('Please use a university email address');
-      }
-
-      // Check if passwords match
-      if (password != _confirmPasswordController.text) {
-        throw Exception('Passwords do not match');
-      }
-
-      // Create user in Firebase Auth ONLY (no Firestore data yet)
-      UserCredential result = await FirebaseAuth.instance.createUserWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
-      userCreated = true;
-
-      // Update display name in Firebase Auth
-      await result.user!.updateDisplayName(displayName);
-
-      // Send email verification
-      await result.user!.sendEmailVerification();
-
-      // Navigate to email verification screen with user data
-      _navigateToVerification(email, displayName);
-
-    } on FirebaseAuthException catch (e) {
-      String errorMessage;
-      switch (e.code) {
-        case 'weak-password':
-          errorMessage = 'The password provided is too weak.';
-          break;
-        case 'email-already-in-use':
-          errorMessage = 'An account already exists for this email.';
-          break;
-        case 'invalid-email':
-          errorMessage = 'The email address is not valid.';
-          break;
-        case 'operation-not-allowed':
-          errorMessage = 'Email/password accounts are not enabled.';
-          break;
-        default:
-          errorMessage = 'An error occurred during registration. Please try again.';
-      }
-      
+    if (_formKey.currentState!.validate()) {
       setState(() {
-        _errorMessage = errorMessage;
-        _isLoading = false;
+        _isLoading = true;
+        _errorMessage = '';
       });
 
-    } catch (e) {
-      // Check if this is the Pigeon error
-      if (e.toString().contains('PigeonUserDetails') || 
-          e.toString().contains('List<Object?>')) {
-        
-        // User was likely created, navigate to verification
+      final email = _emailController.text.trim();
+      final password = _passwordController.text;
+      final displayName = _nameController.text.trim();
+      // ignore: unused_local_variable
+      bool userCreated = false;
+
+      try {
+        // Check if email is a university email
+        if (!_isUniversityEmail(email)) {
+          throw Exception('Please use a university email address');
+        }
+
+        // Check if passwords match
+        if (password != _confirmPasswordController.text) {
+          throw Exception('Passwords do not match');
+        }
+
+        // Create user in Firebase Auth ONLY (no Firestore data yet)
+        UserCredential result =
+            await FirebaseAuth.instance.createUserWithEmailAndPassword(
+          email: email,
+          password: password,
+        );
+        userCreated = true;
+
+        // Update display name in Firebase Auth
+        await result.user!.updateDisplayName(displayName);
+
+        // Send email verification
+        await result.user!.sendEmailVerification();
+
+        // Navigate to email verification screen with user data
         _navigateToVerification(email, displayName);
-        
-      } else {
+      } on FirebaseAuthException catch (e) {
+        String errorMessage;
+        switch (e.code) {
+          case 'weak-password':
+            errorMessage = 'The password provided is too weak.';
+            break;
+          case 'email-already-in-use':
+            errorMessage = 'An account already exists for this email.';
+            break;
+          case 'invalid-email':
+            errorMessage = 'The email address is not valid.';
+            break;
+          case 'operation-not-allowed':
+            errorMessage = 'Email/password accounts are not enabled.';
+            break;
+          default:
+            errorMessage =
+                'An error occurred during registration. Please try again.';
+        }
+
         setState(() {
-          _errorMessage = e.toString().replaceFirst('Exception: ', '');
+          _errorMessage = errorMessage;
           _isLoading = false;
         });
+      } catch (e) {
+        // Check if this is the Pigeon error
+        if (e.toString().contains('PigeonUserDetails') ||
+            e.toString().contains('List<Object?>')) {
+          // User was likely created, navigate to verification
+          _navigateToVerification(email, displayName);
+        } else {
+          setState(() {
+            _errorMessage = e.toString().replaceFirst('Exception: ', '');
+            _isLoading = false;
+          });
+        }
       }
     }
   }
-}
 
 // Helper method to navigate to verification screen
-void _navigateToVerification(String email, String displayName) {
-  if (mounted) {
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (context) => EmailVerificationScreen(
-          userData: {
-            'displayName': displayName,
-            'username': _usernameController.text.trim().isNotEmpty
-                ? _usernameController.text.trim()
-                : null,
-            'email': email,
-            'universityName': _extractUniversityFromEmail(email),
-          },
+  void _navigateToVerification(String email, String displayName) {
+    if (mounted) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => EmailVerificationScreen(
+            userData: {
+              'displayName': displayName,
+              'username': _usernameController.text.trim().isNotEmpty
+                  ? _usernameController.text.trim()
+                  : null,
+              'email': email,
+              'universityName': _extractUniversityFromEmail(email),
+            },
+          ),
         ),
-      ),
-    );
+      );
+    }
   }
-}
 
   @override
   Widget build(BuildContext context) {
