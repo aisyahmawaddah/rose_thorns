@@ -15,7 +15,6 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   int _selectedNavIndex = 4; // Profile tab selected
-  late ProfileViewModel _viewModel;
 
   @override
   Widget build(BuildContext context) {
@@ -23,12 +22,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
       create: (context) => ProfileViewModel(),
       child: Consumer<ProfileViewModel>(
         builder: (context, viewModel, child) {
-          _viewModel = viewModel;
-          
           // Initialize the view model when the Consumer is first built
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (!viewModel.isInitialized) {
-              print('🔄 Initializing ProfileViewModel...');
               viewModel.initialize();
             }
           });
@@ -94,22 +90,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           
           const Spacer(),
-          
-          // Refresh Icon (Add this to help debug)
-          Container(
-            padding: const EdgeInsets.all(4),
-            child: GestureDetector(
-              onTap: () {
-                print('🔄 Manual refresh triggered');
-                viewModel.refreshUserItems();
-              },
-              child: const Icon(
-                Icons.refresh,
-                color: Color(0xFF2D1B35),
-                size: 24,
-              ),
-            ),
-          ),
           
           // Settings Icon
           Container(
@@ -214,17 +194,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           ),
           
-          const SizedBox(height: 4),
-          
-          // Debug info (Remove in production)
-          Text(
-            'User ID: ${viewModel.currentUserId}',
-            style: TextStyle(
-              fontSize: 10,
-              color: Colors.grey[500],
-            ),
-          ),
-          
           const SizedBox(height: 20),
           
           // Stats Row
@@ -237,14 +206,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 Icons.inventory,
               ),
               _buildStatItem(
-                'Active',
-                viewModel.userItems.where((item) => item.status != 'Sold').length.toString(),
-                Icons.visibility,
-              ),
-              _buildStatItem(
                 'Sold',
                 '0', // You can implement this later
                 Icons.sell,
+              ),
+              _buildStatItem(
+                'Rating',
+                '5.0', // You can implement this later
+                Icons.star,
               ),
             ],
           ),
@@ -329,9 +298,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Row(
         children: [
-          Text(
-            'My Products (${viewModel.userItems.length})',
-            style: const TextStyle(
+          const Text(
+            'My Products',
+            style: TextStyle(
               color: Color(0xFF2D1B35),
               fontSize: 18,
               fontWeight: FontWeight.w600,
@@ -340,7 +309,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
           const Spacer(),
           TextButton.icon(
             onPressed: () async {
-              print('🚀 Navigating to Add Item screen');
               final result = await Navigator.push(
                 context,
                 MaterialPageRoute(
@@ -350,7 +318,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
               
               // Refresh products if new item was added
               if (result == true) {
-                print('✅ Item added, refreshing user items');
                 viewModel.refreshUserItems();
               }
             },
@@ -374,30 +341,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildUserProductsGrid(ProfileViewModel viewModel) {
-    // Debug prints
-    print('🔍 Building products grid:');
-    print('   - Is loading: ${viewModel.isLoading}');
-    print('   - Error: ${viewModel.errorMessage}');
-    print('   - Items count: ${viewModel.userItems.length}');
-    print('   - User ID: ${viewModel.currentUserId}');
-    
     if (viewModel.isLoading) {
       return const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            CircularProgressIndicator(
-              color: Color(0xFF9C27B0),
-            ),
-            SizedBox(height: 16),
-            Text(
-              'Loading your products...',
-              style: TextStyle(
-                color: Color(0xFF2D1B35),
-                fontSize: 16,
-              ),
-            ),
-          ],
+        child: CircularProgressIndicator(
+          color: Color(0xFF9C27B0),
         ),
       );
     }
@@ -424,7 +371,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: () {
-                print('🔄 Retry button pressed');
                 viewModel.refreshUserItems();
               },
               style: ElevatedButton.styleFrom(
@@ -483,25 +429,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
 
     return RefreshIndicator(
-      onRefresh: () async {
-        print('🔄 Pull to refresh triggered');
-        await viewModel.refreshUserItems();
-      },
+      onRefresh: viewModel.refreshUserItems,
       color: const Color(0xFF9C27B0),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16),
         child: GridView.builder(
-          physics: const AlwaysScrollableScrollPhysics(), // Enable pull to refresh
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 2,
-            childAspectRatio: 0.75, // Make cards slightly taller
+            childAspectRatio: 0.8,
             crossAxisSpacing: 12,
             mainAxisSpacing: 12,
           ),
           itemCount: viewModel.userItems.length,
           itemBuilder: (context, index) {
             final item = viewModel.userItems[index];
-            print('📦 Building product card for: ${item.name} (${item.id})');
             return _buildProductCard(item, viewModel);
           },
         ),
@@ -541,7 +482,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ? Image.network(
                             item.imageUrl!,
                             fit: BoxFit.cover,
-                            headers: const {
+                            headers: {
                               'Cache-Control': 'no-cache',
                             },
                             loadingBuilder: (context, child, loadingProgress) {
@@ -557,49 +498,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               );
                             },
                             errorBuilder: (context, error, stackTrace) {
-                              print('❌ Image load error for ${item.name}: $error');
                               return Container(
                                 color: Colors.grey[200],
-                                child: const Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(
-                                      Icons.broken_image,
-                                      color: Colors.grey,
-                                      size: 40,
-                                    ),
-                                    SizedBox(height: 4),
-                                    Text(
-                                      'Image not available',
-                                      style: TextStyle(
-                                        fontSize: 10,
-                                        color: Colors.grey,
-                                      ),
-                                    ),
-                                  ],
+                                child: const Icon(
+                                  Icons.broken_image,
+                                  color: Colors.grey,
+                                  size: 40,
                                 ),
                               );
                             },
                           )
                         : Container(
                             color: Colors.grey[200],
-                            child: const Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.image,
-                                  color: Colors.grey,
-                                  size: 40,
-                                ),
-                                SizedBox(height: 4),
-                                Text(
-                                  'No image',
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    color: Colors.grey,
-                                  ),
-                                ),
-                              ],
+                            child: const Icon(
+                              Icons.image,
+                              color: Colors.grey,
+                              size: 40,
                             ),
                           ),
                     
@@ -610,7 +524,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
-                          color: _getStatusColor(item.status),
+                          color: Colors.black54,
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
@@ -648,7 +562,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           fontSize: 12,
                           color: Color(0xFF2D1B35),
                         ),
-                        maxLines: 2,
+                        maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 2),
@@ -679,7 +593,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       Expanded(
                         child: GestureDetector(
                           onTap: () async {
-                            print('✏️ Editing item: ${item.name} (${item.id})');
                             final result = await Navigator.push(
                               context,
                               MaterialPageRoute(
@@ -689,7 +602,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             
                             // Refresh items if edit was successful
                             if (result == true) {
-                              print('✅ Item edited, refreshing user items');
                               viewModel.refreshUserItems();
                             }
                           },
@@ -728,7 +640,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       Expanded(
                         child: GestureDetector(
                           onTap: () {
-                            print('🗑️ Delete button pressed for: ${item.name}');
                             _showDeleteDialog(item, viewModel);
                           },
                           child: Container(
@@ -770,125 +681,78 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Color _getStatusColor(String status) {
-    switch (status.toLowerCase()) {
-      case 'brand new':
-        return Colors.green;
-      case 'lightly used':
-        return Colors.blue;
-      case 'well used':
-        return Colors.orange;
-      case 'heavily used':
-        return Colors.red;
-      default:
-        return Colors.grey;
-    }
-  }
-
   void _showDeleteDialog(ItemModel item, ProfileViewModel viewModel) {
-  showDialog(
-    context: context,
-    builder: (context) => AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      title: const Text('Delete Product'),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Are you sure you want to delete "${item.name}"?'),
-          const SizedBox(height: 8),
-          Text(
-            'This action cannot be undone.',
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.grey[600],
-              fontStyle: FontStyle.italic,
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        title: const Text('Delete Product'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Are you sure you want to delete "${item.name}"?'),
+            const SizedBox(height: 8),
+            Text(
+              'This action cannot be undone.',
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey[600],
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              
+              // Show loading indicator
+              showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (context) => const Center(
+                  child: CircularProgressIndicator(
+                    color: Color(0xFF9C27B0),
+                  ),
+                ),
+              );
+              
+              final success = await viewModel.deleteItem(item.id!);
+              
+              // Hide loading indicator
+              Navigator.pop(context);
+              
+              if (success) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('${item.name} deleted successfully'),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(viewModel.errorMessage ?? 'Failed to delete product'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            },
+            child: const Text(
+              'Delete',
+              style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
             ),
           ),
         ],
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
-        ),
-        TextButton(
-          onPressed: () async {
-            Navigator.pop(context);
-            
-            print('🗑️ Delete button pressed for: ${item.name}');
-            
-            // Show quick loading indicator (shorter duration)
-            showDialog(
-              context: context,
-              barrierDismissible: false,
-              builder: (context) => const AlertDialog(
-                content: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    CircularProgressIndicator(color: Color(0xFF9C27B0)),
-                    SizedBox(width: 20),
-                    Text('Deleting...'),
-                  ],
-                ),
-              ),
-            );
-            
-            // Perform deletion
-            final success = await viewModel.deleteItem(item.id!);
-            
-            // Hide loading indicator
-            Navigator.pop(context);
-            
-            // Show result
-            if (success) {
-              print('✅ Item deleted successfully');
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Row(
-                    children: [
-                      const Icon(Icons.check_circle, color: Colors.white),
-                      const SizedBox(width: 8),
-                      Text('${item.name} deleted'),
-                    ],
-                  ),
-                  backgroundColor: Colors.green,
-                  duration: const Duration(seconds: 2),
-                ),
-              );
-            } else {
-              print('❌ Failed to delete item');
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Row(
-                    children: [
-                      const Icon(Icons.error, color: Colors.white),
-                      const SizedBox(width: 8),
-                      Text(viewModel.errorMessage ?? 'Failed to delete product'),
-                    ],
-                  ),
-                  backgroundColor: Colors.red,
-                  duration: const Duration(seconds: 3),
-                  action: SnackBarAction(
-                    label: 'Retry',
-                    textColor: Colors.white,
-                    onPressed: () {
-                      _showDeleteDialog(item, viewModel); // Show dialog again
-                    },
-                  ),
-                ),
-              );
-            }
-          },
-          child: const Text(
-            'Delete',
-            style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
-          ),
-        ),
-      ],
-    ),
-  );
-}
+    );
+  }
 
   Widget _buildBottomNavigation() {
     return Container(
@@ -968,7 +832,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         
         // Refresh items when returning from add item page
         if (result == true) {
-          _viewModel.refreshUserItems();
+          Provider.of<ProfileViewModel>(context, listen: false).refreshUserItems();
         }
       },
       child: Container(

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:koopon/presentation/views/add_item_screen.dart';
 import 'package:koopon/presentation/views/edit_item_screen.dart';
+import 'package:koopon/presentation/views/product_detail_screen.dart';
+import 'package:koopon/presentation/views/cart/cart_screen.dart';
 import 'package:koopon/presentation/viewmodels/home_viewmodel.dart';
 import 'package:koopon/data/models/item_model.dart';
 import 'package:koopon/presentation/views/profile/profile_screen.dart';
@@ -15,6 +17,14 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedNavIndex = 0;
+  final TextEditingController _searchController = TextEditingController();
+  bool _isSearchVisible = false;
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -35,7 +45,10 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Column(
                 children: [
                   // Header Section
-                  _buildHeader(),
+                  _buildHeader(viewModel),
+
+                  // Search Section (conditionally visible)
+                  if (_isSearchVisible) _buildSearchSection(viewModel),
 
                   // Action Buttons Section
                   _buildActionButtons(viewModel),
@@ -59,18 +72,29 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(HomeViewModel viewModel) {
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
       child: Row(
         children: [
-          // Menu Icon
-          Container(
-            padding: const EdgeInsets.all(4),
-            child: const Icon(
-              Icons.menu,
-              color: Color(0xFF2D1B35),
-              size: 24,
+          // Search Icon
+          GestureDetector(
+            onTap: () {
+              setState(() {
+                _isSearchVisible = !_isSearchVisible;
+                if (!_isSearchVisible) {
+                  _searchController.clear();
+                  viewModel.fetchAllItems(); // Reset to show all items
+                }
+              });
+            },
+            child: Container(
+              padding: const EdgeInsets.all(4),
+              child: Icon(
+                _isSearchVisible ? Icons.close : Icons.search,
+                color: const Color(0xFF2D1B35),
+                size: 24,
+              ),
             ),
           ),
 
@@ -88,32 +112,101 @@ class _HomeScreenState extends State<HomeScreen> {
 
           const Spacer(),
 
-          // Profile Avatar
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(color: Colors.white, width: 2),
+          // Cart Icon
+          GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const CartScreen(),
+                ),
+              );
+            },
+            child: Container(
+              padding: const EdgeInsets.all(4),
+              margin: const EdgeInsets.only(right: 8),
+              child: const Icon(
+                Icons.shopping_cart_outlined,
+                color: Color(0xFF2D1B35),
+                size: 24,
+              ),
             ),
-            child: ClipOval(
-              child: Image.network(
-                'https://images.unsplash.com/photo-1494790108755-2616b612b550?w=100&h=100&fit=crop&crop=face',
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return Container(
-                    color: Colors.grey[300],
-                    child: const Icon(
-                      Icons.person,
-                      color: Colors.grey,
-                      size: 24,
-                    ),
-                  );
-                },
+          ),
+
+          // Current User Profile Avatar
+          GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const ProfileScreen(),
+                ),
+              );
+            },
+            child: Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white, width: 2),
+              ),
+              child: ClipOval(
+                child: Image.network(
+                  'https://images.unsplash.com/photo-1494790108755-2616b612b550?w=100&h=100&fit=crop&crop=face',
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Container(
+                      color: Colors.grey[300],
+                      child: const Icon(
+                        Icons.person,
+                        color: Colors.grey,
+                        size: 24,
+                      ),
+                    );
+                  },
+                ),
               ),
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildSearchSection(HomeViewModel viewModel) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: TextField(
+        controller: _searchController,
+        decoration: InputDecoration(
+          hintText: 'Search products or users...',
+          prefixIcon: const Icon(Icons.search, color: Color(0xFF9C27B0)),
+          suffixIcon: _searchController.text.isNotEmpty
+              ? IconButton(
+                  onPressed: () {
+                    _searchController.clear();
+                    viewModel.fetchAllItems();
+                  },
+                  icon: const Icon(Icons.clear, color: Color(0xFF9C27B0)),
+                )
+              : null,
+          filled: true,
+          fillColor: Colors.white,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(25),
+            borderSide: BorderSide.none,
+          ),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        ),
+        onChanged: (value) {
+          setState(() {}); // Update UI to show/hide clear button
+          // Implement search functionality
+          if (value.isNotEmpty) {
+            viewModel.searchItems(value);
+          } else {
+            viewModel.fetchAllItems();
+          }
+        },
       ),
     );
   }
@@ -454,285 +547,336 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildItemCard(ItemModel item, HomeViewModel viewModel) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
+    return GestureDetector(
+      onTap: () {
+        // Navigate to product detail screen
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ProductDetailScreen(item: item),
           ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Item Image
-          Expanded(
-            flex: 3,
-            child: Container(
-              decoration: const BoxDecoration(
-                borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
-              ),
-              child: ClipRRect(
-                borderRadius:
-                    const BorderRadius.vertical(top: Radius.circular(12)),
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    item.imageUrl != null && item.imageUrl!.isNotEmpty
-                        ? Image.network(
-                            item.imageUrl!,
-                            fit: BoxFit.cover,
-                            headers: const {
-                              'Cache-Control': 'no-cache', // Force fresh load
-                            },
-                            loadingBuilder: (context, child, loadingProgress) {
-                              if (loadingProgress == null) return child;
-                              return Center(
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    CircularProgressIndicator(
-                                      value:
-                                          loadingProgress.expectedTotalBytes !=
-                                                  null
-                                              ? loadingProgress
-                                                      .cumulativeBytesLoaded /
-                                                  loadingProgress
-                                                      .expectedTotalBytes!
-                                              : null,
-                                      color: const Color(0xFF9C27B0),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      'Loading...',
-                                      style: TextStyle(
-                                          fontSize: 8, color: Colors.grey[600]),
-                                    ),
-                                  ],
-                                ),
-                              );
-                            },
-                            errorBuilder: (context, error, stackTrace) {
-                              print('❌ Error loading image: $error');
-                              print('🔗 Image URL: ${item.imageUrl}');
-                              return Container(
-                                color: Colors.grey[200],
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    const Icon(
-                                      Icons.broken_image,
-                                      color: Colors.grey,
-                                      size: 40,
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      'Image failed to load',
-                                      style: TextStyle(
-                                          fontSize: 8, color: Colors.grey[600]),
-                                      textAlign: TextAlign.center,
-                                    ),
-                                  ],
-                                ),
-                              );
-                            },
-                          )
-                        : Container(
-                            color: Colors.grey[200],
-                            child: const Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.image,
-                                  color: Colors.grey,
-                                  size: 40,
-                                ),
-                                SizedBox(height: 4),
-                                Text(
-                                  'No image',
-                                  style: TextStyle(
-                                      fontSize: 8, color: Colors.grey),
-                                ),
-                              ],
+        );
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Item Image
+            Expanded(
+              flex: 3,
+              child: Container(
+                decoration: const BoxDecoration(
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+                ),
+                child: ClipRRect(
+                  borderRadius:
+                      const BorderRadius.vertical(top: Radius.circular(12)),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      item.imageUrl != null && item.imageUrl!.isNotEmpty
+                          ? Image.network(
+                              item.imageUrl!,
+                              fit: BoxFit.cover,
+                              headers: const {
+                                'Cache-Control': 'no-cache', // Force fresh load
+                              },
+                              loadingBuilder: (context, child, loadingProgress) {
+                                if (loadingProgress == null) return child;
+                                return Center(
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      CircularProgressIndicator(
+                                        value:
+                                            loadingProgress.expectedTotalBytes !=
+                                                    null
+                                                ? loadingProgress
+                                                        .cumulativeBytesLoaded /
+                                                    loadingProgress
+                                                        .expectedTotalBytes!
+                                                : null,
+                                        color: const Color(0xFF9C27B0),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        'Loading...',
+                                        style: TextStyle(
+                                            fontSize: 8, color: Colors.grey[600]),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              },
+                              errorBuilder: (context, error, stackTrace) {
+                                print('❌ Error loading image: $error');
+                                print('🔗 Image URL: ${item.imageUrl}');
+                                return Container(
+                                  color: Colors.grey[200],
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      const Icon(
+                                        Icons.broken_image,
+                                        color: Colors.grey,
+                                        size: 40,
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        'Image failed to load',
+                                        style: TextStyle(
+                                            fontSize: 8, color: Colors.grey[600]),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              },
+                            )
+                          : Container(
+                              color: Colors.grey[200],
+                              child: const Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.image,
+                                    color: Colors.grey,
+                                    size: 40,
+                                  ),
+                                  SizedBox(height: 4),
+                                  Text(
+                                    'No image',
+                                    style: TextStyle(
+                                        fontSize: 8, color: Colors.grey),
+                                  ),
+                                ],
+                              ),
                             ),
+                      // Status badge
+                      Positioned(
+                        top: 8,
+                        left: 8,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.black54,
+                            borderRadius: BorderRadius.circular(8),
                           ),
-                    // Status badge
-                    Positioned(
-                      top: 8,
-                      left: 8,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: Colors.black54,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          item.status,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 8,
-                            fontWeight: FontWeight.bold,
+                          child: Text(
+                            item.status,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 8,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
                       ),
+                      // Cart icon
+                      if (!viewModel.isCurrentUserSeller(item.sellerId))
+                        Positioned(
+                          top: 8,
+                          right: 8,
+                          child: GestureDetector(
+                            onTap: () {
+                              // Add to cart functionality
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const CartScreen(),
+                                ),
+                              );
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.9),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.shopping_cart_outlined,
+                                color: Color(0xFF9C27B0),
+                                size: 16,
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+            // Item Details
+            Expanded(
+              flex: 2,
+              child: Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          item.name,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 12,
+                            color: Color(0xFF2D1B35),
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          item.status,
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'RM ${item.price.toStringAsFixed(2)}',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                            color: Color(0xFFE91E63),
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    // Seller info and action buttons
+                    Row(
+                      children: [
+                        // Seller profile picture and info
+                        Expanded(
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 16,
+                                height: 16,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: Colors.grey.shade300),
+                                ),
+                                child: ClipOval(
+                                  child: Image.network(
+                                    'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face',
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (context, error, stackTrace) {
+                                      return Container(
+                                        color: const Color(0xFFE8D4F1),
+                                        child: const Icon(
+                                          Icons.person,
+                                          size: 10,
+                                          color: Color(0xFF9C27B0),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              Expanded(
+                                child: Text(
+                                  item.sellerName,
+                                  style: TextStyle(
+                                    fontSize: 9,
+                                    color: Colors.grey[600],
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        // Action buttons (only show for current user's items)
+                        if (viewModel.isCurrentUserSeller(item.sellerId))
+                          Row(
+                            children: [
+                              GestureDetector(
+                                onTap: () async {
+                                  // Navigate to edit item screen
+                                  final result = await Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) =>
+                                          EditItemPage(item: item),
+                                    ),
+                                  );
+
+                                  // Refresh items if edit was successful
+                                  if (result == true) {
+                                    viewModel.refreshItems();
+                                  }
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.all(4),
+                                  child: const Icon(
+                                    Icons.edit,
+                                    size: 14,
+                                    color: Color(0xFF9C27B0),
+                                  ),
+                                ),
+                              ),
+                              GestureDetector(
+                                onTap: () {
+                                  _showDeleteDialog(item, viewModel);
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.all(4),
+                                  child: const Icon(
+                                    Icons.delete,
+                                    size: 14,
+                                    color: Color(0xFF9C27B0),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          )
+                        else
+                          // Show a small indicator that this is someone else's item
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: Colors.green.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Text(
+                              'Available',
+                              style: TextStyle(
+                                fontSize: 8,
+                                color: Colors.green,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
                   ],
                 ),
               ),
             ),
-          ),
-
-          // Item Details
-          Expanded(
-            flex: 2,
-            child: Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        item.name,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 12,
-                          color: Color(0xFF2D1B35),
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        item.status,
-                        style: TextStyle(
-                          fontSize: 10,
-                          color: Colors.grey[600],
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'RM ${item.price.toStringAsFixed(2)}',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12,
-                          color: Color(0xFFE91E63),
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  // Seller info and action buttons
-                  Row(
-                    children: [
-                      // Seller info
-                      Expanded(
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 16,
-                              height: 16,
-                              decoration: const BoxDecoration(
-                                color: Color(0xFFE8D4F1),
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(
-                                Icons.person,
-                                size: 10,
-                                color: Color(0xFF9C27B0),
-                              ),
-                            ),
-                            const SizedBox(width: 4),
-                            Expanded(
-                              child: Text(
-                                item.sellerName,
-                                style: TextStyle(
-                                  fontSize: 9,
-                                  color: Colors.grey[600],
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-
-                      // Action buttons (only show for current user's items)
-                      if (viewModel.isCurrentUserSeller(item.sellerId))
-                        Row(
-                          children: [
-                            GestureDetector(
-                              onTap: () async {
-                                // Navigate to edit item screen
-                                final result = await Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) =>
-                                        EditItemPage(item: item),
-                                  ),
-                                );
-
-                                // Refresh items if edit was successful
-                                if (result == true) {
-                                  viewModel.refreshItems();
-                                }
-                              },
-                              child: Container(
-                                padding: const EdgeInsets.all(4),
-                                child: const Icon(
-                                  Icons.edit,
-                                  size: 14,
-                                  color: Color(0xFF9C27B0),
-                                ),
-                              ),
-                            ),
-                            GestureDetector(
-                              onTap: () {
-                                _showDeleteDialog(item, viewModel);
-                              },
-                              child: Container(
-                                padding: const EdgeInsets.all(4),
-                                child: const Icon(
-                                  Icons.delete,
-                                  size: 14,
-                                  color: Color(0xFF9C27B0),
-                                ),
-                              ),
-                            ),
-                          ],
-                        )
-                      else
-                        // Show a small indicator that this is someone else's item
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: Colors.green.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: const Text(
-                            'Available',
-                            style: TextStyle(
-                              fontSize: 8,
-                              color: Colors.green,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

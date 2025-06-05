@@ -9,6 +9,7 @@ class ItemModel {
   final String? imageUrl;
   final String sellerId;
   final String sellerName;
+  final String description; // Added description field
   final DateTime createdAt;
   final Map<String, dynamic> additionalFields;
 
@@ -21,6 +22,7 @@ class ItemModel {
     this.imageUrl,
     required this.sellerId,
     required this.sellerName,
+    this.description = '', // Default empty description
     required this.createdAt,
     this.additionalFields = const {},
   });
@@ -35,6 +37,7 @@ class ItemModel {
       'imageUrl': imageUrl,
       'sellerId': sellerId,
       'sellerName': sellerName,
+      'description': description,
       'createdAt': Timestamp.fromDate(createdAt),
       ...additionalFields,
     };
@@ -42,10 +45,10 @@ class ItemModel {
 
   // Create ItemModel from Firestore document
   factory ItemModel.fromMap(Map<String, dynamic> map, String documentId) {
-    // Extract known fields
+    // Extract known fields (now including description)
     final knownFields = {
       'name', 'category', 'status', 'price', 'imageUrl', 
-      'sellerId', 'sellerName', 'createdAt'
+      'sellerId', 'sellerName', 'description', 'createdAt'
     };
     
     // Get additional fields (dynamic fields based on category)
@@ -65,6 +68,7 @@ class ItemModel {
       imageUrl: map['imageUrl'],
       sellerId: map['sellerId'] ?? '',
       sellerName: map['sellerName'] ?? '',
+      description: map['description'] ?? '',
       createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       additionalFields: additionalFields,
     );
@@ -80,6 +84,7 @@ class ItemModel {
     String? imageUrl,
     String? sellerId,
     String? sellerName,
+    String? description,
     DateTime? createdAt,
     Map<String, dynamic>? additionalFields,
   }) {
@@ -92,6 +97,7 @@ class ItemModel {
       imageUrl: imageUrl ?? this.imageUrl,
       sellerId: sellerId ?? this.sellerId,
       sellerName: sellerName ?? this.sellerName,
+      description: description ?? this.description,
       createdAt: createdAt ?? this.createdAt,
       additionalFields: additionalFields ?? this.additionalFields,
     );
