@@ -27,13 +27,13 @@ class _EditItemPageState extends State<EditItemPage> {
   final ItemService _itemService = ItemService();
 
   final List<String> _categories = [
-    'Choose category',
-    'Clothes',
-    'Cosmetics',
-    'Shoes',
-    'Electronics',
-    'Food'
-  ];
+  'Choose category',
+  'Clothes',
+  'Cosmetics',
+  'Shoes',
+  'Electronics',
+  'Book'  // Changed from 'Food' to 'Book' to match your home screen
+];
 
   final List<String> _statusOptions = [
     'Brand new',
@@ -49,12 +49,33 @@ class _EditItemPageState extends State<EditItemPage> {
   }
 
   void _initializeWithItemData() {
-    _nameController.text = widget.item.name;
-    _priceController.text = widget.item.price.toString();
-    _selectedCategory = widget.item.category;
-    _selectedStatus = widget.item.status;
-    _currentImageUrl = widget.item.imageUrl;
+  _nameController.text = widget.item.name;
+  _priceController.text = widget.item.price.toString();
+  
+  // Safe category initialization with case-insensitive matching
+  final categoryMatch = _categories.firstWhere(
+    (cat) => cat.toLowerCase() == widget.item.category.toLowerCase(),
+    orElse: () => 'Choose category',
+  );
+  _selectedCategory = categoryMatch;
+  
+  // Safe status initialization with case-insensitive matching
+  final statusMatch = _statusOptions.firstWhere(
+    (status) => status.toLowerCase() == widget.item.status.toLowerCase(),
+    orElse: () => 'Lightly used', // Default fallback
+  );
+  _selectedStatus = statusMatch;
+  
+  _currentImageUrl = widget.item.imageUrl;
+  
+  // Debug output
+  if (categoryMatch == 'Choose category') {
+    print('⚠️ Category "${widget.item.category}" not found, using default');
   }
+  if (statusMatch == 'Lightly used' && widget.item.status.toLowerCase() != 'lightly used') {
+    print('⚠️ Status "${widget.item.status}" not found, using default');
+  }
+}
 
   @override
   void dispose() {
