@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:koopon/presentation/views/add_item_screen.dart';
 import 'package:koopon/presentation/views/edit_item_screen.dart';
 import 'package:koopon/presentation/views/product_detail_screen.dart';
 import 'package:koopon/presentation/views/cart/cart_screen.dart';
 import 'package:koopon/presentation/viewmodels/home_viewmodel.dart';
+import 'package:koopon/presentation/viewmodels/cart_viewmodel.dart'; // Updated import
 import 'package:koopon/data/models/item_model.dart';
 import 'package:koopon/presentation/views/profile/profile_screen.dart';
 
@@ -21,6 +23,22 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isSearchVisible = false;
 
   @override
+  void initState() {
+    super.initState();
+    // Initialize cart viewmodel's auth listener
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final cartViewModel = Provider.of<CartViewModel>(context, listen: false);
+      cartViewModel.listenToAuthChanges();
+      
+      // Initialize cart if user is already authenticated
+      if (FirebaseAuth.instance.currentUser != null && !cartViewModel.isInitialized) {
+        cartViewModel.initializeCart();
+        print('HomeScreen: Initializing cart for user token: ${cartViewModel.userToken}');
+      }
+    });
+  }
+
+  @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
@@ -28,16 +46,15 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (context) => HomeViewModel(),
-      child: Consumer<HomeViewModel>(
-        builder: (context, viewModel, child) {
-          // Initialize the view model when the Consumer is first built
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (!viewModel.isInitialized) {
-              viewModel.initialize();
-            }
-          });
+    // Use existing providers from main.dart - no new provider scope needed
+    return Consumer<HomeViewModel>(
+      builder: (context, viewModel, child) {
+        // Initialize the view model when the Consumer is first built
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!viewModel.isInitialized) {
+            viewModel.initialize();
+          }
+        });
 
           return Scaffold(
             backgroundColor: const Color(0xFFE8D4F1), // Light purple background
@@ -67,9 +84,8 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
           );
-        },
-      ),
-    );
+        }
+      );
   }
 
   Widget _buildHeader(HomeViewModel viewModel) {
@@ -112,25 +128,91 @@ class _HomeScreenState extends State<HomeScreen> {
 
           const Spacer(),
 
-          // Cart Icon
-          GestureDetector(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const CartScreen(),
-                ),
-              );
+          // Cart Icon with Badge (only show if user has token)
+          StreamBuilder<User?>(
+            stream: FirebaseAuth.instance.authStateChanges(),
+            builder: (context, snapshot) {
+              if (snapshot.hasData && snapshot.data != null) {
+                return Consumer<CartViewModel>(
+                  builder: (context, cartViewModel, child) {
+                    print('HomeScreen: Cart badge - User token: ${cartViewModel.userToken}, Items: ${cartViewModel.itemCount}');
+                    
+                    return GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const CartScreen(),
+                          ),
+                        );
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        margin: const EdgeInsets.only(right: 8),
+                        child: Stack(
+                          children: [
+                            const Icon(
+                              Icons.shopping_cart_outlined,
+                              color: Color(0xFF2D1B35),
+                              size: 24,
+                            ),
+                            // Cart count badge (only show if items > 0 and user has token)
+                            if (cartViewModel.itemCount > 0 && cartViewModel.userToken != null)
+                              Positioned(
+                                right: 0,
+                                top: 0,
+                                child: Container(
+                                  padding: const EdgeInsets.all(2),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFE91E63),
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(color: Colors.white, width: 1),
+                                  ),
+                                  constraints: const BoxConstraints(
+                                    minWidth: 16,
+                                    minHeight: 16,
+                                  ),
+                                  child: Text(
+                                    '${cartViewModel.itemCount}',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                );
+              } else {
+                // Show cart icon without badge if user has no token
+                return GestureDetector(
+                  onTap: () {
+                    // Show login message
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Please login to access cart'),
+                        backgroundColor: Colors.orange,
+                      ),
+                    );
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    margin: const EdgeInsets.only(right: 8),
+                    child: const Icon(
+                      Icons.shopping_cart_outlined,
+                      color: Color(0xFF2D1B35),
+                      size: 24,
+                    ),
+                  ),
+                );
+              }
             },
-            child: Container(
-              padding: const EdgeInsets.all(4),
-              margin: const EdgeInsets.only(right: 8),
-              child: const Icon(
-                Icons.shopping_cart_outlined,
-                color: Color(0xFF2D1B35),
-                size: 24,
-              ),
-            ),
           ),
 
           // Current User Profile Avatar
@@ -352,8 +434,8 @@ class _HomeScreenState extends State<HomeScreen> {
       'color': const Color(0xFF9C27B0)
     },
     {
-      'name': 'Book', // Changed from 'Food' to 'Book'
-      'icon': Icons.menu_book, // Changed from Icons.restaurant to Icons.menu_book
+      'name': 'Book',
+      'icon': Icons.menu_book,
       'color': const Color(0xFF9C27B0)
     },
   ];
@@ -684,33 +766,113 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         ),
                       ),
-                      // Cart icon
+                      // Cart icon (only show if user has token and not their own item)
                       if (!viewModel.isCurrentUserSeller(item.sellerId))
                         Positioned(
                           top: 8,
                           right: 8,
-                          child: GestureDetector(
-                            onTap: () {
-                              // Add to cart functionality
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => const CartScreen(),
-                                ),
-                              );
+                          child: StreamBuilder<User?>(
+                            stream: FirebaseAuth.instance.authStateChanges(),
+                            builder: (context, snapshot) {
+                              if (snapshot.hasData && snapshot.data != null) {
+                                // User has token, show cart functionality
+                                return Consumer<CartViewModel>(
+                                  builder: (context, cartViewModel, child) {
+                                    final isInCart = cartViewModel.isItemInCart(item.id!);
+                                    
+                                    return GestureDetector(
+                                      onTap: () async {
+                                        print('HomeScreen: Add to cart clicked for item: ${item.name}, User token: ${cartViewModel.userToken}');
+                                        
+                                        if (isInCart) {
+                                          // Navigate to cart if item already in cart
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) => const CartScreen(),
+                                            ),
+                                          );
+                                        } else {
+                                          // Add to cart (with user token)
+                                          final success = await cartViewModel.addToCart(item);
+                                          
+                                          if (success && mounted) {
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              SnackBar(
+                                                content: Text('${item.name} added to cart (Token: ${cartViewModel.userToken?.substring(0, 8)}...)'),
+                                                backgroundColor: Colors.green,
+                                                duration: const Duration(seconds: 2),
+                                                action: SnackBarAction(
+                                                  label: 'View Cart',
+                                                  textColor: Colors.white,
+                                                  onPressed: () {
+                                                    Navigator.push(
+                                                      context,
+                                                      MaterialPageRoute(
+                                                        builder: (context) => const CartScreen(),
+                                                      ),
+                                                    );
+                                                  },
+                                                ),
+                                              ),
+                                            );
+                                          } else if (!success && mounted) {
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              SnackBar(
+                                                content: Text(cartViewModel.errorMessage ?? 'Failed to add to cart'),
+                                                backgroundColor: Colors.red,
+                                              ),
+                                            );
+                                          }
+                                        }
+                                      },
+                                      child: Container(
+                                        padding: const EdgeInsets.all(6),
+                                        decoration: BoxDecoration(
+                                          color: isInCart 
+                                              ? const Color(0xFF4CAF50).withOpacity(0.9)
+                                              : Colors.white.withOpacity(0.9),
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: Icon(
+                                          isInCart 
+                                              ? Icons.check_circle
+                                              : Icons.shopping_cart_outlined,
+                                          color: isInCart 
+                                              ? Colors.white
+                                              : const Color(0xFF9C27B0),
+                                          size: 16,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                );
+                              } else {
+                                // User has no token, show login prompt
+                                return GestureDetector(
+                                  onTap: () {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('Please login to add items to cart'),
+                                        backgroundColor: Colors.orange,
+                                      ),
+                                    );
+                                  },
+                                  child: Container(
+                                    padding: const EdgeInsets.all(6),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withOpacity(0.9),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(
+                                      Icons.shopping_cart_outlined,
+                                      color: Color(0xFF9C27B0),
+                                      size: 16,
+                                    ),
+                                  ),
+                                );
+                              }
                             },
-                            child: Container(
-                              padding: const EdgeInsets.all(6),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.9),
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(
-                                Icons.shopping_cart_outlined,
-                                color: Color(0xFF9C27B0),
-                                size: 16,
-                              ),
-                            ),
                           ),
                         ),
                     ],
@@ -852,22 +1014,54 @@ class _HomeScreenState extends State<HomeScreen> {
                             ],
                           )
                         else
-                          // Show a small indicator that this is someone else's item
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 6, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: Colors.green.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: const Text(
-                              'Available',
-                              style: TextStyle(
-                                fontSize: 8,
-                                color: Colors.green,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
+                          // Show item status for other users' items (with token awareness)
+                          StreamBuilder<User?>(
+                            stream: FirebaseAuth.instance.authStateChanges(),
+                            builder: (context, snapshot) {
+                              if (snapshot.hasData && snapshot.data != null) {
+                                return Consumer<CartViewModel>(
+                                  builder: (context, cartViewModel, child) {
+                                    final isInCart = cartViewModel.isItemInCart(item.id!);
+                                    
+                                    return Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: isInCart 
+                                            ? Colors.blue.withOpacity(0.1)
+                                            : Colors.green.withOpacity(0.1),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Text(
+                                        isInCart ? 'In Cart' : 'Available',
+                                        style: TextStyle(
+                                          fontSize: 8,
+                                          color: isInCart ? Colors.blue : Colors.green,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                );
+                              } else {
+                                return Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: Colors.green.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: const Text(
+                                    'Available',
+                                    style: TextStyle(
+                                      fontSize: 8,
+                                      color: Colors.green,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                );
+                              }
+                            },
                           ),
                       ],
                     ),

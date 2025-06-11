@@ -13,4 +13,5 @@ void main() async {
   await SupabaseConfig.initialize();
   
   runApp(const KooponApp());
+  
 }

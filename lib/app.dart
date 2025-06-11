@@ -1,21 +1,34 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:provider/provider.dart'; // ADD THIS LINE
 import 'package:koopon/core/config/routes.dart';
 import 'package:koopon/core/config/themes.dart';
 import 'package:koopon/presentation/views/authentication/login_screen.dart';
 import 'package:koopon/presentation/views/splash_screen.dart';
 import 'package:koopon/presentation/views/home_screen.dart';
+import 'package:koopon/presentation/viewmodels/cart_viewmodel.dart'; 
+import 'package:koopon/presentation/viewmodels/home_viewmodel.dart';
 
 class KooponApp extends StatelessWidget {
   const KooponApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Koopon',
-      theme: AppTheme.lightTheme,
-      home: const AuthWrapper(),
-      routes: AppRoutes.routes,
+    // ADD MultiProvider here to wrap MaterialApp
+    return MultiProvider(
+      providers: [
+        // ADD THESE PROVIDERS:
+        ChangeNotifierProvider(create: (_) => HomeViewModel(), lazy: true),
+        ChangeNotifierProvider(create: (_) => CartViewModel(), lazy: true),
+        
+        // Add any other providers you have here...
+      ],
+      child: MaterialApp(
+        title: 'Koopon',
+        theme: AppTheme.lightTheme,
+        home: const AuthWrapper(),
+        routes: AppRoutes.routes,
+      ),
     );
   }
 }
@@ -35,6 +48,12 @@ class _AuthWrapperState extends State<AuthWrapper> {
     super.initState();
     // Sign out any existing user when app starts to force fresh login
     _signOutExistingUser();
+    
+    // ADD: Initialize CartViewModel auth listener when app starts
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final cartViewModel = Provider.of<CartViewModel>(context, listen: false);
+      cartViewModel.listenToAuthChanges();
+    });
   }
 
   Future<void> _signOutExistingUser() async {
@@ -96,6 +115,14 @@ class _AuthWrapperState extends State<AuthWrapper> {
         
         // If user just logged in and email is verified, go to home
         if (user != null && user.emailVerified && _hasShownLoginScreen) {
+          // UPDATED: Initialize cart when user successfully logs in
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            final cartViewModel = Provider.of<CartViewModel>(context, listen: false);
+            if (!cartViewModel.isInitialized) {
+              cartViewModel.initializeCart();
+            }
+          });
+          
           final routeBuilder = AppRoutes.routes['/home'] ?? AppRoutes.routes['/profile'];
           if (routeBuilder != null) {
             return routeBuilder(context);
@@ -327,6 +354,12 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
   Future<void> _signOut() async {
     try {
       await FirebaseAuth.instance.signOut();
+      
+      // ADDED: Reset cart when user signs out
+      if (mounted) {
+        final cartViewModel = Provider.of<CartViewModel>(context, listen: false);
+        cartViewModel.resetCart();
+      }
     } catch (e) {
       setState(() {
         _message = 'Error signing out: ${e.toString()}';
