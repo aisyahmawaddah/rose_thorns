@@ -27,6 +27,11 @@ class ProfileViewModel extends ChangeNotifier {
   String? get currentUserPhotoUrl => currentUser?.photoURL;
   String get currentUserId => currentUser?.uid ?? '';
 
+int get soldItemsCount {
+    // Replace this with your actual logic to count sold items
+    return userItems.where((item) => item.status.toLowerCase() == 'sold').length;
+  }
+  
   // ADD: Override dispose to track disposal
   @override
   void dispose() {

@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:koopon/presentation/views/add_item_screen.dart';
 import 'package:koopon/presentation/views/edit_item_screen.dart';
 import 'package:koopon/presentation/views/profile/edit_profile_screen.dart';
+import 'package:koopon/presentation/views/seller_order_history_page.dart';
 import 'package:koopon/presentation/viewmodels/profile_viewmodel.dart';
 import 'package:koopon/data/models/item_model.dart';
 
@@ -207,8 +208,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               _buildStatItem(
                 'Sold',
-                '0', // You can implement this later
+                '${viewModel.soldItemsCount}', // You can implement this in your view model
                 Icons.sell,
+                onTap: () {
+                  // Navigate to Seller Order History Page
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const SellerOrderHistoryPage(),
+                    ),
+                  );
+                },
               ),
               _buildStatItem(
                 'Rating',
@@ -257,8 +267,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildStatItem(String label, String value, IconData icon) {
-    return Column(
+  Widget _buildStatItem(String label, String value, IconData icon, {VoidCallback? onTap}) {
+    Widget content = Column(
       children: [
         Container(
           width: 50,
@@ -291,6 +301,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
       ],
     );
+    if (onTap != null) {
+      return GestureDetector(
+        onTap: onTap,
+        child: content,
+      );
+    }
+    return content;
   }
 
   Widget _buildMyProductsHeader(ProfileViewModel viewModel) {
