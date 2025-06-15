@@ -30,43 +30,120 @@ class _SellerOrderHistoryPageState extends State<SellerOrderHistoryPage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F3FF),
-      appBar: AppBar(
-        title: const Text(
-          'My Sales',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
-        ),
-        backgroundColor: const Color(0xFF8B5CF6),
-        elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.white),
-        bottom: TabBar(
-          controller: _tabController,
-          indicatorColor: Colors.white,
-          indicatorWeight: 3,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white70,
-          labelStyle: const TextStyle(
-            fontWeight: FontWeight.w600,
-            fontSize: 12,
-          ),
-          tabs: const [
-            Tab(text: 'New Orders'),
-            Tab(text: 'To Ship'),
-            Tab(text: 'Shipped'),
-            Tab(text: 'Completed'),
+      backgroundColor: const Color(0xFFE8D4F1),
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Header Section (matching profile style)
+            _buildHeader(),
+            
+            // TabBar Container (matching profile white card style)
+            _buildTabBarContainer(),
+            
+            // TabBarView Content
+            Expanded(
+              child: TabBarView(
+                controller: _tabController,
+                children: [
+                  _buildOrderList(['placed', 'pending']), // New Orders
+                  _buildOrderList(['confirmed']), // To Ship
+                  _buildOrderList(['shipped']), // Shipped
+                  _buildOrderList(['delivered', 'completed']), // Completed
+                ],
+              ),
+            ),
           ],
         ),
       ),
-      body: TabBarView(
-        controller: _tabController,
+    );
+  }
+
+  Widget _buildHeader() {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+      child: Row(
         children: [
-          _buildOrderList(['placed', 'pending']), // New Orders
-          _buildOrderList(['confirmed']), // To Ship
-          _buildOrderList(['shipped']), // Shipped
-          _buildOrderList(['delivered', 'completed']), // Completed
+          // Back Icon
+          Container(
+            padding: const EdgeInsets.all(4),
+            child: GestureDetector(
+              onTap: () => Navigator.of(context).pop(),
+              child: const Icon(
+                Icons.arrow_back,
+                color: Color(0xFF2D1B35),
+                size: 24,
+              ),
+            ),
+          ),
+          
+          const Spacer(),
+          
+          // Title
+          const Text(
+            'My Sales',
+            style: TextStyle(
+              color: Color(0xFF2D1B35),
+              fontSize: 20,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          
+          const Spacer(),
+          
+          // Settings Icon
+          Container(
+            padding: const EdgeInsets.all(4),
+            child: GestureDetector(
+              onTap: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Settings coming soon')),
+                );
+              },
+              child: const Icon(
+                Icons.settings,
+                color: Color(0xFF2D1B35),
+                size: 24,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTabBarContainer() {
+    return Container(
+      margin: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: TabBar(
+        controller: _tabController,
+        indicatorColor: const Color(0xFF9C27B0),
+        indicatorWeight: 3,
+        labelColor: const Color(0xFF9C27B0),
+        unselectedLabelColor: Colors.grey[600],
+        labelStyle: const TextStyle(
+          fontWeight: FontWeight.w600,
+          fontSize: 12,
+        ),
+        unselectedLabelStyle: const TextStyle(
+          fontWeight: FontWeight.normal,
+          fontSize: 12,
+        ),
+        tabs: const [
+          Tab(text: 'New Orders'),
+          Tab(text: 'To Ship'),
+          Tab(text: 'Shipped'),
+          Tab(text: 'Completed'),
         ],
       ),
     );
@@ -84,7 +161,7 @@ class _SellerOrderHistoryPageState extends State<SellerOrderHistoryPage>
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(
             child: CircularProgressIndicator(
-              color: Color(0xFF8B5CF6),
+              color: Color(0xFF9C27B0),
             ),
           );
         }
@@ -172,12 +249,12 @@ class _SellerOrderHistoryPageState extends State<SellerOrderHistoryPage>
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withOpacity(0.1),
             blurRadius: 10,
-            offset: const Offset(0, 2),
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -190,8 +267,8 @@ class _SellerOrderHistoryPageState extends State<SellerOrderHistoryPage>
             decoration: BoxDecoration(
               color: _getStatusColor(status).withOpacity(0.1),
               borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(12),
-                topRight: Radius.circular(12),
+                topLeft: Radius.circular(20),
+                topRight: Radius.circular(20),
               ),
             ),
             child: Row(
@@ -205,6 +282,7 @@ class _SellerOrderHistoryPageState extends State<SellerOrderHistoryPage>
                         style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
+                          color: Color(0xFF2D1B35),
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -282,13 +360,14 @@ class _SellerOrderHistoryPageState extends State<SellerOrderHistoryPage>
                                     ? Icons.local_shipping 
                                     : Icons.handshake,
                                 size: 16,
-                                color: const Color(0xFF8B5CF6),
+                                color: const Color(0xFF9C27B0),
                               ),
                               const SizedBox(width: 4),
                               Text(
                                 dealMethod == 'delivery' ? 'Delivery' : 'Meetup',
                                 style: const TextStyle(
                                   fontWeight: FontWeight.w600,
+                                  color: Color(0xFF2D1B35),
                                 ),
                               ),
                             ],
@@ -312,7 +391,7 @@ class _SellerOrderHistoryPageState extends State<SellerOrderHistoryPage>
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 18,
-                            color: Color(0xFF8B5CF6),
+                            color: Color(0xFF9C27B0),
                           ),
                         ),
                       ],
@@ -348,12 +427,12 @@ class _SellerOrderHistoryPageState extends State<SellerOrderHistoryPage>
             width: 50,
             height: 50,
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(15),
               color: Colors.grey[200],
             ),
             child: imageUrl != null
                 ? ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(15),
                     child: Image.network(
                       imageUrl,
                       fit: BoxFit.cover,
@@ -383,6 +462,7 @@ class _SellerOrderHistoryPageState extends State<SellerOrderHistoryPage>
                   style: const TextStyle(
                     fontWeight: FontWeight.w600,
                     fontSize: 14,
+                    color: Color(0xFF2D1B35),
                   ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
@@ -405,6 +485,7 @@ class _SellerOrderHistoryPageState extends State<SellerOrderHistoryPage>
             style: const TextStyle(
               fontWeight: FontWeight.w600,
               fontSize: 14,
+              color: Color(0xFF2D1B35),
             ),
           ),
         ],
@@ -419,15 +500,15 @@ class _SellerOrderHistoryPageState extends State<SellerOrderHistoryPage>
           child: OutlinedButton(
             onPressed: () => _showOrderDetails(orderId, orderData),
             style: OutlinedButton.styleFrom(
-              side: const BorderSide(color: Color(0xFF8B5CF6)),
+              side: const BorderSide(color: Color(0xFF9C27B0)),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(15),
               ),
             ),
             child: const Text(
               'View Details',
               style: TextStyle(
-                color: Color(0xFF8B5CF6),
+                color: Color(0xFF9C27B0),
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -441,9 +522,9 @@ class _SellerOrderHistoryPageState extends State<SellerOrderHistoryPage>
             child: ElevatedButton(
               onPressed: () => _updateOrderStatus(orderId, status),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF8B5CF6),
+                backgroundColor: const Color(0xFF9C27B0),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(15),
                 ),
               ),
               child: Text(
@@ -467,7 +548,7 @@ class _SellerOrderHistoryPageState extends State<SellerOrderHistoryPage>
       case 'pending':
         return Colors.orange;
       case 'confirmed':
-        return Colors.blue;
+        return const Color(0xFF9C27B0);
       case 'shipped':
         return Colors.purple;
       case 'delivered':
@@ -563,19 +644,39 @@ class _SellerOrderHistoryPageState extends State<SellerOrderHistoryPage>
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Update Order Status'),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        title: const Text(
+          'Update Order Status',
+          style: TextStyle(
+            color: Color(0xFF2D1B35),
+            fontWeight: FontWeight.w600,
+          ),
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Change status to: ${_getStatusText(nextStatus)}'),
+            Text(
+              'Change status to: ${_getStatusText(nextStatus)}',
+              style: TextStyle(
+                color: Colors.grey[700],
+              ),
+            ),
             if (needsTracking) ...[
               const SizedBox(height: 16),
               TextField(
                 controller: trackingController,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: 'Tracking Number (Optional)',
-                  border: OutlineInputBorder(),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(15),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(15),
+                    borderSide: const BorderSide(color: Color(0xFF9C27B0)),
+                  ),
                 ),
               ),
             ],
@@ -584,7 +685,12 @@ class _SellerOrderHistoryPageState extends State<SellerOrderHistoryPage>
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: Text(
+              'Cancel',
+              style: TextStyle(
+                color: Colors.grey[600],
+              ),
+            ),
           ),
           ElevatedButton(
             onPressed: () => _confirmStatusUpdate(
@@ -593,11 +699,17 @@ class _SellerOrderHistoryPageState extends State<SellerOrderHistoryPage>
               trackingController.text.trim(),
             ),
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF8B5CF6),
+              backgroundColor: const Color(0xFF9C27B0),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(15),
+              ),
             ),
             child: const Text(
               'Update',
-              style: TextStyle(color: Colors.white),
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
         ],
@@ -624,6 +736,10 @@ class _SellerOrderHistoryPageState extends State<SellerOrderHistoryPage>
         SnackBar(
           content: Text('Order status updated to ${_getStatusText(newStatus)}'),
           backgroundColor: Colors.green,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15),
+          ),
+          behavior: SnackBarBehavior.floating,
         ),
       );
     } catch (e) {
@@ -631,6 +747,10 @@ class _SellerOrderHistoryPageState extends State<SellerOrderHistoryPage>
         SnackBar(
           content: Text('Failed to update order status: $e'),
           backgroundColor: Colors.red,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15),
+          ),
+          behavior: SnackBarBehavior.floating,
         ),
       );
     }
@@ -638,16 +758,41 @@ class _SellerOrderHistoryPageState extends State<SellerOrderHistoryPage>
 
   void _showOrderDetails(String orderId, Map<String, dynamic> orderData) {
     // Navigate to detailed order view
-    // You can implement this based on your existing order detail page
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Order Details'),
-        content: Text('Order ID: $orderId\n\nImplement detailed view here.'),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        title: const Text(
+          'Order Details',
+          style: TextStyle(
+            color: Color(0xFF2D1B35),
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        content: Text(
+          'Order ID: $orderId\n\nDetailed order view coming soon.',
+          style: TextStyle(
+            color: Colors.grey[700],
+          ),
+        ),
         actions: [
-          TextButton(
+          ElevatedButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF9C27B0),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(15),
+              ),
+            ),
+            child: const Text(
+              'Close',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
         ],
       ),
