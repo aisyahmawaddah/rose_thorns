@@ -46,8 +46,10 @@ class _AuthWrapperState extends State<AuthWrapper> {
   @override
   void initState() {
     super.initState();
-    // Sign out any existing user when app starts to force fresh login
-    _signOutExistingUser();
+    
+    // REMOVED: Don't sign out users on app start anymore
+    // This allows Firebase Auth to persist login state
+    // _signOutExistingUser(); // REMOVE THIS LINE
     
     // ADD: Initialize CartViewModel auth listener when app starts
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -56,15 +58,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
     });
   }
 
-  Future<void> _signOutExistingUser() async {
-    try {
-      if (FirebaseAuth.instance.currentUser != null) {
-        await FirebaseAuth.instance.signOut();
-      }
-    } catch (e) {
-      print('Error signing out existing user: $e');
-    }
-  }
+  // REMOVED: _signOutExistingUser method since we don't need it anymore
 
   @override
   Widget build(BuildContext context) {
@@ -113,9 +107,9 @@ class _AuthWrapperState extends State<AuthWrapper> {
 
         final User? user = snapshot.data;
         
-        // If user just logged in and email is verified, go to home
-        if (user != null && user.emailVerified && _hasShownLoginScreen) {
-          // UPDATED: Initialize cart when user successfully logs in
+        // If user is logged in and email is verified, go to home
+        if (user != null && user.emailVerified) {
+          // Initialize cart when user successfully logs in
           WidgetsBinding.instance.addPostFrameCallback((_) {
             final cartViewModel = Provider.of<CartViewModel>(context, listen: false);
             if (!cartViewModel.isInitialized) {
@@ -131,12 +125,11 @@ class _AuthWrapperState extends State<AuthWrapper> {
           }
         } 
         // If user is logged in but email not verified
-        else if (user != null && !user.emailVerified && _hasShownLoginScreen) {
+        else if (user != null && !user.emailVerified) {
           return const EmailVerificationScreen();
         } 
-        // Always show login screen first or if no user
+        // No user logged in - show login screen
         else {
-          _hasShownLoginScreen = true;
           return const LoginScreen();
         }
       },

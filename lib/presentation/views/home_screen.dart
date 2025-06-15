@@ -44,6 +44,79 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
 
+  // Add logout method
+  Future<void> _handleLogout() async {
+    // Show confirmation dialog
+    final bool? shouldLogout = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        title: const Text('Logout'),
+        content: const Text('Are you sure you want to logout?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.red,
+            ),
+            child: const Text('Logout'),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldLogout == true) {
+      try {
+        // Show loading indicator
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => const Center(
+            child: CircularProgressIndicator(
+              color: Color(0xFF9C27B0),
+            ),
+          ),
+        );
+
+        // Sign out from Firebase
+        // Note: We don't reset the cart here to allow cart persistence
+        // The cart will be automatically handled by the CartViewModel's auth listener
+        await FirebaseAuth.instance.signOut();
+
+        // Hide loading indicator
+        if (mounted) {
+          Navigator.of(context).pop();
+          
+          // Show success message
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Logged out successfully'),
+              backgroundColor: Colors.green,
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+      } catch (e) {
+        // Hide loading indicator
+        if (mounted) {
+          Navigator.of(context).pop();
+          
+          // Show error message
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error logging out: ${e.toString()}'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     // Use existing providers from main.dart - no new provider scope needed
@@ -215,40 +288,57 @@ class _HomeScreenState extends State<HomeScreen> {
             },
           ),
 
-          // Current User Profile Avatar
-          GestureDetector(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const ProfileScreen(),
-                ),
-              );
-            },
-            child: Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.white, width: 2),
-              ),
-              child: ClipOval(
-                child: Image.network(
-                  'https://images.unsplash.com/photo-1494790108755-2616b612b550?w=100&h=100&fit=crop&crop=face',
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Container(
-                      color: Colors.grey[300],
-                      child: const Icon(
-                        Icons.person,
-                        color: Colors.grey,
-                        size: 24,
+          // Logout Icon (replaced profile avatar)
+          StreamBuilder<User?>(
+            stream: FirebaseAuth.instance.authStateChanges(),
+            builder: (context, snapshot) {
+              if (snapshot.hasData && snapshot.data != null) {
+                // User is logged in, show logout icon
+                return GestureDetector(
+                  onTap: _handleLogout,
+                  child: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: const Color(0xFF2D1B35), width: 2),
+                      color: Colors.white,
+                    ),
+                    child: const Icon(
+                      Icons.logout,
+                      color: Color(0xFF2D1B35),
+                      size: 20,
+                    ),
+                  ),
+                );
+              } else {
+                // User is not logged in, show profile icon (inactive)
+                return GestureDetector(
+                  onTap: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Please login to access your profile'),
+                        backgroundColor: Colors.orange,
                       ),
                     );
                   },
-                ),
-              ),
-            ),
+                  child: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.grey, width: 2),
+                      color: Colors.grey[100],
+                    ),
+                    child: const Icon(
+                      Icons.person,
+                      color: Colors.grey,
+                      size: 20,
+                    ),
+                  ),
+                );
+              }
+            },
           ),
         ],
       ),

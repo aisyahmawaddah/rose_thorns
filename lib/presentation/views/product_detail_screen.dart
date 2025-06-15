@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:koopon/data/models/item_model.dart';
+import 'package:koopon/data/services/cart_service.dart';
+import 'package:koopon/data/models/cart_item_model.dart';
+import 'package:koopon/presentation/viewmodels/cart_viewmodel.dart';
 import 'package:koopon/presentation/views/cart/cart_screen.dart';
-import 'package:koopon/presentation/views/order_request/deal_method_screen.dart';
+import 'package:koopon/presentation/views/order_request/order_request_screen.dart';
 
 class ProductDetailScreen extends StatefulWidget {
   final ItemModel item;
@@ -641,23 +645,46 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                 height: 50,
                 margin: const EdgeInsets.only(right: 8),
                 child: ElevatedButton.icon(
-                  onPressed: () {
-                    // Add to cart and navigate to cart screen
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('${widget.item.name} added to cart'),
-                        backgroundColor: Colors.green,
-                        duration: const Duration(seconds: 1),
-                      ),
-                    );
+                  onPressed: () async {
+                    final cartViewModel = Provider.of<CartViewModel>(context, listen: false);
                     
-                    // Navigate to cart screen
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const CartScreen(),
-                      ),
-                    );
+                    if (!cartViewModel.isUserAuthenticated) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Please login to add items to cart'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                      return;
+                    }
+
+                    // Add item to cart
+                    final success = await cartViewModel.addToCart(widget.item);
+                    
+                    if (success && mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('${widget.item.name} added to cart'),
+                          backgroundColor: Colors.green,
+                          duration: const Duration(seconds: 1),
+                        ),
+                      );
+                      
+                      // Navigate to cart screen
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const CartScreen(),
+                        ),
+                      );
+                    } else if (!success && mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(cartViewModel.errorMessage ?? 'Failed to add item to cart'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.white,
@@ -687,11 +714,35 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                 margin: const EdgeInsets.only(left: 8),
                 child: ElevatedButton.icon(
                   onPressed: () {
-                    // Navigate to deal method screen for immediate purchase
+                    final cartViewModel = Provider.of<CartViewModel>(context, listen: false);
+                    
+                    if (!cartViewModel.isUserAuthenticated) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Please login to make a purchase'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                      return;
+                    }
+
+                    // Create CartItem from the current item for immediate purchase
+                    final cartItem = CartItem(
+                      id: DateTime.now().millisecondsSinceEpoch.toString(),
+                      itemId: widget.item.id ?? '',
+                      name: widget.item.name,
+                      imageUrl: widget.item.imageUrl ?? '',
+                      price: widget.item.price,
+                      quantity: 1,
+                      sellerId: widget.item.sellerId,
+                      sellerName: widget.item.sellerName,
+                    );
+
+                    // Navigate to order request screen for immediate purchase
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => const DealMethodScreen(),
+                        builder: (context) => OrderRequestScreen(cartItems: [cartItem]),
                       ),
                     );
                   },

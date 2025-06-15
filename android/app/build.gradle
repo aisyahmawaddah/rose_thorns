@@ -9,21 +9,21 @@ plugins {
 }
 
 android {
-
-    compileSdk = 35                    // Add this line
-    ndkVersion = "25.1.8937393"       // Add this line
+    // FIXED: Remove duplicate lines, keep only these
+    compileSdk = 35
+    ndkVersion = "25.1.8937393"
     
     namespace = "com.example.koopon"
-    compileSdk = flutter.compileSdkVersion
-    ndkVersion = flutter.ndkVersion
 
     compileOptions {
+        // UPDATED: For Stripe compatibility, but you can keep VERSION_1_8 if preferred
         sourceCompatibility = JavaVersion.VERSION_1_8
         targetCompatibility = JavaVersion.VERSION_1_8
     }
 
     kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_1_8
+        // UPDATED: For Stripe compatibility, but you can keep '1.8' if preferred
+        jvmTarget = '1.8'
     }
 
     sourceSets {
@@ -31,12 +31,10 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "com.example.koopon"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
-        targetSdk = flutter.targetSdkVersion
+        // UPDATED: Ensure minimum SDK 21 for Stripe
+        minSdk = 21
+        targetSdk = 35
         versionCode = flutter.versionCode
         versionName = flutter.versionName
         multiDexEnabled = true
@@ -44,8 +42,6 @@ android {
 
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.debug
         }
     }
@@ -56,13 +52,17 @@ flutter {
 }
 
 dependencies {
-    // Firebase dependencies
+    // Firebase dependencies (KEPT ALL YOUR EXISTING FIREBASE SETUP)
     implementation platform('com.google.firebase:firebase-bom:32.7.0')
     implementation 'com.google.firebase:firebase-analytics'
     implementation 'com.google.firebase:firebase-auth'
     implementation 'com.google.firebase:firebase-firestore'
     implementation 'com.google.firebase:firebase-storage'
     
-    // MultiDex support
+    // MultiDex support (KEPT YOUR EXISTING MULTIDEX)
     implementation 'androidx.multidex:multidex:2.0.1'
+
+    implementation "androidx.core:core-ktx:1.9.0"
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.8.10"
+    implementation 'com.google.android.material:material:1.8.0'
 }
