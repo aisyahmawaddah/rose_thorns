@@ -1,5 +1,6 @@
 // lib/presentation/views/order_request_screen.dart
 import 'package:flutter/material.dart';
+import 'package:koopon/presentation/views/order_request/purchase_history_screen.dart';
 import 'package:provider/provider.dart';
 import '../../viewmodels/order_request_viewmodel.dart';
 import '../../viewmodels/address_viewmodel.dart';
@@ -9,7 +10,7 @@ import '../../widgets/time_slot_selector.dart';
 import '../../widgets/order_summary_widget.dart';
 import '../../../data/models/cart_item_model.dart';
 import '../../../data/models/order_model.dart';
-import 'order_history_screen.dart';
+//import 'purchase_history_screen.dart';
 import 'payment_screen.dart';
 
 class OrderRequestScreen extends StatefulWidget {
@@ -485,7 +486,7 @@ class _OrderRequestScreenState extends State<OrderRequestScreen> {
               Navigator.of(context).pop();
               Navigator.pushReplacement(
                 context,
-                MaterialPageRoute(builder: (_) => OrderHistoryScreen()),
+                MaterialPageRoute(builder: (_) => PurchaseHistoryScreen()),
               );
             },
             style: ElevatedButton.styleFrom(

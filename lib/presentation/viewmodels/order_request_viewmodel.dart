@@ -6,14 +6,12 @@ import '../../data/models/order_model.dart';
 import '../../data/models/address_model.dart';
 import '../../data/models/time_slot_model.dart';
 import '../../data/services/order_service.dart';
-import '../../data/services/cart_service.dart'; // ADD: Import cart service
+import '../../data/services/cart_service.dart';
 
 class OrderRequestViewModel extends ChangeNotifier {
   final OrderService _orderService = OrderService();
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  final CartService _cartService = CartService(); // ADD: Cart service instance
-  
-  // ... keep all your existing state variables and getters ...
+  final CartService _cartService = CartService();
   
   // State
   List<CartItem> _cartItems = [];
@@ -211,33 +209,57 @@ class OrderRequestViewModel extends ChangeNotifier {
     return null;
   }
 
-  // UPDATED: Place order with cart clearing
+  // FINAL: Complete order placement with item status update and cart cleanup
   Future<bool> placeOrder() async {
+    print('🚀 Starting order placement process...');
+    
     final currentUser = _auth.currentUser;
     if (currentUser == null) {
+      print('❌ ERROR: User not authenticated');
       _setError('User not authenticated. Please login and try again.');
       return false;
     }
+    print('✅ User authenticated: ${currentUser.uid}');
 
     if (!canPlaceOrder) {
-      _setError('Please complete all required fields before placing the order');
+      print('❌ ERROR: Cannot place order - validation failed');
+      final error = getValidationError(3);
+      _setError(error ?? 'Please complete all required fields before placing the order');
       return false;
     }
+    print('✅ Order validation passed');
 
     _setLoading(true);
     _clearError();
 
     try {
-      // Get sellers from cart items
+      // ENHANCED: Better cart items validation
+      print('📦 Validating cart items...');
+      if (_cartItems.isEmpty) {
+        throw Exception('Cart is empty - no items to order');
+      }
+      print('✅ Cart has ${_cartItems.length} items');
+
+      // ENHANCED: Better seller validation with debugging
       final sellers = <String>{};
+      final itemsWithoutSeller = <String>[];
+      
       for (final cartItem in _cartItems) {
+        print('   Item: ${cartItem.name}, SellerId: "${cartItem.sellerId}"');
         if (cartItem.sellerId.isNotEmpty) {
           sellers.add(cartItem.sellerId);
+        } else {
+          itemsWithoutSeller.add(cartItem.name);
         }
       }
       
+      if (itemsWithoutSeller.isNotEmpty) {
+        throw Exception('Items missing seller information: ${itemsWithoutSeller.join(", ")}');
+      }
+      
       if (sellers.length > 1) {
-        throw Exception('Cannot place order for items from multiple sellers');
+        print('❌ ERROR: Multiple sellers found: $sellers');
+        throw Exception('Cannot place order for items from multiple sellers. Please order from one seller at a time.');
       }
       
       if (sellers.isEmpty) {
@@ -245,16 +267,36 @@ class OrderRequestViewModel extends ChangeNotifier {
       }
 
       final sellerId = sellers.first;
+      print('✅ Order for seller: $sellerId');
 
+      // ENHANCED: Better address validation
       Address? orderAddress;
       if (_selectedDealMethod == DealMethod.inCampusMeetup) {
         orderAddress = _selectedMeetupLocation;
+        if (orderAddress == null) {
+          throw Exception('Meetup location is required for in-campus meetup');
+        }
+        print('✅ Meetup location: ${orderAddress.title}');
       } else {
         orderAddress = _selectedAddress;
+        if (orderAddress == null) {
+          throw Exception('Delivery address is required for delivery');
+        }
+        print('✅ Delivery address: ${orderAddress.title}');
       }
 
+      // ENHANCED: Better date/time validation
+      if (_selectedDate == null) {
+        throw Exception('Date selection is required');
+      }
+      if (_selectedTimeSlot == null) {
+        throw Exception('Time slot selection is required');
+      }
+      print('✅ Date & Time: ${_selectedDate.toString()} - ${_selectedTimeSlot!.timeRange}');
+
+      // Create order request
       final orderRequest = OrderRequest(
-        id: '',
+        id: '', // Will be set by OrderService
         userId: currentUser.uid,
         sellerId: sellerId,
         items: _cartItems,
@@ -269,38 +311,43 @@ class OrderRequestViewModel extends ChangeNotifier {
         createdAt: DateTime.now(),
       );
 
-      print('Attempting to place order...');
+      print('💰 Order totals - Subtotal: RM${subtotal.toStringAsFixed(2)}, Delivery: RM${deliveryFee.toStringAsFixed(2)}, Total: RM${total.toStringAsFixed(2)}');
+      print('📋 Attempting to place order in Firestore...');
+      
+      // CRITICAL: This will now mark items as sold AND place the order atomically
       final success = await _orderService.placeOrder(orderRequest);
       
       if (success) {
-        print('Order placed successfully!');
+        print('✅ Order placed successfully and items marked as sold!');
         
-        // IMPORTANT: Clear the cart after successful order
+        // IMPORTANT: Clear only the current user's cart (not all carts)
         try {
-          final cartCleared = await _cartService.clearCart();
-          if (cartCleared) {
-            print('✅ Cart cleared successfully');
-          } else {
-            print('⚠️ Warning: Cart may not have been cleared completely');
-          }
-        } catch (e) {
-          print('⚠️ Warning: Error clearing cart: $e');
-          // Don't fail the order if cart clearing fails
+          await _cartService.clearCart();
+          print('✅ Current user cart cleared');
+        } catch (cartError) {
+          print('⚠️ Warning: Error clearing current cart: $cartError');
         }
         
+        // Reset the order state
         _resetOrder();
+        print('🎉 Order placement completed successfully!');
+        print('🏷️ Items are now marked as sold - other users will see them as sold in their carts');
         return true;
+        
       } else {
-        _setError('Failed to place order. Please try again.');
+        print('❌ ERROR: OrderService.placeOrder returned false');
+        _setError('Failed to place order in database. Please try again.');
         return false;
       }
 
     } catch (e) {
-      print('ERROR placing order: $e');
+      print('❌ EXCEPTION in placeOrder: ${e.toString()}');
+      print('Stack trace: ${StackTrace.current}');
       _setError('Error placing order: ${e.toString()}');
       return false;
     } finally {
       _setLoading(false);
+      print('🏁 Order placement process finished');
     }
   }
 

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:koopon/presentation/views/order_request/purchase_history_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:koopon/presentation/views/add_item_screen.dart';
@@ -383,123 +384,140 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildActionButtons(HomeViewModel viewModel) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Row(
-        children: [
-          // Add Item Button
-          Expanded(
-            child: Container(
-              height: 60,
-              margin: const EdgeInsets.only(right: 8),
-              child: ElevatedButton(
-                onPressed: () async {
-                  final result = await Navigator.push(
+  // UPDATED: _buildActionButtons method for HomeScreen
+// Replace your existing _buildActionButtons method with this updated version
+
+Widget _buildActionButtons(HomeViewModel viewModel) {
+  return Container(
+    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+    child: Row(
+      children: [
+        // Add Item Button
+        Expanded(
+          child: Container(
+            height: 60,
+            margin: const EdgeInsets.only(right: 8),
+            child: ElevatedButton(
+              onPressed: () async {
+                final result = await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => const AddItemPage()),
+                );
+
+                // Refresh items when returning from add item page
+                if (result == true) {
+                  viewModel.refreshItems();
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFE91E63), // Pink color
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(30),
+                ),
+                elevation: 2,
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 24,
+                    height: 24,
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.add,
+                      color: Color(0xFFE91E63),
+                      size: 16,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  const Text(
+                    'Click here\nto add item',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+
+        // UPDATED: Purchase History Button
+        Expanded(
+          child: Container(
+            height: 60,
+            margin: const EdgeInsets.only(left: 8),
+            child: ElevatedButton(
+              onPressed: () {
+                // Check if user is authenticated
+                if (FirebaseAuth.instance.currentUser != null) {
+                  // Navigate to Order History Screen (you'll rename this to PurchaseHistoryScreen)
+                  Navigator.push(
                     context,
                     MaterialPageRoute(
-                        builder: (context) => const AddItemPage()),
+                      builder: (context) => PurchaseHistoryScreen(), // You'll rename this to PurchaseHistoryScreen
+                    ),
                   );
-
-                  // Refresh items when returning from add item page
-                  if (result == true) {
-                    viewModel.refreshItems();
-                  }
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFE91E63), // Pink color
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(30),
-                  ),
-                  elevation: 2,
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Container(
-                      width: 24,
-                      height: 24,
-                      decoration: const BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.add,
-                        color: Color(0xFFE91E63),
-                        size: 16,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    const Text(
-                      'Click here\nto add item',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-
-          // Order History Button
-          Expanded(
-            child: Container(
-              height: 60,
-              margin: const EdgeInsets.only(left: 8),
-              child: ElevatedButton(
-                onPressed: () {
+                } else {
+                  // Show login prompt for unauthenticated users
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                        content:
-                            Text('Order history functionality coming soon')),
+                      content: Text('Please login to view your purchase history'),
+                      backgroundColor: Colors.orange,
+                      duration: Duration(seconds: 3),
+                    ),
                   );
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF9C27B0), // Purple color
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(30),
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF9C27B0), // Purple color
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(30),
+                ),
+                elevation: 2,
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 24,
+                    height: 24,
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.receipt_long, // Changed icon from history to receipt
+                      color: Color(0xFF9C27B0),
+                      size: 16,
+                    ),
                   ),
-                  elevation: 2,
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Container(
-                      width: 24,
-                      height: 24,
-                      decoration: const BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.history,
-                        color: Color(0xFF9C27B0),
-                        size: 16,
-                      ),
+                  const SizedBox(width: 8),
+                  const Text(
+                    'View Purchase\nHistory', // UPDATED: Changed text
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
                     ),
-                    const SizedBox(width: 8),
-                    const Text(
-                      'View Order\nHistory',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ),
-        ],
-      ),
-    );
-  }
+        ),
+      ],
+    ),
+  );
+}
 
   Widget _buildCategorySection(HomeViewModel viewModel) {
   final categories = [
@@ -718,46 +736,63 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildItemCard(ItemModel item, HomeViewModel viewModel) {
-    return GestureDetector(
-      onTap: () {
-        // Navigate to product detail screen
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => ProductDetailScreen(item: item),
-          ),
-        );
-      },
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 4,
-              offset: const Offset(0, 2),
-            ),
-          ],
+  // ENHANCED: _buildItemCard method for HomeScreen
+// Replace your existing _buildItemCard method with this enhanced version
+
+Widget _buildItemCard(ItemModel item, HomeViewModel viewModel) {
+  // Check if item is sold
+  final bool isSold = item.status == 'sold';
+  
+  return GestureDetector(
+    onTap: () {
+      // Navigate to product detail screen
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ProductDetailScreen(item: item),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Item Image
-            Expanded(
-              flex: 3,
-              child: Container(
-                decoration: const BoxDecoration(
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
-                ),
-                child: ClipRRect(
-                  borderRadius:
-                      const BorderRadius.vertical(top: Radius.circular(12)),
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      item.imageUrl != null && item.imageUrl!.isNotEmpty
+      );
+    },
+    child: Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Item Image
+          Expanded(
+            flex: 3,
+            child: Container(
+              decoration: const BoxDecoration(
+                borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+              ),
+              child: ClipRRect(
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(12)),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    // Image with sold overlay
+                    ColorFiltered(
+                      colorFilter: isSold 
+                          ? ColorFilter.mode(
+                              Colors.grey.withOpacity(0.6),
+                              BlendMode.srcATop,
+                            )
+                          : const ColorFilter.mode(
+                              Colors.transparent,
+                              BlendMode.multiply,
+                            ),
+                      child: item.imageUrl != null && item.imageUrl!.isNotEmpty
                           ? Image.network(
                               item.imageUrl!,
                               fit: BoxFit.cover,
@@ -835,234 +870,286 @@ class _HomeScreenState extends State<HomeScreen> {
                                 ],
                               ),
                             ),
-                      // Status badge
-                      Positioned(
-                        top: 8,
-                        left: 8,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: Colors.black54,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            item.status,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 8,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ),
-                      // Cart icon (only show if user has token and not their own item)
-                      if (!viewModel.isCurrentUserSeller(item.sellerId))
-                        Positioned(
-                          top: 8,
-                          right: 8,
-                          child: StreamBuilder<User?>(
-                            stream: FirebaseAuth.instance.authStateChanges(),
-                            builder: (context, snapshot) {
-                              if (snapshot.hasData && snapshot.data != null) {
-                                // User has token, show cart functionality
-                                return Consumer<CartViewModel>(
-                                  builder: (context, cartViewModel, child) {
-                                    final isInCart = cartViewModel.isItemInCart(item.id!);
-                                    
-                                    return GestureDetector(
-                                      onTap: () async {
-                                        print('HomeScreen: Add to cart clicked for item: ${item.name}, User token: ${cartViewModel.userToken}');
-                                        
-                                        if (isInCart) {
-                                          // Navigate to cart if item already in cart
-                                          Navigator.push(
-                                            context,
-                                            MaterialPageRoute(
-                                              builder: (context) => const CartScreen(),
-                                            ),
-                                          );
-                                        } else {
-                                          // Add to cart (with user token)
-                                          final success = await cartViewModel.addToCart(item);
-                                          
-                                          if (success && mounted) {
-                                            ScaffoldMessenger.of(context).showSnackBar(
-                                              SnackBar(
-                                                content: Text('${item.name} added to cart (Token: ${cartViewModel.userToken?.substring(0, 8)}...)'),
-                                                backgroundColor: Colors.green,
-                                                duration: const Duration(seconds: 2),
-                                                action: SnackBarAction(
-                                                  label: 'View Cart',
-                                                  textColor: Colors.white,
-                                                  onPressed: () {
-                                                    Navigator.push(
-                                                      context,
-                                                      MaterialPageRoute(
-                                                        builder: (context) => const CartScreen(),
-                                                      ),
-                                                    );
-                                                  },
-                                                ),
-                                              ),
-                                            );
-                                          } else if (!success && mounted) {
-                                            ScaffoldMessenger.of(context).showSnackBar(
-                                              SnackBar(
-                                                content: Text(cartViewModel.errorMessage ?? 'Failed to add to cart'),
-                                                backgroundColor: Colors.red,
-                                              ),
-                                            );
-                                          }
-                                        }
-                                      },
-                                      child: Container(
-                                        padding: const EdgeInsets.all(6),
-                                        decoration: BoxDecoration(
-                                          color: isInCart 
-                                              ? const Color(0xFF4CAF50).withOpacity(0.9)
-                                              : Colors.white.withOpacity(0.9),
-                                          shape: BoxShape.circle,
-                                        ),
-                                        child: Icon(
-                                          isInCart 
-                                              ? Icons.check_circle
-                                              : Icons.shopping_cart_outlined,
-                                          color: isInCart 
-                                              ? Colors.white
-                                              : const Color(0xFF9C27B0),
-                                          size: 16,
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                );
-                              } else {
-                                // User has no token, show login prompt
-                                return GestureDetector(
-                                  onTap: () {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text('Please login to add items to cart'),
-                                        backgroundColor: Colors.orange,
-                                      ),
-                                    );
-                                  },
-                                  child: Container(
-                                    padding: const EdgeInsets.all(6),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white.withOpacity(0.9),
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: const Icon(
-                                      Icons.shopping_cart_outlined,
-                                      color: Color(0xFF9C27B0),
-                                      size: 16,
-                                    ),
-                                  ),
-                                );
-                              }
-                            },
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-
-            // Item Details
-            Expanded(
-              flex: 2,
-              child: Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          item.name,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 12,
-                            color: Color(0xFF2D1B35),
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          item.status,
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'RM ${item.price.toStringAsFixed(2)}',
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
-                            color: Color(0xFFE91E63),
-                          ),
-                        ),
-                      ],
                     ),
-
-                    // Seller info and action buttons
-                    Row(
-                      children: [
-                        // Seller profile picture and info
-                        Expanded(
-                          child: Row(
+                    
+                    // SOLD Overlay (prominent display)
+                    if (isSold)
+                      Container(
+                        color: Colors.black.withOpacity(0.7),
+                        child: const Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Container(
-                                width: 16,
-                                height: 16,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  border: Border.all(color: Colors.grey.shade300),
-                                ),
-                                child: ClipOval(
-                                  child: Image.network(
-                                    'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face',
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (context, error, stackTrace) {
-                                      return Container(
-                                        color: const Color(0xFFE8D4F1),
-                                        child: const Icon(
-                                          Icons.person,
-                                          size: 10,
-                                          color: Color(0xFF9C27B0),
-                                        ),
-                                      );
-                                    },
-                                  ),
-                                ),
+                              Icon(
+                                Icons.check_circle,
+                                color: Colors.white,
+                                size: 32,
                               ),
-                              const SizedBox(width: 4),
-                              Expanded(
-                                child: Text(
-                                  item.sellerName,
-                                  style: TextStyle(
-                                    fontSize: 9,
-                                    color: Colors.grey[600],
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
+                              SizedBox(height: 4),
+                              Text(
+                                'SOLD',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
                                 ),
                               ),
                             ],
                           ),
                         ),
+                      ),
+                    
+                    // Status badge (top left)
+                    Positioned(
+                      top: 8,
+                      left: 8,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: isSold ? Colors.red : Colors.green,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          isSold ? 'SOLD' : item.status,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 8,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                    
+                    // Cart icon (only show if user has token, not their own item, and item not sold)
+                    if (!viewModel.isCurrentUserSeller(item.sellerId) && !isSold)
+                      Positioned(
+                        top: 8,
+                        right: 8,
+                        child: StreamBuilder<User?>(
+                          stream: FirebaseAuth.instance.authStateChanges(),
+                          builder: (context, snapshot) {
+                            if (snapshot.hasData && snapshot.data != null) {
+                              // User has token, show cart functionality
+                              return Consumer<CartViewModel>(
+                                builder: (context, cartViewModel, child) {
+                                  final isInCart = cartViewModel.isItemInCart(item.id!);
+                                  
+                                  return GestureDetector(
+                                    onTap: () async {
+                                      print('HomeScreen: Add to cart clicked for item: ${item.name}, User token: ${cartViewModel.userToken}');
+                                      
+                                      if (isInCart) {
+                                        // Navigate to cart if item already in cart
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) => const CartScreen(),
+                                          ),
+                                        );
+                                      } else {
+                                        // Add to cart (with user token)
+                                        final success = await cartViewModel.addToCart(item);
+                                        
+                                        if (success && mounted) {
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            SnackBar(
+                                              content: Text('${item.name} added to cart'),
+                                              backgroundColor: Colors.green,
+                                              duration: const Duration(seconds: 2),
+                                              action: SnackBarAction(
+                                                label: 'View Cart',
+                                                textColor: Colors.white,
+                                                onPressed: () {
+                                                  Navigator.push(
+                                                    context,
+                                                    MaterialPageRoute(
+                                                      builder: (context) => const CartScreen(),
+                                                    ),
+                                                  );
+                                                },
+                                              ),
+                                            ),
+                                          );
+                                        } else if (!success && mounted) {
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            SnackBar(
+                                              content: Text(cartViewModel.errorMessage ?? 'Failed to add to cart'),
+                                              backgroundColor: Colors.red,
+                                            ),
+                                          );
+                                        }
+                                      }
+                                    },
+                                    child: Container(
+                                      padding: const EdgeInsets.all(6),
+                                      decoration: BoxDecoration(
+                                        color: isInCart 
+                                            ? const Color(0xFF4CAF50).withOpacity(0.9)
+                                            : Colors.white.withOpacity(0.9),
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: Icon(
+                                        isInCart 
+                                            ? Icons.check_circle
+                                            : Icons.shopping_cart_outlined,
+                                        color: isInCart 
+                                            ? Colors.white
+                                            : const Color(0xFF9C27B0),
+                                        size: 16,
+                                      ),
+                                    ),
+                                  );
+                                },
+                              );
+                            } else {
+                              // User has no token, show login prompt
+                              return GestureDetector(
+                                onTap: () {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Please login to add items to cart'),
+                                      backgroundColor: Colors.orange,
+                                    ),
+                                  );
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.all(6),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.9),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(
+                                    Icons.shopping_cart_outlined,
+                                    color: Color(0xFF9C27B0),
+                                    size: 16,
+                                  ),
+                                ),
+                              );
+                            }
+                          },
+                        ),
+                      )
+                    // Show "SOLD" indicator for sold items
+                    else if (!viewModel.isCurrentUserSeller(item.sellerId) && isSold)
+                      Positioned(
+                        top: 8,
+                        right: 8,
+                        child: Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: Colors.red.withOpacity(0.9),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.block,
+                            color: Colors.white,
+                            size: 16,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ),
 
-                        // Action buttons (only show for current user's items)
-                        if (viewModel.isCurrentUserSeller(item.sellerId))
-                          Row(
-                            children: [
+          // Item Details
+          Expanded(
+            flex: 2,
+            child: Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        item.name,
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 12,
+                          color: isSold ? Colors.grey : const Color(0xFF2D1B35),
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        isSold ? 'SOLD' : item.status,
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: isSold ? Colors.red : Colors.grey[600],
+                          fontWeight: isSold ? FontWeight.bold : FontWeight.normal,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'RM ${item.price.toStringAsFixed(2)}',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                          color: isSold ? Colors.grey : const Color(0xFFE91E63),
+                          decoration: isSold ? TextDecoration.lineThrough : null,
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  // Seller info and action buttons
+                  Row(
+                    children: [
+                      // Seller profile picture and info
+                      Expanded(
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 16,
+                              height: 16,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: Border.all(color: Colors.grey.shade300),
+                              ),
+                              child: ClipOval(
+                                child: Image.network(
+                                  'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face',
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Container(
+                                      color: const Color(0xFFE8D4F1),
+                                      child: const Icon(
+                                        Icons.person,
+                                        size: 10,
+                                        color: Color(0xFF9C27B0),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Expanded(
+                              child: Text(
+                                item.sellerName,
+                                style: TextStyle(
+                                  fontSize: 9,
+                                  color: isSold ? Colors.grey : Colors.grey[600],
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      // Action buttons (only show for current user's items)
+                      if (viewModel.isCurrentUserSeller(item.sellerId))
+                        Row(
+                          children: [
+                            // Only show edit/delete for non-sold items
+                            if (!isSold) ...[
                               GestureDetector(
                                 onTap: () async {
                                   // Navigate to edit item screen
@@ -1101,14 +1188,51 @@ class _HomeScreenState extends State<HomeScreen> {
                                   ),
                                 ),
                               ),
-                            ],
-                          )
-                        else
-                          // Show item status for other users' items (with token awareness)
-                          StreamBuilder<User?>(
-                            stream: FirebaseAuth.instance.authStateChanges(),
-                            builder: (context, snapshot) {
-                              if (snapshot.hasData && snapshot.data != null) {
+                            ]
+                            // Show sold indicator for seller's sold items
+                            else
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: Colors.green.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: const Text(
+                                  'SOLD',
+                                  style: TextStyle(
+                                    fontSize: 8,
+                                    color: Colors.green,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        )
+                      else
+                        // Show item status for other users' items
+                        StreamBuilder<User?>(
+                          stream: FirebaseAuth.instance.authStateChanges(),
+                          builder: (context, snapshot) {
+                            if (snapshot.hasData && snapshot.data != null) {
+                              if (isSold) {
+                                return Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: Colors.red.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: const Text(
+                                    'SOLD',
+                                    style: TextStyle(
+                                      fontSize: 8,
+                                      color: Colors.red,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                );
+                              } else {
                                 return Consumer<CartViewModel>(
                                   builder: (context, cartViewModel, child) {
                                     final isInCart = cartViewModel.isItemInCart(item.id!);
@@ -1133,37 +1257,40 @@ class _HomeScreenState extends State<HomeScreen> {
                                     );
                                   },
                                 );
-                              } else {
-                                return Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 6, vertical: 2),
-                                  decoration: BoxDecoration(
-                                    color: Colors.green.withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: const Text(
-                                    'Available',
-                                    style: TextStyle(
-                                      fontSize: 8,
-                                      color: Colors.green,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                );
                               }
-                            },
-                          ),
-                      ],
-                    ),
-                  ],
-                ),
+                            } else {
+                              return Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: isSold 
+                                      ? Colors.red.withOpacity(0.1)
+                                      : Colors.green.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  isSold ? 'SOLD' : 'Available',
+                                  style: TextStyle(
+                                    fontSize: 8,
+                                    color: isSold ? Colors.red : Colors.green,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              );
+                            }
+                          },
+                        ),
+                    ],
+                  ),
+                ],
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
-    );
-  }
+    ),
+  );
+}
 
   void _showDeleteDialog(ItemModel item, HomeViewModel viewModel) {
     showDialog(

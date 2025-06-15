@@ -5,12 +5,12 @@ import 'package:intl/intl.dart';
 import '../../viewmodels/order_history_viewmodel.dart';
 import '../../../data/models/order_model.dart';
 
-class OrderHistoryScreen extends StatefulWidget {
+class PurchaseHistoryScreen extends StatefulWidget {
   @override
-  State<OrderHistoryScreen> createState() => _OrderHistoryScreenState();
+  State<PurchaseHistoryScreen> createState() => _PurchaseHistoryScreenState(); // FIXED: Updated return type
 }
 
-class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
+class _PurchaseHistoryScreenState extends State<PurchaseHistoryScreen> { // FIXED: Updated class name and State type
   @override
   void initState() {
     super.initState();

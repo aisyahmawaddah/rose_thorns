@@ -1,10 +1,11 @@
 // lib/presentation/views/order_request/payment_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_stripe/flutter_stripe.dart';
+import 'package:koopon/presentation/views/order_request/purchase_history_screen.dart';
 import 'package:provider/provider.dart';
 import '../../../data/services/stripe_payment_service.dart';
 import '../../../presentation/viewmodels/order_history_viewmodel.dart';
-import 'order_history_screen.dart'; // UPDATED: Use correct import path
+//import 'purchase_history_screen.dart'; // UPDATED: Use correct import path
 
 class PaymentScreen extends StatefulWidget {
   final double amount;
@@ -267,7 +268,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
       // Navigate to order history screen
       if (mounted) {
         Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => OrderHistoryScreen()),
+          MaterialPageRoute(builder: (_) => PurchaseHistoryScreen()),
           (route) => route.isFirst, // Keep only the home screen in the stack
         );
       }

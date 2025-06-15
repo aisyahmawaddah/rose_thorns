@@ -332,8 +332,14 @@ class _CartScreenState extends State<CartScreen> {
     );
   }
 
-  Widget _buildCartItem(CartModel cartItem, CartViewModel cartViewModel) {
+  // ENHANCED: _buildCartItem method for CartScreen
+// Replace your existing _buildCartItem method with this enhanced version
+
+Widget _buildCartItem(CartModel cartItem, CartViewModel cartViewModel) {
   final item = cartItem.item;
+  
+  // Check if item is sold
+  final bool isSold = item.status == 'sold';
   
   return Container(
     margin: const EdgeInsets.only(bottom: 16),
@@ -369,7 +375,7 @@ class _CartScreenState extends State<CartScreen> {
                 item.sellerName,
                 style: TextStyle(
                   fontSize: 14,
-                  color: Colors.grey[600],
+                  color: isSold ? Colors.grey : Colors.grey[600],
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -377,14 +383,16 @@ class _CartScreenState extends State<CartScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF9C27B0).withOpacity(0.1),
+                  color: isSold 
+                      ? Colors.red.withOpacity(0.1)
+                      : const Color(0xFF9C27B0).withOpacity(0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
-                  item.status,
-                  style: const TextStyle(
+                  isSold ? 'SOLD' : item.status,
+                  style: TextStyle(
                     fontSize: 10,
-                    color: Color(0xFF9C27B0),
+                    color: isSold ? Colors.red : const Color(0xFF9C27B0),
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -392,178 +400,244 @@ class _CartScreenState extends State<CartScreen> {
             ],
           ),
 
+          // SOLD WARNING (if item is sold)
+          if (isSold) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.red.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.red.withOpacity(0.3)),
+              ),
+              child: const Row(
+                children: [
+                  Icon(
+                    Icons.warning_amber_rounded,
+                    color: Colors.red,
+                    size: 20,
+                  ),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'This item has been sold and is no longer available for checkout.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.red,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+
           const SizedBox(height: 16),
 
           // Item details row
-          Row(
-            children: [
-              // Item image
-              Container(
-                width: 80,
-                height: 80,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  color: Colors.grey[200],
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: item.imageUrl != null && item.imageUrl!.isNotEmpty
-                      ? Image.network(
-                          item.imageUrl!,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                            return Container(
-                              color: _getItemColor(item.category),
-                              child: Icon(
-                                _getItemIcon(item.category),
-                                size: 40,
-                                color: Colors.white.withOpacity(0.8),
+          Opacity(
+            opacity: isSold ? 0.6 : 1.0,
+            child: Row(
+              children: [
+                // Item image
+                Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    color: Colors.grey[200],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Stack(
+                      children: [
+                        // Image
+                        item.imageUrl != null && item.imageUrl!.isNotEmpty
+                            ? Image.network(
+                                item.imageUrl!,
+                                fit: BoxFit.cover,
+                                width: 80,
+                                height: 80,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return Container(
+                                    color: _getItemColor(item.category),
+                                    child: Icon(
+                                      _getItemIcon(item.category),
+                                      size: 40,
+                                      color: Colors.white.withOpacity(0.8),
+                                    ),
+                                  );
+                                },
+                              )
+                            : Container(
+                                color: _getItemColor(item.category),
+                                child: Icon(
+                                  _getItemIcon(item.category),
+                                  size: 40,
+                                  color: Colors.white.withOpacity(0.8),
+                                ),
                               ),
-                            );
-                          },
-                        )
-                      : Container(
-                          color: _getItemColor(item.category),
-                          child: Icon(
-                            _getItemIcon(item.category),
-                            size: 40,
-                            color: Colors.white.withOpacity(0.8),
+                        
+                        // SOLD overlay on image
+                        if (isSold)
+                          Container(
+                            width: 80,
+                            height: 80,
+                            color: Colors.black.withOpacity(0.7),
+                            child: const Center(
+                              child: Text(
+                                'SOLD',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
                           ),
-                        ),
+                      ],
+                    ),
+                  ),
                 ),
-              ),
 
-              const SizedBox(width: 16),
+                const SizedBox(width: 16),
 
-              // Item information
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                // Item information
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        item.name,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: isSold ? Colors.grey : const Color(0xFF2D1B35),
+                          decoration: isSold ? TextDecoration.lineThrough : null,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        item.category,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Text(
+                            'RM ${item.price.toStringAsFixed(2)}',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: isSold ? Colors.grey : const Color(0xFFE91E63),
+                              decoration: isSold ? TextDecoration.lineThrough : null,
+                            ),
+                          ),
+                          if (cartItem.quantity > 1) ...[
+                            const SizedBox(width: 8),
+                            Text(
+                              'x${cartItem.quantity}',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              '= RM ${cartItem.totalPrice.toStringAsFixed(2)}',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: isSold ? Colors.grey : const Color(0xFF9C27B0),
+                                decoration: isSold ? TextDecoration.lineThrough : null,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Quantity controls (disabled if sold)
+                Column(
                   children: [
-                    Text(
-                      item.name,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF2D1B35),
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      item.category,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[600],
-                      ),
-                    ),
-                    const SizedBox(height: 8),
                     Row(
                       children: [
-                        Text(
-                          'RM ${item.price.toStringAsFixed(2)}',
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFFE91E63),
+                        GestureDetector(
+                          onTap: isSold ? null : () {
+                            if (cartItem.quantity > 1) {
+                              print('CartScreen: Decreasing quantity for user token: ${cartViewModel.userToken}');
+                              cartViewModel.updateQuantity(
+                                cartItem.id!,
+                                cartItem.quantity - 1,
+                              );
+                            }
+                          },
+                          child: Container(
+                            width: 32,
+                            height: 32,
+                            decoration: BoxDecoration(
+                              color: (isSold || cartItem.quantity <= 1) 
+                                  ? Colors.grey[100] 
+                                  : Colors.grey[200],
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Icon(
+                              Icons.remove,
+                              size: 16,
+                              color: (isSold || cartItem.quantity <= 1) 
+                                  ? Colors.grey[400] 
+                                  : const Color(0xFF2D1B35),
+                            ),
                           ),
                         ),
-                        if (cartItem.quantity > 1) ...[
-                          const SizedBox(width: 8),
-                          Text(
-                            'x${cartItem.quantity}',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey[600],
+                        const SizedBox(width: 12),
+                        Text(
+                          '${cartItem.quantity}',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: isSold ? Colors.grey : const Color(0xFF2D1B35),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        GestureDetector(
+                          onTap: isSold ? null : () {
+                            print('CartScreen: Increasing quantity for user token: ${cartViewModel.userToken}');
+                            cartViewModel.updateQuantity(
+                              cartItem.id!,
+                              cartItem.quantity + 1,
+                            );
+                          },
+                          child: Container(
+                            width: 32,
+                            height: 32,
+                            decoration: BoxDecoration(
+                              color: isSold 
+                                  ? Colors.grey[200] 
+                                  : const Color(0xFF9C27B0),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Icon(
+                              Icons.add,
+                              size: 16,
+                              color: isSold ? Colors.grey[400] : Colors.white,
                             ),
                           ),
-                          const SizedBox(width: 8),
-                          Text(
-                            '= RM ${cartItem.totalPrice.toStringAsFixed(2)}',
-                            style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: Color(0xFF9C27B0),
-                            ),
-                          ),
-                        ],
+                        ),
                       ],
                     ),
                   ],
                 ),
-              ),
-
-              // Quantity controls
-              Column(
-                children: [
-                  Row(
-                    children: [
-                      GestureDetector(
-                        onTap: () {
-                          if (cartItem.quantity > 1) {
-                            print('CartScreen: Decreasing quantity for user token: ${cartViewModel.userToken}');
-                            cartViewModel.updateQuantity(
-                              cartItem.id!,
-                              cartItem.quantity - 1,
-                            );
-                          }
-                        },
-                        child: Container(
-                          width: 32,
-                          height: 32,
-                          decoration: BoxDecoration(
-                            color: cartItem.quantity > 1 
-                                ? Colors.grey[200] 
-                                : Colors.grey[100],
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Icon(
-                            Icons.remove,
-                            size: 16,
-                            color: cartItem.quantity > 1 
-                                ? const Color(0xFF2D1B35) 
-                                : Colors.grey[400],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Text(
-                        '${cartItem.quantity}',
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF2D1B35),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      GestureDetector(
-                        onTap: () {
-                          print('CartScreen: Increasing quantity for user token: ${cartViewModel.userToken}');
-                          cartViewModel.updateQuantity(
-                            cartItem.id!,
-                            cartItem.quantity + 1,
-                          );
-                        },
-                        child: Container(
-                          width: 32,
-                          height: 32,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF9C27B0),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: const Icon(
-                            Icons.add,
-                            size: 16,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ],
+              ],
+            ),
           ),
 
           const SizedBox(height: 16),
@@ -571,7 +645,7 @@ class _CartScreenState extends State<CartScreen> {
           // Action buttons - Individual checkout and remove
           Row(
             children: [
-              // Remove button (made more prominent)
+              // Remove button (always enabled)
               Expanded(
                 flex: 1,
                 child: GestureDetector(
@@ -612,11 +686,11 @@ class _CartScreenState extends State<CartScreen> {
 
               const SizedBox(width: 12),
 
-              // Individual checkout button (FIXED)
+              // Individual checkout button (DISABLED if sold)
               Expanded(
                 flex: 2,
                 child: GestureDetector(
-                  onTap: () {
+                  onTap: isSold ? null : () {
                     try {
                       print('CartScreen: Individual checkout clicked for ${item.name}, User token: ${cartViewModel.userToken}');
                       
@@ -648,23 +722,27 @@ class _CartScreenState extends State<CartScreen> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF9C27B0),
+                      color: isSold 
+                          ? Colors.grey[300] 
+                          : const Color(0xFF9C27B0),
                       borderRadius: BorderRadius.circular(25),
                     ),
                     child: Center(
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(
-                            Icons.shopping_bag_outlined,
-                            color: Colors.white,
+                          Icon(
+                            isSold ? Icons.block : Icons.shopping_bag_outlined,
+                            color: isSold ? Colors.grey[600] : Colors.white,
                             size: 18,
                           ),
                           const SizedBox(width: 8),
                           Text(
-                            'Checkout - RM ${cartItem.totalPrice.toStringAsFixed(2)}',
-                            style: const TextStyle(
-                              color: Colors.white,
+                            isSold 
+                                ? 'Item Sold'
+                                : 'Checkout - RM ${cartItem.totalPrice.toStringAsFixed(2)}',
+                            style: TextStyle(
+                              color: isSold ? Colors.grey[600] : Colors.white,
                               fontWeight: FontWeight.w600,
                               fontSize: 14,
                             ),

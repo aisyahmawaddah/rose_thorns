@@ -2,7 +2,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/cart_item_model.dart';
-import '../models/cart_model.dart'; // Use your existing CartModel
+import '../models/cart_model.dart';
 import '../models/item_model.dart';
 
 class CartService {
@@ -18,25 +18,32 @@ class CartService {
       imageUrl: cartModel.item.imageUrl ?? '',
       price: cartModel.item.price,
       quantity: cartModel.quantity,
-      sellerId: cartModel.item.sellerId, // This should be the seller's userId
+      sellerId: cartModel.item.sellerId,
       sellerName: cartModel.item.sellerName,
-      additionalFields: cartModel.item.additionalFields, // FIXED: Pass the additionalFields which contains timeslots
+      additionalFields: {
+        ...cartModel.item.additionalFields,
+        'status': cartModel.item.status, // IMPORTANT: Include item status
+        'category': cartModel.item.category,
+      },
     );
   }
 
-  // Get cart items using your existing structure
+  // UPDATED: Get cart items including sold items (let UI handle sold status)
   Future<List<CartItem>> getCartItems() async {
     try {
       final userId = _auth.currentUser?.uid;
       if (userId == null) return [];
 
-      // Use your existing 'carts' collection
+      print('🛒 Loading cart items for user: $userId (including sold items)');
+
+      // Get cart items
       final snapshot = await _firestore
           .collection('carts')
           .where('userId', isEqualTo: userId)
           .get();
 
       List<CartItem> cartItems = [];
+      List<String> deletedItemsToRemove = [];
       
       for (var cartDoc in snapshot.docs) {
         try {
@@ -47,25 +54,37 @@ class CartService {
           final itemDoc = await _firestore.collection('items').doc(itemId).get();
           
           if (itemDoc.exists) {
-            // Create CartModel using your existing structure
-            final item = ItemModel.fromMap(itemDoc.data()!, itemDoc.id);
-            final cartModel = CartModel.fromMap(cartData, cartDoc.id, item);
+            final itemData = itemDoc.data()!;
+            final itemStatus = itemData['status'] ?? '';
             
-            // Convert to CartItem for order processing
+            // KEEP ALL ITEMS (including sold ones) - let UI handle the display
+            final item = ItemModel.fromMap(itemData, itemDoc.id);
+            final cartModel = CartModel.fromMap(cartData, cartDoc.id, item);
             final cartItem = convertToCartItem(cartModel);
             cartItems.add(cartItem);
             
-            // Debug: Print the additionalFields to verify timeslots are included
-            print('CartItem ${cartItem.id} additionalFields: ${cartItem.additionalFields}');
-            if (cartItem.additionalFields.containsKey('meetup_timeslots')) {
-              print('Found meetup_timeslots: ${cartItem.additionalFields['meetup_timeslots']}');
+            if (itemStatus == 'sold') {
+              print('📦 Including sold item in cart: ${itemData['name']} (status: $itemStatus)');
             }
+            
+          } else {
+            // Only remove items that don't exist anymore (deleted items)
+            print('🗑️ Found non-existent item in cart: $itemId');
+            deletedItemsToRemove.add(cartDoc.id);
           }
         } catch (e) {
           print('Error processing cart item: $e');
         }
       }
 
+      // Remove only deleted/non-existent items from cart (not sold items)
+      if (deletedItemsToRemove.isNotEmpty) {
+        await _removeSoldItemsFromCart(deletedItemsToRemove);
+        print('✅ Removed ${deletedItemsToRemove.length} deleted items from cart');
+      }
+
+      final soldItemsCount = cartItems.where((item) => item.additionalFields['status'] == 'sold').length;
+      print('✅ Loaded ${cartItems.length} total items in cart (${soldItemsCount} sold items will be shown with disabled checkout)');
       return cartItems;
     } catch (e) {
       print('Error getting cart items: $e');
@@ -73,15 +92,33 @@ class CartService {
     }
   }
 
-  // Clear cart after successful order using your existing structure
+  // Helper method to remove cart document IDs (for deleted items only)
+  Future<void> _removeSoldItemsFromCart(List<String> cartDocIds) async {
+    try {
+      final batch = _firestore.batch();
+      
+      for (String cartDocId in cartDocIds) {
+        final cartDocRef = _firestore.collection('carts').doc(cartDocId);
+        batch.delete(cartDocRef);
+      }
+      
+      await batch.commit();
+    } catch (e) {
+      print('Error removing deleted items from cart: $e');
+    }
+  }
+
+  // ENHANCED: Clear cart after successful order
   Future<bool> clearCart() async {
     try {
       final userId = _auth.currentUser?.uid;
       if (userId == null) return false;
 
+      print('🧹 Clearing cart for user: $userId');
+
       final batch = _firestore.batch();
       final snapshot = await _firestore
-          .collection('carts') // Use your existing collection name
+          .collection('carts')
           .where('userId', isEqualTo: userId)
           .get();
 
@@ -90,9 +127,45 @@ class CartService {
       }
 
       await batch.commit();
+      print('✅ Cart cleared successfully');
       return true;
     } catch (e) {
       print('Error clearing cart: $e');
+      return false;
+    }
+  }
+
+  // NEW: Remove specific sold items from ALL users' carts (FIXED: No ordering)
+  Future<bool> removeSoldItemsFromAllCarts(List<String> soldItemIds) async {
+    try {
+      print('🧹 Removing sold items from all carts: $soldItemIds');
+      
+      final batch = _firestore.batch();
+      int removedCount = 0;
+
+      // For each sold item, find and remove from all carts
+      for (String itemId in soldItemIds) {
+        // FIXED: Remove orderBy to avoid composite index and permission issues
+        final cartSnapshot = await _firestore
+            .collection('carts')
+            .where('itemId', isEqualTo: itemId)
+            .get(); // NO .orderBy() here!
+
+        for (var cartDoc in cartSnapshot.docs) {
+          batch.delete(cartDoc.reference);
+          removedCount++;
+          print('   Removing item $itemId from cart ${cartDoc.id}');
+        }
+      }
+
+      if (removedCount > 0) {
+        await batch.commit();
+        print('✅ Removed $removedCount cart entries for sold items');
+      }
+
+      return true;
+    } catch (e) {
+      print('Error removing sold items from all carts: $e');
       return false;
     }
   }

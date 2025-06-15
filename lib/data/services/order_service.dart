@@ -9,7 +9,7 @@ class OrderService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final String _collection = 'orders';
 
-  /// Place a new order
+  /// ENHANCED: Place order and mark items as sold
   Future<bool> placeOrder(OrderRequest orderRequest) async {
     try {
       final user = _auth.currentUser;
@@ -18,12 +18,15 @@ class OrderService {
         return false;
       }
 
-      // Generate a new document ID
-      final docRef = _firestore.collection(_collection).doc();
+      // Start a batch write to ensure atomicity
+      final batch = _firestore.batch();
+
+      // Generate a new document ID for the order
+      final orderDocRef = _firestore.collection(_collection).doc();
       
       // Create order with the generated ID
       final orderWithId = OrderRequest(
-        id: docRef.id,
+        id: orderDocRef.id,
         userId: orderRequest.userId,
         sellerId: orderRequest.sellerId,
         items: orderRequest.items,
@@ -39,14 +42,30 @@ class OrderService {
         updatedAt: DateTime.now(),
       );
 
-      // Save to Firestore
-      await docRef.set(orderWithId.toJson());
+      // Add order to batch
+      batch.set(orderDocRef, orderWithId.toJson());
+      print('📋 Order added to batch: ${orderDocRef.id}');
+
+      // CRITICAL: Update each item's status to "sold"
+      for (final cartItem in orderRequest.items) {
+        final itemDocRef = _firestore.collection('items').doc(cartItem.itemId);
+        batch.update(itemDocRef, {
+          'status': 'sold',
+          'soldAt': Timestamp.now(),
+          'soldTo': orderRequest.userId,
+          'orderId': orderDocRef.id,
+        });
+        print('🏷️ Item ${cartItem.itemId} marked as sold in batch');
+      }
+
+      // Commit all changes atomically
+      await batch.commit();
+      print('✅ Order placed and items marked as sold successfully: ${orderDocRef.id}');
       
-      print('Order placed successfully with ID: ${docRef.id}');
       return true;
       
     } catch (e) {
-      print('Error placing order: $e');
+      print('❌ Error in OrderService.placeOrder: $e');
       return false;
     }
   }
