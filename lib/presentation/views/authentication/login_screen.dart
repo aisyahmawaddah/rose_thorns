@@ -326,7 +326,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       fit: BoxFit.contain,
                       errorBuilder: (context, error, stackTrace) {
                         // Fallback widget if image fails to load
-                        return Container(
+                        return SizedBox(
                           height: screenHeight * 0.25,
                           child: Center(
                             child: Container(

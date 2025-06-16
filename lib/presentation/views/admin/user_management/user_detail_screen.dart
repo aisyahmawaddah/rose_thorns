@@ -113,7 +113,7 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Are you sure you want to delete this user?'),
+            const Text('Are you sure you want to delete this user?'),
             const SizedBox(height: 12),
             Container(
               padding: const EdgeInsets.all(12),

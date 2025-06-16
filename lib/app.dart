@@ -78,7 +78,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
           print('🔧 AuthWrapper: Returning AdminScreen for admin user');
           return const AdminScreen();
         } else {
-          print('🏠 AuthWrapper: Returning HomeScreen for ${userRole} user');
+          print('🏠 AuthWrapper: Returning HomeScreen for $userRole user');
           return const HomeScreen();
         }
       } else {
