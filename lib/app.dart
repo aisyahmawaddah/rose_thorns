@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:provider/provider.dart';
+import 'package:provider/provider.dart'; // ADD THIS LINE
 import 'package:koopon/core/config/routes.dart';
 import 'package:koopon/core/config/themes.dart';
 import 'package:koopon/presentation/views/authentication/login_screen.dart';
 import 'package:koopon/presentation/views/splash_screen.dart';
 import 'package:koopon/presentation/views/home_screen.dart';
-import 'package:koopon/presentation/views/admin/admin_screen.dart';
+import 'package:koopon/presentation/viewmodels/cart_viewmodel.dart'; 
 import 'package:koopon/presentation/viewmodels/home_viewmodel.dart';
 
 class KooponApp extends StatelessWidget {
@@ -15,9 +14,13 @@ class KooponApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // ADD MultiProvider here to wrap MaterialApp
     return MultiProvider(
       providers: [
+        // ADD THESE PROVIDERS:
         ChangeNotifierProvider(create: (_) => HomeViewModel(), lazy: true),
+        ChangeNotifierProvider(create: (_) => CartViewModel(), lazy: true),
+        
         // Add any other providers you have here...
       ],
       child: MaterialApp(
@@ -39,78 +42,36 @@ class AuthWrapper extends StatefulWidget {
 
 class _AuthWrapperState extends State<AuthWrapper> {
   bool _hasShownLoginScreen = false;
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   @override
   void initState() {
     super.initState();
-    // Sign out any existing user when app starts to force fresh login
-    _signOutExistingUser();
+    
+    // REMOVED: Don't sign out users on app start anymore
+    // This allows Firebase Auth to persist login state
+    // _signOutExistingUser(); // REMOVE THIS LINE
+    
+    // ADD: Initialize CartViewModel auth listener when app starts
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final cartViewModel = Provider.of<CartViewModel>(context, listen: false);
+      cartViewModel.listenToAuthChanges();
+    });
   }
 
-  Future<void> _signOutExistingUser() async {
-    try {
-      if (FirebaseAuth.instance.currentUser != null) {
-        await FirebaseAuth.instance.signOut();
-      }
-    } catch (e) {
-      print('Error signing out existing user: $e');
-    }
-  }
-
-  // NEW: Function to check user role and navigate accordingly
-  Future<Widget> _getScreenBasedOnRole(User user) async {
-    try {
-      print('🔍 AuthWrapper: Checking role for user: ${user.email}');
-
-      // Get user role from Firestore
-      final userDoc = await _firestore.collection('users').doc(user.uid).get();
-
-      if (userDoc.exists) {
-        final userData = userDoc.data() as Map<String, dynamic>;
-        final userRole = userData['role'] ?? 'buyer';
-
-        print('🔍 AuthWrapper: User role found: $userRole');
-        print('🔍 AuthWrapper: Complete user data: $userData');
-
-        // Return appropriate screen based on role
-        if (userRole == 'admin') {
-          print('🔧 AuthWrapper: Returning AdminScreen for admin user');
-          return const AdminScreen();
-        } else {
-          print('🏠 AuthWrapper: Returning HomeScreen for ${userRole} user');
-          return const HomeScreen();
-        }
-      } else {
-        print(
-            '⚠️ AuthWrapper: No Firestore document found, defaulting to HomeScreen');
-        // If no Firestore document, default to home screen
-        return const HomeScreen();
-      }
-    } catch (e) {
-      print('❌ AuthWrapper: Error checking user role: $e');
-      // On error, default to home screen
-      return const HomeScreen();
-    }
-  }
+  // REMOVED: _signOutExistingUser method since we don't need it anymore
 
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
-        print(
-            '🔄 AuthWrapper: Auth state changed - Connection: ${snapshot.connectionState}');
-
         // Show splash screen while checking auth state
         if (snapshot.connectionState == ConnectionState.waiting) {
-          print('⏳ AuthWrapper: Showing splash screen');
           return const SplashScreen();
         }
 
         // Handle errors
         if (snapshot.hasError) {
-          print('❌ AuthWrapper: Error in auth stream: ${snapshot.error}');
           return Scaffold(
             body: Center(
               child: Column(
@@ -145,56 +106,30 @@ class _AuthWrapperState extends State<AuthWrapper> {
         }
 
         final User? user = snapshot.data;
-        print('👤 AuthWrapper: Current user: ${user?.email ?? 'null'}');
-        print(
-            '✉️ AuthWrapper: Email verified: ${user?.emailVerified ?? 'N/A'}');
-        print('📱 AuthWrapper: Has shown login: $_hasShownLoginScreen');
-
-        // If user just logged in and email is verified, check role and navigate
-        if (user != null && user.emailVerified && _hasShownLoginScreen) {
-          print(
-              '✅ AuthWrapper: User authenticated and verified, checking role...');
-
-          return FutureBuilder<Widget>(
-            future: _getScreenBasedOnRole(user),
-            builder: (context, roleSnapshot) {
-              if (roleSnapshot.connectionState == ConnectionState.waiting) {
-                print('⏳ AuthWrapper: Checking user role...');
-                return const Scaffold(
-                  body: Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        CircularProgressIndicator(),
-                        SizedBox(height: 16),
-                        Text('Loading your dashboard...'),
-                      ],
-                    ),
-                  ),
-                );
-              }
-
-              if (roleSnapshot.hasError) {
-                print(
-                    '❌ AuthWrapper: Error getting role-based screen: ${roleSnapshot.error}');
-                return const HomeScreen(); // Fallback to home screen
-              }
-
-              print('🎯 AuthWrapper: Displaying role-based screen');
-              return roleSnapshot.data ?? const HomeScreen();
-            },
-          );
-        }
+        
+        // If user is logged in and email is verified, go to home
+        if (user != null && user.emailVerified) {
+          // Initialize cart when user successfully logs in
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            final cartViewModel = Provider.of<CartViewModel>(context, listen: false);
+            if (!cartViewModel.isInitialized) {
+              cartViewModel.initializeCart();
+            }
+          });
+          
+          final routeBuilder = AppRoutes.routes['/home'] ?? AppRoutes.routes['/profile'];
+          if (routeBuilder != null) {
+            return routeBuilder(context);
+          } else {
+            return const HomeScreen();
+          }
+        } 
         // If user is logged in but email not verified
-        else if (user != null && !user.emailVerified && _hasShownLoginScreen) {
-          print('📧 AuthWrapper: User needs email verification');
-          // You can create an EmailVerificationScreen or redirect to login
-          return const LoginScreen(); // Or EmailVerificationScreen
-        }
-        // Always show login screen first or if no user
+        else if (user != null && !user.emailVerified) {
+          return const EmailVerificationScreen();
+        } 
+        // No user logged in - show login screen
         else {
-          print('🔑 AuthWrapper: Showing login screen');
-          _hasShownLoginScreen = true;
           return const LoginScreen();
         }
       },
@@ -202,13 +137,12 @@ class _AuthWrapperState extends State<AuthWrapper> {
   }
 }
 
-// Email verification screen (if you want to use it)
+// Email verification screen remains the same as before...
 class EmailVerificationScreen extends StatefulWidget {
   const EmailVerificationScreen({Key? key}) : super(key: key);
 
   @override
-  _EmailVerificationScreenState createState() =>
-      _EmailVerificationScreenState();
+  _EmailVerificationScreenState createState() => _EmailVerificationScreenState();
 }
 
 class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
@@ -218,7 +152,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
-
+    
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
@@ -253,65 +187,102 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'We sent a verification email to:\n${user?.email ?? 'your email'}',
+                  'We sent a verification email to:\n${user?.email ?? "your email"}',
+                  textAlign: TextAlign.center,
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 16,
                   ),
-                  textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 24),
-                Text(
+                const Text(
                   'Please check your email and click the verification link to continue.',
+                  textAlign: TextAlign.center,
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.9),
+                    color: Colors.white,
                     fontSize: 14,
                   ),
-                  textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 32),
-                ElevatedButton(
-                  onPressed: _isLoading ? null : () => _resendVerification(),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    foregroundColor: const Color(0xFF3066BE),
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 32, vertical: 12),
+                
+                // Resend verification email button
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: _isLoading ? null : _resendVerificationEmail,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      foregroundColor: const Color(0xFF3066BE),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 15),
+                    ),
+                    child: _isLoading
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Text(
+                            'Resend Verification Email',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
                   ),
-                  child: _isLoading
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Text('Resend Verification Email'),
                 ),
+                
                 const SizedBox(height: 16),
+                
+                // Check verification status button
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton(
+                    onPressed: _checkEmailVerification,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.white,
+                      side: const BorderSide(color: Colors.white),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 15),
+                    ),
+                    child: const Text(
+                      'I\'ve Verified My Email',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+                
+                const SizedBox(height: 16),
+                
+                // Sign out button
                 TextButton(
-                  onPressed: () => _checkVerification(),
+                  onPressed: _signOut,
                   child: const Text(
-                    'I\'ve verified my email',
+                    'Sign Out',
                     style: TextStyle(
                       color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                TextButton(
-                  onPressed: () => _logout(),
-                  child: Text(
-                    'Use different account',
-                    style: TextStyle(
-                      color: Colors.white.withOpacity(0.8),
                       fontSize: 14,
+                      decoration: TextDecoration.underline,
                     ),
                   ),
                 ),
-                if (_message.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 16),
+                
+                // Message display
+                if (_message.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                     child: Text(
                       _message,
                       style: const TextStyle(
@@ -321,6 +292,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                       textAlign: TextAlign.center,
                     ),
                   ),
+                ],
               ],
             ),
           ),
@@ -329,7 +301,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
     );
   }
 
-  Future<void> _resendVerification() async {
+  Future<void> _resendVerificationEmail() async {
     setState(() {
       _isLoading = true;
       _message = '';
@@ -338,11 +310,11 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
     try {
       await FirebaseAuth.instance.currentUser?.sendEmailVerification();
       setState(() {
-        _message = 'Verification email sent successfully!';
+        _message = 'Verification email sent! Please check your inbox.';
       });
     } catch (e) {
       setState(() {
-        _message = 'Error sending verification email: ${e.toString()}';
+        _message = 'Error sending email: ${e.toString()}';
       });
     } finally {
       setState(() {
@@ -351,23 +323,40 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
     }
   }
 
-  Future<void> _checkVerification() async {
-    await FirebaseAuth.instance.currentUser?.reload();
-    final user = FirebaseAuth.instance.currentUser;
-
-    if (user?.emailVerified == true) {
-      // Email is now verified, AuthWrapper will handle navigation
-      setState(() {});
-    } else {
+  Future<void> _checkEmailVerification() async {
+    try {
+      await FirebaseAuth.instance.currentUser?.reload();
+      final user = FirebaseAuth.instance.currentUser;
+      
+      if (user?.emailVerified == true) {
+        setState(() {
+          _message = 'Email verified successfully!';
+        });
+      } else {
+        setState(() {
+          _message = 'Email not yet verified. Please check your email.';
+        });
+      }
+    } catch (e) {
       setState(() {
-        _message =
-            'Email not yet verified. Please check your email and try again.';
+        _message = 'Error checking verification: ${e.toString()}';
       });
     }
   }
 
-  Future<void> _logout() async {
-    await FirebaseAuth.instance.signOut();
-    // AuthWrapper will handle navigation back to login
+  Future<void> _signOut() async {
+    try {
+      await FirebaseAuth.instance.signOut();
+      
+      // ADDED: Reset cart when user signs out
+      if (mounted) {
+        final cartViewModel = Provider.of<CartViewModel>(context, listen: false);
+        cartViewModel.resetCart();
+      }
+    } catch (e) {
+      setState(() {
+        _message = 'Error signing out: ${e.toString()}';
+      });
+    }
   }
 }

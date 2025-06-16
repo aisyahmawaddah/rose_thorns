@@ -7,7 +7,7 @@ import 'package:koopon/data/services/auth_service.dart';
 class ProfileViewModel extends ChangeNotifier {
   final ItemService _itemService = ItemService();
   final AuthService _authService = AuthService();
-
+  
   List<ItemModel> _userItems = [];
   bool _isLoading = false;
   String? _errorMessage;
@@ -27,6 +27,11 @@ class ProfileViewModel extends ChangeNotifier {
   String? get currentUserPhotoUrl => currentUser?.photoURL;
   String get currentUserId => currentUser?.uid ?? '';
 
+int get soldItemsCount {
+    // Replace this with your actual logic to count sold items
+    return userItems.where((item) => item.status.toLowerCase() == 'sold').length;
+  }
+  
   // ADD: Override dispose to track disposal
   @override
   void dispose() {
@@ -48,107 +53,77 @@ class ProfileViewModel extends ChangeNotifier {
     await refreshUserItems();
   }
 
+  // Fetch user's items from Firebase
   Future<void> refreshUserItems() async {
-    if (_disposed) return;
-
-    print('🔄 ProfileViewModel: refreshUserItems called');
-
+    if (_disposed) return; // CHECK: Early return if disposed
+    
     _setLoading(true);
     _clearError();
-
+    
     try {
       if (currentUser == null) {
-        print('❌ ProfileViewModel: currentUser is null');
         throw Exception('User not authenticated');
       }
 
-      print('✅ ProfileViewModel: User authenticated');
-      print('   User ID: ${currentUser!.uid}');
-      print('   User Email: ${currentUser!.email}');
-      print('   Display Name: ${currentUser!.displayName}');
-
-      // Test Firestore connection first
-      await _itemService.testFirestoreConnection();
-
-      // Use the fixed getItemsBySeller method (no composite index needed)
-      print(
-          '🔍 ProfileViewModel: Fetching items for seller: ${currentUser!.uid}');
       _userItems = await _itemService.getItemsBySeller(currentUser!.uid);
-
-      print('📊 ProfileViewModel: Received ${_userItems.length} items');
-
-      // Log each item for debugging
-      for (int i = 0; i < _userItems.length; i++) {
-        final item = _userItems[i];
-        print(
-            '   Item $i: ${item.name} (${item.id}) - ${item.category} - RM${item.price}');
-      }
-
-      if (!_disposed) {
-        print('✅ ProfileViewModel: Notifying listeners');
+      if (!_disposed) { // CHECK: Before notifying
         _safeNotifyListeners();
       }
     } catch (e) {
-      print('💥 ProfileViewModel ERROR: $e');
-      if (!_disposed) {
+      if (!_disposed) { // CHECK: Before setting error
         _setError('Failed to load your products: ${e.toString()}');
       }
     } finally {
-      if (!_disposed) {
+      if (!_disposed) { // CHECK: Before setting loading false
         _setLoading(false);
       }
     }
   }
 
-  // Refresh profile data
+  // Refresh profile data (ENHANCED)
   Future<void> refreshProfile() async {
     if (_disposed) return; // CHECK: Early return if disposed
-
-    // Refresh user authentication data
-    await currentUser?.reload();
-    await refreshUserItems();
-    if (!_disposed) {
-      // CHECK: Before notifying
-      _safeNotifyListeners();
+    
+    try {
+      print('🔄 Refreshing profile data...');
+      
+      // Force reload Firebase Auth user data first
+      if (currentUser != null) {
+        await currentUser!.reload();
+        print('✅ Firebase Auth user data reloaded');
+      }
+      
+      // Refresh user items
+      await refreshUserItems();
+      
+      // Force a UI update for profile info
+      if (!_disposed) {
+        _safeNotifyListeners();
+        print('✅ Profile data refreshed');
+      }
+    } catch (e) {
+      print('❌ Error refreshing profile: $e');
+      if (!_disposed) {
+        _setError('Failed to refresh profile: ${e.toString()}');
+      }
     }
   }
 
   // Delete an item
   Future<bool> deleteItem(String itemId) async {
-    if (_disposed) return false;
-
+    if (_disposed) return false; // CHECK: Early return if disposed
+    
     try {
-      print('🗑️ ProfileViewModel: Starting delete for item: $itemId');
-
-      // OPTIMISTIC UI UPDATE: Remove item from UI immediately
-      // ignore: unused_local_variable
-      final itemToDelete = _userItems.firstWhere((item) => item.id == itemId);
-      final originalIndex = _userItems.indexWhere((item) => item.id == itemId);
-
-      if (originalIndex != -1) {
-        _userItems.removeAt(originalIndex);
-        if (!_disposed) {
-          _safeNotifyListeners(); // Update UI immediately
-        }
-      }
-
-      print(
-          '✅ ProfileViewModel: Item removed from UI, now deleting from database...');
-
-      // Delete from database (this is now fast since image deletion is backgrounded)
       await _itemService.deleteItem(itemId);
-
-      print('✅ ProfileViewModel: Database deletion completed');
+      
+      if (!_disposed) { // CHECK: Before updating list
+        // Remove from local list
+        _userItems.removeWhere((item) => item.id == itemId);
+        _safeNotifyListeners();
+      }
       return true;
     } catch (e) {
-      print('❌ ProfileViewModel: Delete failed: $e');
-
-      // ROLLBACK: If deletion failed, add the item back to the UI
-      if (!_disposed) {
-        // Re-fetch items to get the correct state
-        print(
-            '🔄 ProfileViewModel: Rolling back - refreshing items from database');
-        await refreshUserItems();
+      if (!_disposed) { // CHECK: Before setting error
         _setError('Failed to delete product: ${e.toString()}');
       }
       return false;
@@ -161,7 +136,7 @@ class ProfileViewModel extends ChangeNotifier {
     String? photoURL,
   }) async {
     if (_disposed) return false; // CHECK: Early return if disposed
-
+    
     try {
       final user = currentUser;
       if (user == null) return false;
@@ -169,22 +144,20 @@ class ProfileViewModel extends ChangeNotifier {
       if (displayName != null) {
         await user.updateDisplayName(displayName);
       }
-
+      
       if (photoURL != null) {
         await user.updatePhotoURL(photoURL);
       }
 
       // Reload user data
       await user.reload();
-      if (!_disposed) {
-        // CHECK: Before notifying
+      if (!_disposed) { // CHECK: Before notifying
         _safeNotifyListeners();
       }
-
+      
       return true;
     } catch (e) {
-      if (!_disposed) {
-        // CHECK: Before setting error
+      if (!_disposed) { // CHECK: Before setting error
         _setError('Failed to update profile: ${e.toString()}');
       }
       return false;
@@ -196,27 +169,23 @@ class ProfileViewModel extends ChangeNotifier {
     return {
       'totalProducts': _userItems.length,
       'activeProducts': _userItems.length, // All products are currently active
-      'soldProducts':
-          0, // You can implement this later when you add order functionality
+      'soldProducts': 0, // You can implement this later when you add order functionality
     };
   }
 
   // Get products by category for the current user
   List<ItemModel> getItemsByCategory(String category) {
-    return _userItems
-        .where((item) => item.category.toLowerCase() == category.toLowerCase())
-        .toList();
+    return _userItems.where((item) => 
+      item.category.toLowerCase() == category.toLowerCase()).toList();
   }
 
   // Search user's products
   List<ItemModel> searchUserItems(String query) {
     if (query.trim().isEmpty) return _userItems;
-
-    return _userItems
-        .where((item) =>
-            item.name.toLowerCase().contains(query.toLowerCase()) ||
-            item.category.toLowerCase().contains(query.toLowerCase()))
-        .toList();
+    
+    return _userItems.where((item) => 
+      item.name.toLowerCase().contains(query.toLowerCase()) ||
+      item.category.toLowerCase().contains(query.toLowerCase())).toList();
   }
 
   // Helper methods with disposal checks
@@ -250,58 +219,18 @@ class ProfileViewModel extends ChangeNotifier {
   // Sign out user
   Future<void> signOut() async {
     if (_disposed) return; // CHECK: Early return if disposed
-
+    
     try {
       await _authService.signOut();
-      if (!_disposed) {
-        // CHECK: Before updating state
+      if (!_disposed) { // CHECK: Before updating state
         _userItems.clear();
         _isInitialized = false;
         _safeNotifyListeners();
       }
     } catch (e) {
-      if (!_disposed) {
-        // CHECK: Before setting error
+      if (!_disposed) { // CHECK: Before setting error
         _setError('Failed to sign out: ${e.toString()}');
       }
     }
-  }
-
-  // Add this new method to test with all items (for debugging)
-  Future<void> debugLoadAllItems() async {
-    if (_disposed) return;
-
-    print('🧪 ProfileViewModel: debugLoadAllItems called');
-
-    try {
-      final allItems = await _itemService.getAllItemsDebug();
-      print(
-          '📊 ProfileViewModel: Found ${allItems.length} total items in database');
-
-      // Filter by current user
-      final userItems =
-          allItems.where((item) => item.sellerId == currentUser?.uid).toList();
-      print(
-          '📊 ProfileViewModel: ${userItems.length} items belong to current user');
-
-      _userItems = userItems;
-      if (!_disposed) {
-        _safeNotifyListeners();
-      }
-    } catch (e) {
-      print('💥 ProfileViewModel debugLoadAllItems ERROR: $e');
-    }
-  }
-
-  // Add this method to your ProfileViewModel class to test authentication
-  void debugUserAuth() {
-    print('🔍 ProfileViewModel: Debug User Authentication');
-    print('   Current User: ${currentUser?.uid}');
-    print('   Display Name: $currentUserDisplayName');
-    print('   Email: $currentUserEmail');
-    print('   Is Initialized: $_isInitialized');
-    print('   Is Loading: $_isLoading');
-    print('   Error Message: $_errorMessage');
-    print('   User Items Count: ${_userItems.length}');
   }
 }

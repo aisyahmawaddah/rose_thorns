@@ -1,3 +1,4 @@
+// lib/presentation/viewmodels/home_viewmodel.dart
 import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:koopon/data/models/item_model.dart';
@@ -14,7 +15,7 @@ class HomeViewModel extends ChangeNotifier {
   String? _errorMessage;
   String _selectedCategory = '';
   bool _isInitialized = false;
-  bool _disposed = false; // ADD: Track if disposed
+  bool _disposed = false; // Track if disposed
 
   // Getters
   List<ItemModel> get items => _filteredItems;
@@ -23,14 +24,14 @@ class HomeViewModel extends ChangeNotifier {
   String get selectedCategory => _selectedCategory;
   bool get isInitialized => _isInitialized;
 
-  // ADD: Override dispose to track disposal
+  // Override dispose to track disposal
   @override
   void dispose() {
     _disposed = true;
     super.dispose();
   }
 
-  // ADD: Safe notifyListeners that checks disposal
+  // Safe notifyListeners that checks disposal
   void _safeNotifyListeners() {
     if (!_disposed) {
       notifyListeners();
@@ -44,83 +45,101 @@ class HomeViewModel extends ChangeNotifier {
     await fetchAllItems();
   }
 
-  // Fetch all items from Firebase
+  // ENHANCED: Fetch all items from Firebase (now automatically filters sold items)
   Future<void> fetchAllItems() async {
-    if (_disposed) return; // CHECK: Early return if disposed
+    if (_disposed) return; // Early return if disposed
     
     _setLoading(true);
     _clearError();
     _selectedCategory = '';
     
     try {
+      print('🏠 HomeViewModel: Fetching all available items...');
+      
+      // The ItemService.getAllItems() now automatically filters out sold items
       _items = await _itemService.getAllItems();
-      if (!_disposed) { // CHECK: Before updating state
+      
+      if (!_disposed) { // Before updating state
         _filteredItems = List.from(_items);
+        print('✅ HomeViewModel: Loaded ${_items.length} available items');
         _safeNotifyListeners();
       }
     } catch (e) {
-      if (!_disposed) { // CHECK: Before setting error
+      if (!_disposed) { // Before setting error
+        print('❌ HomeViewModel: Error loading items: $e');
         _setError('Failed to load items: ${e.toString()}');
       }
     } finally {
-      if (!_disposed) { // CHECK: Before setting loading false
+      if (!_disposed) { // Before setting loading false
         _setLoading(false);
       }
     }
   }
 
-  // Filter items by category
+  // ENHANCED: Filter items by category (now works with pre-filtered available items)
   Future<void> fetchItemsByCategory(String category) async {
-    if (_disposed) return; // CHECK: Early return if disposed
+    if (_disposed) return; // Early return if disposed
     
     _setLoading(true);
     _clearError();
     _selectedCategory = category;
     
     try {
+      print('📂 HomeViewModel: Filtering by category: $category');
+      
       if (category.isEmpty || category == 'All') {
+        // Show all available items (already filtered by ItemService)
         _filteredItems = List.from(_items);
       } else {
+        // Filter the already-available items by category
         _filteredItems = _items.where((item) => 
           item.category.toLowerCase() == category.toLowerCase()).toList();
       }
-      if (!_disposed) { // CHECK: Before notifying
+      
+      if (!_disposed) { // Before notifying
+        print('✅ HomeViewModel: Filtered to ${_filteredItems.length} items in category "$category"');
         _safeNotifyListeners();
       }
     } catch (e) {
-      if (!_disposed) { // CHECK: Before setting error
+      if (!_disposed) { // Before setting error
         _setError('Failed to filter items: ${e.toString()}');
       }
     } finally {
-      if (!_disposed) { // CHECK: Before setting loading false
+      if (!_disposed) { // Before setting loading false
         _setLoading(false);
       }
     }
   }
 
-  // Search items by name
+  // ENHANCED: Search items by name (now works with pre-filtered available items)
   Future<void> searchItems(String query) async {
-    if (_disposed) return; // CHECK: Early return if disposed
+    if (_disposed) return; // Early return if disposed
     
     _setLoading(true);
     _clearError();
     
     try {
+      print('🔍 HomeViewModel: Searching for: "$query"');
+      
       if (query.trim().isEmpty) {
+        // Show all available items
         _filteredItems = List.from(_items);
       } else {
+        // Search within the already-available items
         _filteredItems = _items.where((item) => 
-          item.name.toLowerCase().contains(query.toLowerCase())).toList();
+            item.name.toLowerCase().contains(query.toLowerCase())).toList();
       }
-      if (!_disposed) { // CHECK: Before notifying
+      
+      if (!_disposed) { // Before notifying
+        print('✅ HomeViewModel: Found ${_filteredItems.length} items matching "$query"');
         _safeNotifyListeners();
       }
     } catch (e) {
-      if (!_disposed) { // CHECK: Before setting error
+      if (!_disposed) { // Before setting error
         _setError('Failed to search items: ${e.toString()}');
       }
     } finally {
-      if (!_disposed) { // CHECK: Before setting loading false
+      if (!_disposed) { // Before setting loading false
         _setLoading(false);
       }
     }
@@ -128,12 +147,12 @@ class HomeViewModel extends ChangeNotifier {
 
   // Delete an item
   Future<bool> deleteItem(String itemId) async {
-    if (_disposed) return false; // CHECK: Early return if disposed
+    if (_disposed) return false; // Early return if disposed
     
     try {
       await _itemService.deleteItem(itemId);
       
-      if (!_disposed) { // CHECK: Before updating lists
+      if (!_disposed) { // Before updating lists
         // Remove from local lists
         _items.removeWhere((item) => item.id == itemId);
         _filteredItems.removeWhere((item) => item.id == itemId);
@@ -142,34 +161,42 @@ class HomeViewModel extends ChangeNotifier {
       }
       return true;
     } catch (e) {
-      if (!_disposed) { // CHECK: Before setting error
+      if (!_disposed) { // Before setting error
         _setError('Failed to delete item: ${e.toString()}');
       }
       return false;
     }
   }
 
-  // Refresh items (for pull-to-refresh)
+  // ENHANCED: Refresh items (for pull-to-refresh and after orders)
   Future<void> refreshItems() async {
-    if (_disposed) return; // CHECK: Early return if disposed
+    if (_disposed) return; // Early return if disposed
+    
+    print('🔄 HomeViewModel: Refreshing items (will filter out newly sold items)...');
     await fetchAllItems();
+  }
+
+  // NEW: Force refresh after an order is placed (call this from order completion)
+  Future<void> refreshAfterOrder() async {
+    print('🛒 HomeViewModel: Refreshing after order placed...');
+    await refreshItems();
   }
 
   // Helper methods with disposal checks
   void _setLoading(bool loading) {
-    if (_disposed) return; // CHECK: Before setting state
+    if (_disposed) return; // Before setting state
     _isLoading = loading;
     _safeNotifyListeners();
   }
 
   void _setError(String error) {
-    if (_disposed) return; // CHECK: Before setting state
+    if (_disposed) return; // Before setting state
     _errorMessage = error;
     _safeNotifyListeners();
   }
 
   void _clearError() {
-    if (_disposed) return; // CHECK: Before setting state
+    if (_disposed) return; // Before setting state
     _errorMessage = null;
   }
 
@@ -185,4 +212,25 @@ class HomeViewModel extends ChangeNotifier {
 
   // Get current user display name
   String get currentUserDisplayName => _authService.currentUserDisplayName;
+
+  // NEW: Check if an item is still available (helper method)
+  Future<bool> isItemStillAvailable(String itemId) async {
+    try {
+      return await _itemService.isItemAvailable(itemId);
+    } catch (e) {
+      print('Error checking item availability: $e');
+      return false;
+    }
+  }
+
+  // NEW: Get fresh item count (useful for debugging)
+  Future<int> getFreshItemCount() async {
+    try {
+      final freshItems = await _itemService.getAllItems();
+      return freshItems.length;
+    } catch (e) {
+      print('Error getting fresh item count: $e');
+      return 0;
+    }
+  }
 }

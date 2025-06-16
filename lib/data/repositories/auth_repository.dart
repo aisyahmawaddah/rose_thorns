@@ -1,3 +1,4 @@
+// lib/data/repositories/auth_repository.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:koopon/data/models/auth_model.dart';

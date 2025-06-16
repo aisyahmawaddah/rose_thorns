@@ -52,6 +52,4 @@ class LoginModel {
         errorMessage.hashCode ^
         isLoading.hashCode;
   }
-
-  
 }
