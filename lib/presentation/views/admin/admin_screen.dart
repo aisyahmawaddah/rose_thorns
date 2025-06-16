@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:koopon/presentation/views/admin/user_management/users_list_screen.dart';
 import 'dart:async';
 import 'package:koopon/presentation/views/authentication/login_screen.dart';
+import 'package:koopon/presentation/views/admin/user_management/users_list_screen.dart';
 
 class AdminScreen extends StatelessWidget {
   const AdminScreen({super.key});

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:koopon/data/models/user_model.dart';
 import 'package:koopon/data/services/admin_service.dart';
 import 'package:koopon/presentation/views/admin/user_management/user_detail_screen.dart';
