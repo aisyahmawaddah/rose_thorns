@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:koopon/data/repositories/login_repository.dart';
 import 'package:koopon/data/models/login_model.dart';
 import 'package:koopon/presentation/views/authentication/register_screen.dart';
 import 'package:koopon/presentation/views/authentication/password_reset_screen.dart';
 import 'package:koopon/presentation/views/authentication/welcome_screen.dart';
 import 'package:koopon/presentation/views/home_screen.dart';
+import 'package:koopon/presentation/views/admin/admin_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -15,6 +18,7 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final LoginRepository _loginRepository = LoginRepository();
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -29,6 +33,7 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _signIn() async {
+    print('=== STARTING LOGIN PROCESS ===');
     // Hide keyboard
     FocusScope.of(context).unfocus();
 
@@ -42,19 +47,27 @@ class _LoginScreenState extends State<LoginScreen> {
       });
 
       try {
+        print(
+            'Attempting to sign in with email: ${_emailController.text.trim()}');
+
         // Sign in with email and password
         final userCredential = await _loginRepository.login(
           _emailController.text.trim(),
           _passwordController.text.trim(),
         );
 
+        print('Firebase Auth successful: ${userCredential.user?.email}');
+
         // Check if email is verified
-        if (userCredential.user != null && !userCredential.user!.emailVerified) {
+        if (userCredential.user != null &&
+            !userCredential.user!.emailVerified) {
+          print('Email not verified for user: ${userCredential.user!.email}');
           // Show error and don't proceed
           if (!mounted) return;
           setState(() {
             _loginModel = _loginModel.copyWith(
-              errorMessage: 'Please verify your email before logging in. Check your inbox for the verification link.',
+              errorMessage:
+                  'Please verify your email before logging in. Check your inbox for the verification link.',
               isLoading: false,
             );
           });
@@ -72,68 +85,140 @@ class _LoginScreenState extends State<LoginScreen> {
                   onPressed: () => Navigator.pop(context),
                   child: const Text('Cancel'),
                 ),
-                TextButton(
+                ElevatedButton(
                   onPressed: () async {
-                    Navigator.pop(context);
                     try {
                       await userCredential.user!.sendEmailVerification();
-                      if (!mounted) return;
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                            content: Text(
-                                'Verification email sent again. Please check your inbox.')),
-                      );
+                      if (mounted) {
+                        Navigator.pop(context);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Verification email sent!'),
+                            backgroundColor: Colors.green,
+                          ),
+                        );
+                      }
                     } catch (e) {
-                      if (!mounted) return;
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                            content:
-                                Text('Error sending email: ${e.toString()}')),
-                      );
+                      if (mounted) {
+                        Navigator.pop(context);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Error sending email: $e'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
                     }
                   },
-                  child: const Text('Resend Email'),
+                  child: const Text('Resend'),
                 ),
               ],
             ),
           );
-
-          // Sign out since they shouldn't be logged in yet
-          await _loginRepository.logout();
           return;
         }
 
-        // If verified, proceed to home page
+        // Email is verified, now check user role
+        if (userCredential.user != null && userCredential.user!.emailVerified) {
+          print('Email verified, checking user role in Firestore...');
+
+          // Get user role from Firestore
+          final userDoc = await _firestore
+              .collection('users')
+              .doc(userCredential.user!.uid)
+              .get();
+
+          print('Firestore document exists: ${userDoc.exists}');
+
+          if (!mounted) return;
+
+          String userRole = 'buyer'; // Default role
+          if (userDoc.exists) {
+            final userData = userDoc.data() as Map<String, dynamic>;
+            userRole = userData['role'] ?? 'buyer';
+            print('User role from Firestore: $userRole');
+            print('Complete user data: $userData');
+          } else {
+            print(
+                'No Firestore document found for user, using default role: buyer');
+          }
+
+          // Navigate based on user role
+          if (!mounted) return;
+          setState(() {
+            _loginModel = _loginModel.copyWith(isLoading: false);
+          });
+
+          print('=== NAVIGATION DECISION ===');
+          print('User role: $userRole');
+          print('User email: ${userCredential.user!.email}');
+
+          if (userRole == 'admin') {
+            print('🔧 REDIRECTING TO ADMIN SCREEN');
+            // Navigate to admin screen
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const AdminScreen(),
+              ),
+            );
+          } else {
+            print('🏠 REDIRECTING TO HOME SCREEN (buyer/seller)');
+            // Navigate to regular user home screen (buyer/seller)
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const HomeScreen(),
+              ),
+            );
+          }
+        }
+      } on FirebaseAuthException catch (e) {
+        print('Firebase Auth Exception: ${e.code} - ${e.message}');
         if (!mounted) return;
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const HomeScreen()),
-        );
+
+        String errorMessage = 'Login failed. Please try again.';
+
+        switch (e.code) {
+          case 'user-not-found':
+            errorMessage = 'No account found with this email address.';
+            break;
+          case 'wrong-password':
+            errorMessage = 'Incorrect password. Please try again.';
+            break;
+          case 'invalid-email':
+            errorMessage = 'Invalid email address format.';
+            break;
+          case 'user-disabled':
+            errorMessage = 'This account has been disabled.';
+            break;
+          case 'too-many-requests':
+            errorMessage = 'Too many failed attempts. Please try again later.';
+            break;
+          case 'invalid-credential':
+            errorMessage =
+                'Invalid email or password. Please check your credentials.';
+            break;
+          default:
+            errorMessage = e.message ?? 'Login failed. Please try again.';
+        }
+
+        setState(() {
+          _loginModel = _loginModel.copyWith(
+            errorMessage: errorMessage,
+            isLoading: false,
+          );
+        });
       } catch (e) {
+        print('General Exception during login: $e');
         if (!mounted) return;
         setState(() {
           _loginModel = _loginModel.copyWith(
-            errorMessage: _getErrorMessage(e.toString()),
+            errorMessage: 'An unexpected error occurred: ${e.toString()}',
             isLoading: false,
           );
         });
       }
-    }
-  }
-
-  String _getErrorMessage(String error) {
-    if (error.contains('user-not-found')) {
-      return 'No user found with this email address.';
-    } else if (error.contains('wrong-password')) {
-      return 'Incorrect password. Please try again.';
-    } else if (error.contains('invalid-email')) {
-      return 'Invalid email address format.';
-    } else if (error.contains('user-disabled')) {
-      return 'This account has been disabled.';
-    } else if (error.contains('too-many-requests')) {
-      return 'Too many failed attempts. Please try again later.';
-    } else {
-      return 'Login failed. Please check your credentials and try again.';
     }
   }
 
@@ -180,6 +265,25 @@ class _LoginScreenState extends State<LoginScreen> {
                           );
                         },
                       ),
+                      const Spacer(),
+                      TextButton(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const RegisterScreen(),
+                            ),
+                          );
+                        },
+                        child: const Text(
+                          'Register',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16.0,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -202,7 +306,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   padding: EdgeInsets.only(
                       left: 8.0, top: 8.0, right: 30.0, bottom: 0.0),
                   child: Text(
-                    'Welcome to the UTM Graduate Student marketplace. Sign in with your @graduate.utm.my email to reconnect with your favorites, discover new preloved gems.',
+                    'This is your student-friendly corner of the internet. Sign in to reconnect with your favorites, discover new preloved gems.',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 14.0,
@@ -221,13 +325,23 @@ class _LoginScreenState extends State<LoginScreen> {
                       width: double.infinity,
                       fit: BoxFit.contain,
                       errorBuilder: (context, error, stackTrace) {
-                        // Fallback if image is not found
-                        return SizedBox(
+                        // Fallback widget if image fails to load
+                        return Container(
                           height: screenHeight * 0.25,
-                          child: const Icon(
-                            Icons.shopping_cart,
-                            size: 100,
-                            color: Colors.white,
+                          child: Center(
+                            child: Container(
+                              width: 100,
+                              height: 100,
+                              decoration: BoxDecoration(
+                                color: Colors.purple.shade200,
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: const Icon(
+                                Icons.shopping_cart,
+                                size: 50,
+                                color: Colors.purple,
+                              ),
+                            ),
                           ),
                         );
                       },
@@ -246,7 +360,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
                     decoration: const InputDecoration(
-                      hintText: 'Graduate Email (@graduate.utm.my)',
+                      hintText: 'University Email',
                       hintStyle: TextStyle(
                         color: Colors.grey,
                         fontSize: 16.0,
@@ -264,12 +378,13 @@ class _LoginScreenState extends State<LoginScreen> {
                       return null;
                     },
                     onChanged: (val) {
-                      setState(() {
-                        _loginModel = _loginModel.copyWith(
-                          email: val,
-                          errorMessage: null,
-                        );
-                      });
+                      // Clear errors when user starts typing
+                      if (_loginModel.errorMessage != null) {
+                        setState(() {
+                          _loginModel =
+                              _loginModel.copyWith(errorMessage: null);
+                        });
+                      }
                     },
                   ),
                 ),
@@ -305,12 +420,13 @@ class _LoginScreenState extends State<LoginScreen> {
                       return null;
                     },
                     onChanged: (val) {
-                      setState(() {
-                        _loginModel = _loginModel.copyWith(
-                          password: val,
-                          errorMessage: null,
-                        );
-                      });
+                      // Clear errors when user starts typing
+                      if (_loginModel.errorMessage != null) {
+                        setState(() {
+                          _loginModel =
+                              _loginModel.copyWith(errorMessage: null);
+                        });
+                      }
                     },
                   ),
                 ),
@@ -318,7 +434,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 const SizedBox(height: 16.0),
 
                 // Error message
-                if (_loginModel.errorMessage?.isNotEmpty == true) ...[
+                if (_loginModel.errorMessage != null) ...[
                   Container(
                     margin: const EdgeInsets.symmetric(horizontal: 8.0),
                     padding: const EdgeInsets.all(12.0),
@@ -382,8 +498,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     onPressed: _loginModel.isLoading ? null : _signIn,
                     style: ElevatedButton.styleFrom(
                       foregroundColor: Colors.white,
-                      backgroundColor:
-                          _loginModel.isLoading ? Colors.grey[600] : Colors.black,
+                      backgroundColor: _loginModel.isLoading
+                          ? Colors.grey[600]
+                          : Colors.black,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(30.0),
                       ),

@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:koopon/data/services/auth_service.dart';
 
@@ -48,6 +49,22 @@ class LoginRepository {
       } else {
         throw Exception('An unexpected error occurred: ${e.toString()}');
       }
+    }
+  }
+
+  Future<Map<String, dynamic>?> getUserData(String userId) async {
+    // Example using Firebase Firestore (adjust as needed for your backend)
+    // import 'package:cloud_firestore/cloud_firestore.dart';
+    try {
+      final doc = await FirebaseFirestore.instance.collection('users').doc(userId).get();
+      if (doc.exists) {
+        return doc.data();
+      } else {
+        return null;
+      }
+    } catch (e) {
+      print('Error fetching user data: $e');
+      return null;
     }
   }
 
