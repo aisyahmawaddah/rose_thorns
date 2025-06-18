@@ -10,31 +10,40 @@ class AddressViewModel extends ChangeNotifier {
   bool _isLoading = false;
   String? _error;
   List<Address> _addresses = [];
-  bool _disposed = false; // ADD THIS LINE
+  bool _disposed = false;
+  bool _hasLoaded = false; // ADD THIS LINE
 
   // Getters
   bool get isLoading => _isLoading;
   String? get error => _error;
   List<Address> get addresses => _addresses;
+  bool get hasLoaded => _hasLoaded; // ADD THIS GETTER
 
-  @override
-  void dispose() {
-    _disposed = true; // ADD THIS LINE
-    super.dispose();
-  }
-
-  // Load addresses
+  // Update loadAddresses method:
   Future<void> loadAddresses() async {
-    if (_disposed) return; // ADD THIS CHECK
+    if (_disposed || _isLoading || _hasLoaded) return; // PREVENT MULTIPLE CALLS
+    
     _setLoading(true);
     try {
       _addresses = await _orderRepository.getUserAddresses();
+      _hasLoaded = true; // SET FLAG AFTER SUCCESSFUL LOAD
       _clearError();
     } catch (e) {
       _setError('Failed to load addresses: $e');
+      _hasLoaded = true; // SET FLAG EVEN ON ERROR
     }
-    if (!_disposed) _setLoading(false); // ADD DISPOSED CHECK
+    if (!_disposed) {
+      _setLoading(false);
+    }
   }
+
+  // Add refresh method:
+  Future<void> refreshAddresses() async {
+    if (_disposed) return;
+    _hasLoaded = false; // RESET FLAG TO ALLOW REFRESH
+    await loadAddresses();
+  }
+  
 
   // Add address
   Future<bool> addAddress({
@@ -159,4 +168,5 @@ class AddressViewModel extends ChangeNotifier {
     _error = null;
     notifyListeners();
   }
+
 }

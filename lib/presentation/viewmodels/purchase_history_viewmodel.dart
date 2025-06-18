@@ -1,11 +1,11 @@
-// lib/presentation/viewmodels/order_history_viewmodel.dart
-// This ViewModel is for SELLERS to see orders placed for their items
+// lib/presentation/viewmodels/purchase_history_viewmodel.dart
+// This ViewModel is for BUYERS to see their purchase history
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../data/models/order_model.dart';
 import '../../data/services/order_service.dart';
 
-class OrderHistoryViewModel extends ChangeNotifier {
+class PurchaseHistoryViewModel extends ChangeNotifier {
   final OrderService _orderService = OrderService();
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
@@ -23,11 +23,11 @@ class OrderHistoryViewModel extends ChangeNotifier {
     return _orders.where((order) => statuses.contains(order.status)).toList();
   }
 
-  // Load seller orders (orders for current user's items)
-  Future<void> loadSellerOrders() async {
+  // Load order history for current user (buyer perspective)
+  Future<void> loadOrderHistory() async {
     final user = _auth.currentUser;
     if (user == null) {
-      _setError('Please login to view your order history');
+      _setError('Please login to view your purchase history');
       return;
     }
 
@@ -35,26 +35,26 @@ class OrderHistoryViewModel extends ChangeNotifier {
     _clearError();
 
     try {
-      print('🏪 Loading seller orders for user: ${user.uid}');
-      _orders = await _orderService.getOrdersForSeller(user.uid);
-      print('✅ Loaded ${_orders.length} orders for seller');
+      print('🛒 Loading purchase history for user: ${user.uid}');
+      _orders = await _orderService.getOrdersForUser(user.uid);
+      print('✅ Loaded ${_orders.length} orders for user');
       notifyListeners();
     } catch (e) {
-      print('❌ Error loading seller orders: $e');
-      _setError('Failed to load order history: ${e.toString()}');
+      print('❌ Error loading purchase history: $e');
+      _setError('Failed to load purchase history: ${e.toString()}');
     } finally {
       _setLoading(false);
     }
   }
 
-  // ENHANCED: Update order status (seller can mark orders as completed, confirmed, etc.)
-  // This will update the status in Firestore, which automatically updates buyer's view too
-  Future<bool> updateOrderStatus(String orderId, OrderStatus newStatus) async {
+  // ENHANCED: Cancel an order (buyer can cancel placed orders)
+  // This will update the status in Firestore, which automatically updates seller's view too
+  Future<bool> cancelOrder(String orderId) async {
     try {
-      print('📝 Seller updating order $orderId status to: $newStatus');
+      print('🚫 Buyer cancelling order: $orderId');
       
       // Update status in Firestore - this affects both buyer and seller views
-      final success = await _orderService.updateOrderStatus(orderId, newStatus);
+      final success = await _orderService.updateOrderStatus(orderId, OrderStatus.cancelled);
       
       if (success) {
         // Update local state for immediate UI feedback
@@ -72,43 +72,33 @@ class OrderHistoryViewModel extends ChangeNotifier {
             subtotal: _orders[orderIndex].subtotal,
             deliveryFee: _orders[orderIndex].deliveryFee,
             total: _orders[orderIndex].total,
-            status: newStatus, // UPDATED: Status changed
+            status: OrderStatus.cancelled, // UPDATED: Status changed to cancelled
             createdAt: _orders[orderIndex].createdAt,
             updatedAt: DateTime.now(),
           );
           notifyListeners();
         }
         
-        print('✅ Order status updated successfully - status updated in Firestore');
-        print('📡 Buyer will automatically see this status change in their purchase history');
+        print('✅ Order cancelled successfully - status updated in Firestore');
+        print('📡 Seller will automatically see this cancellation in their order history');
         return true;
       } else {
-        print('❌ Failed to update order status');
+        print('❌ Failed to cancel order');
         return false;
       }
     } catch (e) {
-      print('❌ Error updating order status: $e');
+      print('❌ Error cancelling order: $e');
       return false;
     }
   }
 
-  // Mark order as completed
-  Future<bool> completeOrder(String orderId) async {
-    return await updateOrderStatus(orderId, OrderStatus.completed);
-  }
-
-  // Mark order as confirmed
-  Future<bool> confirmOrder(String orderId) async {
-    return await updateOrderStatus(orderId, OrderStatus.confirmed);
-  }
-
   // Refresh orders
   Future<void> refreshOrders() async {
-    await loadSellerOrders();
+    await loadOrderHistory();
   }
 
-  // Get order statistics
-  Map<String, int> getOrderStats() {
+  // Get purchase statistics
+  Map<String, int> getPurchaseStats() {
     final stats = <String, int>{
       'total': _orders.length,
       'placed': 0,
@@ -137,8 +127,8 @@ class OrderHistoryViewModel extends ChangeNotifier {
     return stats;
   }
 
-  // Get total revenue
-  double getTotalRevenue() {
+  // Get total spent
+  double getTotalSpent() {
     return _orders
         .where((order) => order.status == OrderStatus.completed)
         .fold(0.0, (sum, order) => sum + order.total);

@@ -5,7 +5,7 @@ import 'package:koopon/presentation/views/edit_item_screen.dart';
 import 'package:koopon/presentation/views/profile/edit_profile_screen.dart';
 import 'package:koopon/presentation/viewmodels/profile_viewmodel.dart';
 import 'package:koopon/data/models/item_model.dart';
-import 'package:koopon/presentation/views/seller_order_history_page.dart';
+import 'order_history_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({Key? key}) : super(key: key);
@@ -314,7 +314,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               await Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => SellerOrderHistoryPage(),
+                  builder: (context) => OrderHistoryScreen(),
                 ),
               );
             },

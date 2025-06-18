@@ -1,16 +1,17 @@
-// lib/presentation/views/purchase_history_screen.dart
+// lib/presentation/views/order_history_screen.dart
+// This is for SELLERS to see orders placed by buyers for their items
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-//import 'package:firebase_auth/firebase_auth.dart';
-import 'package:koopon/presentation/viewmodels/purchase_history_viewmodel.dart'; // UPDATED: Renamed import
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:koopon/presentation/viewmodels/order_history_viewmodel.dart'; // UPDATED: This is now the seller viewmodel
 import 'package:koopon/data/models/order_model.dart';
 
-class PurchaseHistoryScreen extends StatefulWidget {
+class OrderHistoryScreen extends StatefulWidget {
   @override
-  State<PurchaseHistoryScreen> createState() => _PurchaseHistoryScreenState();
+  State<OrderHistoryScreen> createState() => _OrderHistoryScreenState();
 }
 
-class _PurchaseHistoryScreenState extends State<PurchaseHistoryScreen> with SingleTickerProviderStateMixin {
+class _OrderHistoryScreenState extends State<OrderHistoryScreen> with SingleTickerProviderStateMixin {
   late TabController _tabController;
   
   @override
@@ -18,7 +19,7 @@ class _PurchaseHistoryScreenState extends State<PurchaseHistoryScreen> with Sing
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<PurchaseHistoryViewModel>().loadOrderHistory(); // UPDATED: Renamed class
+      context.read<OrderHistoryViewModel>().loadSellerOrders(); // UPDATED: loadSellerOrders method
     });
   }
 
@@ -33,8 +34,8 @@ class _PurchaseHistoryScreenState extends State<PurchaseHistoryScreen> with Sing
     return Scaffold(
       backgroundColor: const Color(0xFFE8D4F1),
       appBar: AppBar(
-        title: const Text('Purchase History'),
-        backgroundColor: Colors.blue,
+        title: const Text('Order History'),
+        backgroundColor: Colors.green,
         foregroundColor: Colors.white,
         bottom: TabBar(
           controller: _tabController,
@@ -43,19 +44,19 @@ class _PurchaseHistoryScreenState extends State<PurchaseHistoryScreen> with Sing
           unselectedLabelColor: Colors.white70,
           indicatorColor: Colors.white,
           tabs: const [
-            Tab(text: 'All Purchase'),
+            Tab(text: 'All Orders'),
             Tab(text: 'Placed'),
             Tab(text: 'Completed'),
             Tab(text: 'Cancelled'),
           ],
         ),
       ),
-      body: Consumer<PurchaseHistoryViewModel>( // UPDATED: Renamed class
+      body: Consumer<OrderHistoryViewModel>( // UPDATED: Renamed class
         builder: (context, viewModel, child) {
           if (viewModel.isLoading) {
             return const Center(
               child: CircularProgressIndicator(
-                color: Color(0xFF9C27B0),
+                color: Colors.green,
               ),
             );
           }
@@ -68,7 +69,7 @@ class _PurchaseHistoryScreenState extends State<PurchaseHistoryScreen> with Sing
                   const Icon(
                     Icons.error_outline,
                     size: 64,
-                    color: Color(0xFF9C27B0),
+                    color: Colors.green,
                   ),
                   const SizedBox(height: 16),
                   Text(
@@ -82,10 +83,10 @@ class _PurchaseHistoryScreenState extends State<PurchaseHistoryScreen> with Sing
                   const SizedBox(height: 16),
                   ElevatedButton(
                     onPressed: () {
-                      viewModel.loadOrderHistory();
+                      viewModel.loadSellerOrders();
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF9C27B0),
+                      backgroundColor: Colors.green,
                     ),
                     child: const Text('Retry', style: TextStyle(color: Colors.white)),
                   ),
@@ -129,14 +130,14 @@ class _PurchaseHistoryScreenState extends State<PurchaseHistoryScreen> with Sing
                 ],
               ),
               child: const Icon(
-                Icons.receipt_long,
+                Icons.assignment,
                 size: 60,
-                color: Color(0xFF9C27B0),
+                color: Colors.green,
               ),
             ),
             const SizedBox(height: 24),
             const Text(
-              'No purchases found',
+              'No orders found',
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
@@ -145,7 +146,7 @@ class _PurchaseHistoryScreenState extends State<PurchaseHistoryScreen> with Sing
             ),
             const SizedBox(height: 8),
             const Text(
-              'Your purchases will appear here',
+              'Orders for your items will appear here',
               style: TextStyle(
                 fontSize: 14,
                 color: Colors.grey,
@@ -158,20 +159,20 @@ class _PurchaseHistoryScreenState extends State<PurchaseHistoryScreen> with Sing
 
     return RefreshIndicator(
       onRefresh: () async {
-        await context.read<PurchaseHistoryViewModel>().loadOrderHistory(); // UPDATED: Renamed class
+        await context.read<OrderHistoryViewModel>().loadSellerOrders(); // UPDATED: Renamed class
       },
-      color: const Color(0xFF9C27B0),
+      color: Colors.green,
       child: ListView.builder(
         padding: const EdgeInsets.all(16),
         itemCount: orders.length,
         itemBuilder: (context, index) {
-          return _buildPurchaseCard(orders[index]);
+          return _buildOrderCard(orders[index]);
         },
       ),
     );
   }
 
-  Widget _buildPurchaseCard(OrderRequest order) {
+  Widget _buildOrderCard(OrderRequest order) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
@@ -222,19 +223,33 @@ class _PurchaseHistoryScreenState extends State<PurchaseHistoryScreen> with Sing
             ),
             const SizedBox(height: 12),
 
-            // Order details
-            Text(
-              'Order Date: ${_formatDate(order.createdAt)}',
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey[600],
-              ),
+            // Customer info and order date
+            Row(
+              children: [
+                const Icon(Icons.person, size: 16, color: Colors.grey),
+                const SizedBox(width: 4),
+                Text(
+                  'Customer: ${order.userId.substring(0, 8)}...',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey[600],
+                  ),
+                ),
+                const Spacer(),
+                Text(
+                  _formatDate(order.createdAt),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey[600],
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
 
             // Items
             Text(
-              'Items: ${order.items.length} item${order.items.length > 1 ? 's' : ''}',
+              'Items Sold: ${order.items.length} item${order.items.length > 1 ? 's' : ''}',
               style: const TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
@@ -332,7 +347,7 @@ class _PurchaseHistoryScreenState extends State<PurchaseHistoryScreen> with Sing
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFFE91E63),
+                    color: Colors.green,
                   ),
                 ),
               ],
@@ -345,12 +360,12 @@ class _PurchaseHistoryScreenState extends State<PurchaseHistoryScreen> with Sing
                 children: [
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: () => _cancelOrder(order),
+                      onPressed: () => _markAsCompleted(order),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red,
+                        backgroundColor: Colors.green,
                         foregroundColor: Colors.white,
                       ),
-                      child: const Text('Cancel Order'),
+                      child: const Text('Mark as Completed'),
                     ),
                   ),
                 ],
@@ -392,42 +407,42 @@ class _PurchaseHistoryScreenState extends State<PurchaseHistoryScreen> with Sing
     return '${date.day}/${date.month}/${date.year} ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
   }
 
-  void _cancelOrder(OrderRequest order) {
+  void _markAsCompleted(OrderRequest order) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Cancel Order'),
-        content: Text('Are you sure you want to cancel order #${order.id.substring(0, 8)}?'),
+        title: const Text('Complete Order'),
+        content: Text('Mark order #${order.id.substring(0, 8)} as completed?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('No'),
+            child: const Text('Cancel'),
           ),
           TextButton(
             onPressed: () async {
               Navigator.pop(context);
               
-              final success = await context.read<PurchaseHistoryViewModel>().cancelOrder(order.id); // UPDATED: Renamed class
+              final success = await context.read<OrderHistoryViewModel>().updateOrderStatus(order.id, OrderStatus.completed); // UPDATED: Renamed class
               
               if (success && mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
-                    content: Text('Order cancelled successfully'),
+                    content: Text('Order marked as completed'),
                     backgroundColor: Colors.green,
                   ),
                 );
               } else if (!success && mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
-                    content: Text('Failed to cancel order'),
+                    content: Text('Failed to update order status'),
                     backgroundColor: Colors.red,
                   ),
                 );
               }
             },
             child: const Text(
-              'Yes, Cancel',
-              style: TextStyle(color: Colors.red),
+              'Mark Completed',
+              style: TextStyle(color: Colors.green),
             ),
           ),
         ],

@@ -9,37 +9,35 @@ class AddressService {
 
   // Get user addresses (SIMPLIFIED QUERY)
   Future<List<Address>> getUserAddresses() async {
-    try {
-      final userId = _auth.currentUser?.uid;
-      if (userId == null) return [];
-
-      // Simplified query - just filter by userId and sort in code
-      final snapshot = await _firestore
-          .collection('addresses')
-          .where('userId', isEqualTo: userId)
-          .get();
-
-      List<Address> addresses = snapshot.docs.map((doc) {
-        final data = doc.data();
-        return Address.fromJson({...data, 'id': doc.id});
-      }).toList();
-
-      // Sort in code: default addresses first, then by creation date
-      addresses.sort((a, b) {
-        // First sort by isDefault (true comes first)
-        if (a.isDefault && !b.isDefault) return -1;
-        if (!a.isDefault && b.isDefault) return 1;
-        
-        // Then sort by createdAt (newest first)
-        return b.createdAt.compareTo(a.createdAt);
-      });
-
-      return addresses;
-    } catch (e) {
-      print('Error getting addresses: $e');
+  try {
+    final userId = _auth.currentUser?.uid;
+    print('🔍 AddressService: userId = $userId');
+    
+    if (userId == null) {
+      print('❌ AddressService: No user ID, returning empty list');
       return [];
     }
+
+    print('📡 AddressService: Querying Firestore...');
+    final snapshot = await _firestore
+        .collection('addresses')
+        .where('userId', isEqualTo: userId)
+        .get();
+
+    print('✅ AddressService: Query completed, ${snapshot.docs.length} documents found');
+
+    List<Address> addresses = snapshot.docs.map((doc) {
+      final data = doc.data();
+      return Address.fromJson({...data, 'id': doc.id});
+    }).toList();
+
+    print('📋 AddressService: Parsed ${addresses.length} addresses');
+    return addresses;
+  } catch (e) {
+    print('❌ AddressService error: $e');
+    return [];
   }
+}
 
   // Add new address
   Future<String?> addAddress(Address address) async {

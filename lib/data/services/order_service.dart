@@ -86,22 +86,35 @@ class OrderService {
   }
 
   /// Get orders for a specific user
-  Future<List<OrderRequest>> getOrdersForUser(String userId) async {
-    try {
-      final snapshot = await _firestore
-          .collection(_collection)
-          .where('userId', isEqualTo: userId)
-          .orderBy('createdAt', descending: true)
-          .get();
+  // In OrderService.getOrdersForUser()
+Future<List<OrderRequest>> getOrdersForUser(String userId) async {
+  try {
+    final snapshot = await _firestore
+        .collection(_collection)
+        .where('userId', isEqualTo: userId)
+        .orderBy('createdAt', descending: true)
+        .get();
 
-      return snapshot.docs
-          .map((doc) => OrderRequest.fromJson(doc.data()))
-          .toList();
-    } catch (e) {
-      print('Error fetching user orders: $e');
-      return [];
+    List<OrderRequest> orders = [];
+    print('📊 Processing ${snapshot.docs.length} order documents');
+    
+    for (var doc in snapshot.docs) {
+      try {
+        final order = OrderRequest.fromJson(doc.data());
+        orders.add(order);
+      } catch (e) {
+        print('❌ Skipping malformed order ${doc.id}: $e');
+        // Continue processing other orders instead of crashing
+      }
     }
+    
+    print('✅ Successfully processed ${orders.length} orders');
+    return orders;
+  } catch (e) {
+    print('❌ Error fetching user orders: $e');
+    return [];
   }
+}
 
   /// Get order history (alias for getOrdersForUser)
   Future<List<OrderRequest>> getOrderHistory(String userId) async {
