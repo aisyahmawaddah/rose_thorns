@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:koopon/data/services/admin_service.dart';
+import 'package:koopon/data/models/login_model.dart'; // Updated import
 
 class AdminRepository {
   final AdminService _adminService = AdminService();
@@ -43,8 +44,13 @@ class AdminRepository {
   Future<void> updateAdminLastLogin() async {
     try {
       print('AdminRepository: Updating admin last login...');
-      await _adminService.updateAdminLastLogin();
-      print('AdminRepository: Last login updated successfully');
+      final user = _auth.currentUser;
+      if (user != null) {
+        await _firestore.collection('users').doc(user.uid).update({
+          'lastLoginAt': FieldValue.serverTimestamp(),
+        });
+        print('AdminRepository: Last login updated successfully');
+      }
     } catch (e) {
       print('AdminRepository: Error updating admin last login - $e');
     }
@@ -169,7 +175,7 @@ class AdminRepository {
   Future<bool> createTestAdminUser(String email, String password) async {
     try {
       print('AdminRepository: Creating test admin user: $email');
-      final success = await _adminService.createAdminUser(email, password);
+      final success = await _adminService.createTestAdminUser(email, password);
       if (success) {
         print('AdminRepository: Test admin user created successfully');
       } else {
@@ -183,13 +189,91 @@ class AdminRepository {
   }
 
   /// Get authentication state stream
-  Stream<User?> get authStateChanges => _adminService.authStateChanges;
+  Stream<User?> get authStateChanges => _auth.authStateChanges();
 
   /// Get current user
-  User? get currentUser => _adminService.getCurrentUser();
+  User? get currentUser => _adminService.currentUser;
 
   /// Check if user is authenticated
   bool get isUserAuthenticated => _adminService.isUserAuthenticated();
+
+  /// Get all users - UPDATED TO USE LoginModel
+  Future<List<LoginModel>> getAllUsers() async {
+    try {
+      print('AdminRepository: Fetching all users...');
+      final querySnapshot =
+          await FirebaseFirestore.instance.collection('users').get();
+
+      print('AdminRepository: Found ${querySnapshot.docs.length} documents');
+
+      return querySnapshot.docs.map((doc) {
+        final data = doc.data();
+        print('AdminRepository: Processing user data: ${doc.id}');
+        return LoginModel.fromFirestoreMap(data, doc.id);
+      }).toList();
+    } catch (e) {
+      print('AdminRepository: Error fetching users - $e');
+      throw Exception('Failed to fetch users: $e');
+    }
+  }
+
+  /// Update user data using LoginModel
+  Future<bool> updateUser(LoginModel user) async {
+    try {
+      if (user.id == null) {
+        throw Exception('User ID is required for update');
+      }
+
+      print('AdminRepository: Updating user: ${user.email}');
+
+      await _firestore
+          .collection('users')
+          .doc(user.id!)
+          .update(user.toFirestoreMap());
+
+      print('AdminRepository: User updated successfully');
+      return true;
+    } catch (e) {
+      print('AdminRepository: Error updating user - $e');
+      return false;
+    }
+  }
+
+  /// Delete/Deactivate user
+  Future<bool> deactivateUser(String userId) async {
+    try {
+      print('AdminRepository: Deactivating user: $userId');
+      final success = await _adminService.deactivateUser(userId);
+      print('AdminRepository: User deactivation result: $success');
+      return success;
+    } catch (e) {
+      print('AdminRepository: Error deactivating user - $e');
+      return false;
+    }
+  }
+
+  /// Get user by ID - returns LoginModel
+  Future<LoginModel?> getUserById(String userId) async {
+    try {
+      print('AdminRepository: Getting user by ID: $userId');
+
+      final doc = await _firestore.collection('users').doc(userId).get();
+
+      if (!doc.exists) {
+        print('AdminRepository: User not found');
+        return null;
+      }
+
+      final userData = doc.data() as Map<String, dynamic>;
+      final user = LoginModel.fromFirestoreMap(userData, doc.id);
+
+      print('AdminRepository: User retrieved: ${user.email}');
+      return user;
+    } catch (e) {
+      print('AdminRepository: Error getting user by ID - $e');
+      return null;
+    }
+  }
 
   // Debug and testing methods
 
@@ -226,7 +310,25 @@ class AdminRepository {
   Future<void> debugCurrentUser() async {
     try {
       print('AdminRepository: === DEBUG USER INFO ===');
-      await _adminService.debugCurrentUser();
+      final user = currentUser;
+      if (user != null) {
+        print('User ID: ${user.uid}');
+        print('User Email: ${user.email}');
+        print('User Display Name: ${user.displayName}');
+
+        // Get Firestore user data
+        final doc = await _firestore.collection('users').doc(user.uid).get();
+        if (doc.exists) {
+          final userData = doc.data() as Map<String, dynamic>;
+          print('Firestore Role: ${userData['role']}');
+          print('Firestore Display Name: ${userData['displayName']}');
+          print('Firestore Active: ${userData['isActive']}');
+        } else {
+          print('No Firestore document found for user');
+        }
+      } else {
+        print('No authenticated user found');
+      }
       print('AdminRepository: === END DEBUG ===');
     } catch (e) {
       print('AdminRepository: Error in debug - $e');
@@ -278,14 +380,18 @@ class AdminRepository {
     }
   }
 
+  /// Check if specific user is admin by ID
   Future<bool> checkIfUserIsAdmin(String userId) async {
-    // TODO: Replace this with your actual admin check logic, e.g., Firestore lookup
-    // Example using Firebase Firestore:
-    // final doc = await FirebaseFirestore.instance.collection('admins').doc(userId).get();
-    // return doc.exists;
+    try {
+      final doc = await _firestore.collection('users').doc(userId).get();
+      if (!doc.exists) return false;
 
-    // Placeholder: always returns false (not admin)
-    return false;
+      final userData = doc.data() as Map<String, dynamic>;
+      return userData['role'] == 'admin';
+    } catch (e) {
+      print('AdminRepository: Error checking if user is admin - $e');
+      return false;
+    }
   }
 
   /// Quick admin status check
@@ -342,6 +448,78 @@ class AdminRepository {
         'error': e.toString(),
         'lastUpdated': DateTime.now().toIso8601String(),
       };
+    }
+  }
+
+  /// Create user with LoginModel
+  Future<bool> createUser(LoginModel user, String password) async {
+    try {
+      print('AdminRepository: Creating new user: ${user.email}');
+
+      // Create Firebase Auth user
+      final userCredential = await _auth.createUserWithEmailAndPassword(
+        email: user.email,
+        password: password,
+      );
+
+      if (userCredential.user != null) {
+        // Create user document in Firestore
+        final userWithId = user.copyWith(id: userCredential.user!.uid);
+        await _firestore
+            .collection('users')
+            .doc(userCredential.user!.uid)
+            .set(userWithId.toFirestoreMap());
+
+        print('AdminRepository: User created successfully');
+        return true;
+      }
+
+      return false;
+    } catch (e) {
+      print('AdminRepository: Error creating user - $e');
+      return false;
+    }
+  }
+
+  /// Search users by email or name
+  Future<List<LoginModel>> searchUsers(String query) async {
+    try {
+      print('AdminRepository: Searching users with query: $query');
+
+      final allUsers = await getAllUsers();
+
+      final filteredUsers = allUsers.where((user) {
+        final emailMatch =
+            user.email.toLowerCase().contains(query.toLowerCase());
+        final nameMatch =
+            user.displayName?.toLowerCase().contains(query.toLowerCase()) ??
+                false;
+        return emailMatch || nameMatch;
+      }).toList();
+
+      print('AdminRepository: Found ${filteredUsers.length} matching users');
+      return filteredUsers;
+    } catch (e) {
+      print('AdminRepository: Error searching users - $e');
+      return [];
+    }
+  }
+
+  /// Get users by role
+  Future<List<LoginModel>> getUsersByRole(String role) async {
+    try {
+      print('AdminRepository: Getting users with role: $role');
+
+      final allUsers = await getAllUsers();
+      final filteredUsers =
+          allUsers.where((user) => user.role == role).toList();
+
+      print(
+          'AdminRepository: Found ${filteredUsers.length} users with role $role');
+      return filteredUsers;
+    } catch (e) {
+      print('AdminRepository: Error getting users by role - $e');
+      return [];
     }
   }
 }

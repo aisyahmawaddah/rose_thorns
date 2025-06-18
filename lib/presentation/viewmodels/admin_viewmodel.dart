@@ -1,13 +1,15 @@
 import 'package:flutter/foundation.dart';
 import 'package:koopon/data/repositories/admin_repository.dart';
+import 'package:koopon/data/models/login_model.dart';
 
 class AdminViewModel extends ChangeNotifier {
   final AdminRepository _adminRepository = AdminRepository();
 
   // State variables
-  Map<String, dynamic>? _currentUserInfo;
+  LoginModel? _currentUser;
   Map<String, int>? _basicStats;
   Map<String, dynamic>? _sessionData;
+  List<LoginModel> _users = [];
 
   // Loading states
   bool _isLoading = false;
@@ -18,7 +20,8 @@ class AdminViewModel extends ChangeNotifier {
   bool _disposed = false;
 
   // Getters
-  Map<String, dynamic>? get currentUserInfo => _currentUserInfo;
+  LoginModel? get currentUser => _currentUser;
+  List<LoginModel> get users => _users;
   Map<String, int>? get basicStats => _basicStats;
   Map<String, dynamic>? get sessionData => _sessionData;
 
@@ -27,10 +30,9 @@ class AdminViewModel extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
 
   // Computed getters for UI
-  String get adminDisplayName =>
-      _currentUserInfo?['displayName'] ?? 'Admin User';
-  String get adminEmail => _currentUserInfo?['email'] ?? 'Unknown';
-  bool get isAdmin => _currentUserInfo?['role'] == 'admin';
+  String get adminDisplayName => _currentUser?.displayName ?? 'Admin User';
+  String get adminEmail => _currentUser?.email ?? 'Unknown';
+  bool get isAdmin => _currentUser?.role == 'admin';
 
   int get totalUsers => _basicStats?['totalUsers'] ?? 0;
   int get totalBuyers => _basicStats?['totalBuyers'] ?? 0;
@@ -88,8 +90,16 @@ class AdminViewModel extends ChangeNotifier {
       _sessionData = await _adminRepository.initializeAdminSession();
 
       if (_sessionData?['success'] == true) {
-        _currentUserInfo = _sessionData?['userInfo'];
+        final userInfo = _sessionData?['userInfo'];
+        if (userInfo != null) {
+          _currentUser = LoginModel.fromFirestoreMap(
+              userInfo as Map<String, dynamic>, userInfo['id'] as String);
+        }
         _basicStats = _sessionData?['stats'];
+
+        // Load initial users list
+        await loadUsers();
+
         print('AdminViewModel: Initialization successful');
       } else {
         throw Exception(
@@ -103,36 +113,187 @@ class AdminViewModel extends ChangeNotifier {
     }
   }
 
-  // Quick admin check
-  Future<bool> checkAdminStatus() async {
+  Future<void> verifyAdminAccess() async {
     try {
-      print('AdminViewModel: Checking admin status...');
-      final adminCheck = await _adminRepository.quickAdminCheck();
-      print('AdminViewModel: Admin check result: $adminCheck');
-      return adminCheck['isAdmin'] == true;
+      print('🔍 Verifying admin access...');
+      final isAdmin = await _adminRepository.isCurrentUserAdmin();
+      print('👤 Admin status: $isAdmin');
+
+      if (!isAdmin) {
+        throw Exception('Access denied: User is not an admin');
+      }
     } catch (e) {
-      print('AdminViewModel: Error checking admin status - $e');
-      return false;
+      print('❌ Admin verification failed: $e');
+      _setError(e.toString());
+      throw e;
     }
   }
 
-  // Refresh user info
-  Future<void> refreshUserInfo() async {
+  // Load all users
+  Future<void> loadUsers() async {
     if (_disposed) return;
 
     _setLoading(true);
     _clearError();
 
     try {
-      print('AdminViewModel: Refreshing user info...');
-      _currentUserInfo = await _adminRepository.getCurrentUserInfo();
+      await verifyAdminAccess(); // Add this verification step
+
+      print('📚 Loading users...');
+      final users = await _adminRepository.getAllUsers();
+      _users = users;
+      print('✅ Loaded ${users.length} users');
+
       _safeNotifyListeners();
-      print('AdminViewModel: User info refreshed');
     } catch (e) {
-      print('AdminViewModel: Error refreshing user info - $e');
-      _setError('Failed to refresh user info: ${e.toString()}');
+      print('❌ Error loading users: $e');
+      _setError('Failed to load users: ${e.toString()}');
     } finally {
       _setLoading(false);
+    }
+  }
+
+  Future<bool> isCurrentUserAdmin() async {
+    // TODO: Implement actual admin check logic.
+    // For now, return true for demonstration.
+    return true;
+  }
+
+  Future<void> debugAdminAccess() async {
+    try {
+      _setLoading(true);
+      print('\n🔍 Starting Admin Access Debug:');
+
+      // Check authentication
+      final currentUser = _adminRepository.currentUser;
+      print('📱 Current user: ${currentUser?.email ?? 'Not logged in'}');
+
+      // Verify admin status
+      final isAdmin = await _adminRepository.isCurrentUserAdmin();
+      print('👑 Is admin: $isAdmin');
+
+      // Try loading users
+      print('🔄 Attempting to load users...');
+      await loadUsers();
+
+      print('✅ Debug complete\n');
+    } catch (e) {
+      print('❌ Debug error: $e');
+      _setError(e.toString());
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  // Add to AdminViewModel
+  Future<void> debugUserFetch() async {
+    print('\n🔍 DEBUG: Starting User Fetch Diagnostic');
+    try {
+      // Check Firebase Auth state
+      final authUser = _adminRepository.currentUser;
+      print('📱 Auth State: ${authUser?.email ?? 'Not logged in'}');
+
+      // Check admin status
+      final isAdmin = await _adminRepository.isCurrentUserAdmin();
+      print('👑 Is Admin: $isAdmin');
+
+      // Try fetching users
+      print('🔄 Attempting to fetch users...');
+      final users = await _adminRepository.getAllUsers();
+      print('📊 Fetch Result: ${users.length} users found');
+
+      if (users.isNotEmpty) {
+        print('\n📋 User List:');
+        for (var user in users) {
+          print('  • ${user.email} (${user.role})');
+        }
+      }
+
+      // Check Firestore connection
+      final testConnection = await _adminRepository.testConnection();
+      print('🔌 Firestore Connection: ${testConnection ? 'OK' : 'Failed'}');
+    } catch (e, stackTrace) {
+      print('❌ Error during debug: $e');
+      print('📜 Stack trace: $stackTrace');
+    }
+    print('🔍 DEBUG: End of Diagnostic\n');
+  }
+
+  // Search users
+  Future<List<LoginModel>> searchUsers(String query) async {
+    try {
+      print('AdminViewModel: Searching users with query: $query');
+      return await _adminRepository.searchUsers(query);
+    } catch (e) {
+      print('AdminViewModel: Error searching users - $e');
+      return [];
+    }
+  }
+
+  // Get users by role
+  Future<List<LoginModel>> getUsersByRole(String role) async {
+    try {
+      print('AdminViewModel: Getting users by role: $role');
+      return await _adminRepository.getUsersByRole(role);
+    } catch (e) {
+      print('AdminViewModel: Error getting users by role - $e');
+      return [];
+    }
+  }
+
+  // Update user
+  Future<bool> updateUser(LoginModel user) async {
+    try {
+      print('AdminViewModel: Updating user: ${user.email}');
+      final success = await _adminRepository.updateUser(user);
+      if (success) {
+        await loadUsers(); // Refresh users list
+      }
+      return success;
+    } catch (e) {
+      print('AdminViewModel: Error updating user - $e');
+      return false;
+    }
+  }
+
+  // Create new user
+  Future<bool> createUser(LoginModel user, String password) async {
+    try {
+      print('AdminViewModel: Creating new user: ${user.email}');
+      final success = await _adminRepository.createUser(user, password);
+      if (success) {
+        await loadUsers(); // Refresh users list
+      }
+      return success;
+    } catch (e) {
+      print('AdminViewModel: Error creating user - $e');
+      return false;
+    }
+  }
+
+  // Deactivate user
+  Future<bool> deactivateUser(String userId) async {
+    try {
+      print('AdminViewModel: Deactivating user: $userId');
+      final success = await _adminRepository.deactivateUser(userId);
+      if (success) {
+        await loadUsers(); // Refresh users list
+      }
+      return success;
+    } catch (e) {
+      print('AdminViewModel: Error deactivating user - $e');
+      return false;
+    }
+  }
+
+  // Get user by ID
+  Future<LoginModel?> getUserById(String userId) async {
+    try {
+      print('AdminViewModel: Getting user by ID: $userId');
+      return await _adminRepository.getUserById(userId);
+    } catch (e) {
+      print('AdminViewModel: Error getting user by ID - $e');
+      return null;
     }
   }
 
@@ -167,7 +328,7 @@ class AdminViewModel extends ChangeNotifier {
       print('AdminViewModel: Refreshing all data...');
 
       await Future.wait([
-        refreshUserInfo(),
+        loadUsers(),
         refreshStats(),
       ]);
 
@@ -180,38 +341,6 @@ class AdminViewModel extends ChangeNotifier {
     }
   }
 
-  // Test admin functionality
-  Future<Map<String, dynamic>> runAdminTests() async {
-    try {
-      print('AdminViewModel: Running admin tests...');
-      final testResults = await _adminRepository.runAdminTests();
-      print('AdminViewModel: Test results: $testResults');
-      return testResults;
-    } catch (e) {
-      print('AdminViewModel: Error running tests - $e');
-      return {
-        'error': e.toString(),
-        'overallSuccess': false,
-      };
-    }
-  }
-
-  // Validate admin setup
-  Future<Map<String, dynamic>> validateSetup() async {
-    try {
-      print('AdminViewModel: Validating admin setup...');
-      final validation = await _adminRepository.validateAdminSetup();
-      print('AdminViewModel: Validation results: $validation');
-      return validation;
-    } catch (e) {
-      print('AdminViewModel: Error validating setup - $e');
-      return {
-        'error': e.toString(),
-        'overallValid': false,
-      };
-    }
-  }
-
   // Logout user
   Future<void> logout() async {
     try {
@@ -219,9 +348,10 @@ class AdminViewModel extends ChangeNotifier {
       await _adminRepository.logout();
 
       // Clear local data
-      _currentUserInfo = null;
+      _currentUser = null;
       _basicStats = null;
       _sessionData = null;
+      _users.clear();
       _clearError();
 
       _safeNotifyListeners();
@@ -236,95 +366,26 @@ class AdminViewModel extends ChangeNotifier {
   Future<bool> testConnection() async {
     try {
       print('AdminViewModel: Testing connection...');
-      final connectionTest = await _adminRepository.testConnection();
-      print('AdminViewModel: Connection test result: $connectionTest');
-      return connectionTest;
+      return await _adminRepository.testConnection();
     } catch (e) {
       print('AdminViewModel: Connection test failed - $e');
       return false;
     }
   }
 
-  // Get simple dashboard data
-  Future<void> loadDashboardData() async {
-    if (_disposed) return;
-
-    _setLoading(true);
-    _clearError();
-
+  // Validate setup
+  Future<Map<String, dynamic>> validateSetup() async {
     try {
-      print('AdminViewModel: Loading dashboard data...');
-      final dashboardData = await _adminRepository.getSimpleDashboardData();
-
-      if (dashboardData.containsKey('error')) {
-        throw Exception(dashboardData['error']);
-      }
-
-      _currentUserInfo = dashboardData['userInfo'];
-      _basicStats = dashboardData['stats'];
-
-      _safeNotifyListeners();
-      print('AdminViewModel: Dashboard data loaded successfully');
+      print('AdminViewModel: Validating admin setup...');
+      return await _adminRepository.validateAdminSetup();
     } catch (e) {
-      print('AdminViewModel: Error loading dashboard data - $e');
-      _setError('Failed to load dashboard data: ${e.toString()}');
-    } finally {
-      _setLoading(false);
+      print('AdminViewModel: Error validating setup - $e');
+      return {
+        'error': e.toString(),
+        'overallValid': false,
+      };
     }
   }
-
-  // Debug current user
-  Future<void> debugCurrentUser() async {
-    try {
-      print('AdminViewModel: Running debug for current user...');
-      await _adminRepository.debugCurrentUser();
-    } catch (e) {
-      print('AdminViewModel: Error in debug - $e');
-    }
-  }
-
-  // Create test admin (for development)
-  Future<bool> createTestAdmin(String email, String password) async {
-    try {
-      print('AdminViewModel: Creating test admin: $email');
-      final success =
-          await _adminRepository.createTestAdminUser(email, password);
-      print('AdminViewModel: Test admin creation result: $success');
-      return success;
-    } catch (e) {
-      print('AdminViewModel: Error creating test admin - $e');
-      return false;
-    }
-  }
-
-  // Check if admin users exist
-  Future<bool> checkAdminUsersExist() async {
-    try {
-      print('AdminViewModel: Checking if admin users exist...');
-      final hasAdmins = await _adminRepository.hasAdminUsers();
-      print('AdminViewModel: Admin users exist: $hasAdmins');
-      return hasAdmins;
-    } catch (e) {
-      print('AdminViewModel: Error checking admin users - $e');
-      return false;
-    }
-  }
-
-  // Get current user role
-  Future<String?> getCurrentUserRole() async {
-    try {
-      print('AdminViewModel: Getting current user role...');
-      final role = await _adminRepository.getCurrentUserRole();
-      print('AdminViewModel: Current user role: $role');
-      return role;
-    } catch (e) {
-      print('AdminViewModel: Error getting user role - $e');
-      return null;
-    }
-  }
-
-  // Check if user is authenticated
-  bool get isUserAuthenticated => _adminRepository.isUserAuthenticated;
 
   // Get formatted stats for display
   Map<String, String> get formattedStats {
@@ -350,9 +411,10 @@ class AdminViewModel extends ChangeNotifier {
 
   // Reset view model state
   void reset() {
-    _currentUserInfo = null;
+    _currentUser = null;
     _basicStats = null;
     _sessionData = null;
+    _users.clear();
     _errorMessage = null;
     _isLoading = false;
     _isInitializing = false;

@@ -1,6 +1,7 @@
 // lib/main.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_stripe/flutter_stripe.dart';
+import 'package:koopon/presentation/viewmodels/admin_viewmodel.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:koopon/core/config/app_config.dart';
@@ -14,7 +15,7 @@ import 'package:koopon/presentation/viewmodels/seller_order_viewmodel.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   try {
     // Initialize Firebase first
     await Firebase.initializeApp();
@@ -22,7 +23,7 @@ void main() async {
   } catch (e) {
     print('❌ Firebase initialization failed: $e');
   }
-  
+
   runApp(MyApp());
 }
 
@@ -47,11 +48,11 @@ class _MyAppState extends State<MyApp> {
       Stripe.publishableKey = AppConfig.stripePublishableKey;
       Stripe.merchantIdentifier = 'merchant.flutter.stripe.test';
       await Stripe.instance.applySettings();
-      
+
       setState(() {
         _stripeInitialized = true;
       });
-      
+
       print('✅ Stripe initialized successfully');
     } catch (e) {
       print('❌ Stripe initialization failed: $e');
@@ -70,6 +71,7 @@ class _MyAppState extends State<MyApp> {
         ChangeNotifierProvider(create: (_) => OrderRequestViewModel()),
         ChangeNotifierProvider(create: (_) => OrderHistoryViewModel()),
         ChangeNotifierProvider(create: (_) => AddressViewModel()),
+        ChangeNotifierProvider(create: (_) => AdminViewModel()),
         // Add other providers as needed
       ],
       child: MaterialApp(
@@ -79,8 +81,8 @@ class _MyAppState extends State<MyApp> {
           useMaterial3: true,
         ),
         // ✅ Use AuthWrapper instead of direct HomeScreen
-        home: _stripeInitialized 
-            ? const AuthWrapper()  // This will handle auth logic
+        home: _stripeInitialized
+            ? const AuthWrapper() // This will handle auth logic
             : const SplashScreen(),
         debugShowCheckedModeBanner: false,
       ),

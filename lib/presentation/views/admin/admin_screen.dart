@@ -1,11 +1,45 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:koopon/presentation/viewmodels/admin_viewmodel.dart';
 import 'package:koopon/presentation/views/admin/user_management/user_list_screen.dart';
 import 'dart:async';
 import 'package:koopon/presentation/views/authentication/login_screen.dart';
+import 'package:provider/provider.dart';
 
-class AdminScreen extends StatelessWidget {
+class AdminScreen extends StatefulWidget {
   const AdminScreen({super.key});
+
+  @override
+  State<AdminScreen> createState() => _AdminScreenState();
+}
+
+class _AdminScreenState extends State<AdminScreen>
+    with TickerProviderStateMixin {
+  AnimationController? _animationController;
+  Animation<double>? _fadeAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    );
+    _fadeAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _animationController!,
+      curve: Curves.easeInOut,
+    ));
+    _animationController?.forward();
+  }
+
+  @override
+  void dispose() {
+    _animationController?.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -14,228 +48,295 @@ class AdminScreen extends StatelessWidget {
     final screenWidth = MediaQuery.of(context).size.width;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
-      appBar: AppBar(
-        title: const Text(
-          'Admin Dashboard',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Color.fromARGB(255, 153, 167, 226), // Pastel blue
+              Color.fromARGB(255, 165, 129, 195), // Pastel purple
+              Color.fromARGB(255, 212, 146, 189), // Pastel pink
+            ],
+            stops: [0.0, 0.5, 1.0],
           ),
         ),
-        backgroundColor: const Color(0xFF3066BE),
-        elevation: 0,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout, color: Colors.white),
-            onPressed: () => _showLogoutDialog(context),
-          ),
-        ],
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: EdgeInsets.all(screenWidth * 0.04), // Responsive padding
+        child: SafeArea(
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Welcome Card
-              Container(
-                width: double.infinity,
-                padding: EdgeInsets.all(screenWidth * 0.05),
-                margin: EdgeInsets.only(bottom: screenHeight * 0.03),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF3066BE), Color(0xFF5A7FD8)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
+              _buildAppBar(user),
+              Expanded(
+                child: FadeTransition(
+                  opacity: _fadeAnimation!,
+                  child: SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: EdgeInsets.all(screenWidth * 0.05),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        CircleAvatar(
-                          radius: screenWidth * 0.08,
-                          backgroundColor: Colors.white,
-                          child: Icon(
-                            Icons.admin_panel_settings,
-                            color: const Color(0xFF3066BE),
-                            size: screenWidth * 0.08,
-                          ),
-                        ),
-                        SizedBox(width: screenWidth * 0.04),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Welcome to Admin Panel!',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: screenWidth * 0.055,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              SizedBox(height: screenHeight * 0.005),
-                              Text(
-                                'Logged in as: ${user?.email ?? 'Unknown'}',
-                                style: TextStyle(
-                                  color: Colors.white.withOpacity(0.9),
-                                  fontSize: screenWidth * 0.035,
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ],
-                          ),
-                        ),
+                        _buildWelcomeCard(user, screenWidth, screenHeight),
+                        SizedBox(height: screenHeight * 0.03),
+                        _buildQuickActionsSection(
+                            screenWidth, screenHeight, context),
+                        SizedBox(height: screenHeight * 0.05),
                       ],
                     ),
-                    SizedBox(height: screenHeight * 0.02),
-                    Container(
-                      width: double.infinity,
-                      padding: EdgeInsets.all(screenWidth * 0.03),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.check_circle,
-                            color: Colors.white,
-                            size: screenWidth * 0.05,
-                          ),
-                          SizedBox(width: screenWidth * 0.02),
-                          Expanded(
-                            child: Text(
-                              'Admin login successful!',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w500,
-                                fontSize: screenWidth * 0.035,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ),
-
-              // Quick Actions
-              Text(
-                'Quick Actions',
-                style: TextStyle(
-                  fontSize: screenWidth * 0.045,
-                  fontWeight: FontWeight.bold,
-                  color: const Color(0xFF2D3748),
-                ),
-              ),
-              SizedBox(height: screenHeight * 0.02),
-
-              // Action Cards Grid
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  // Calculate responsive grid
-                  double cardWidth = (constraints.maxWidth - 12) / 2;
-
-                  return Wrap(
-                    spacing: 12,
-                    runSpacing: 12,
-                    children: [
-                      SizedBox(
-                        width: cardWidth,
-                        child: _buildQuickActionCard(
-                          'User Management',
-                          Icons.people,
-                          Colors.blue,
-                          () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const UsersListScreen(),
-                              ),
-                            );
-                          },
-                          screenWidth,
-                        ),
-                      ),
-                      SizedBox(
-                        width: cardWidth,
-                        child: _buildQuickActionCard(
-                          'Item Review',
-                          Icons.rate_review,
-                          Colors.orange,
-                          () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content:
-                                    Text('Item Review feature coming soon!'),
-                                backgroundColor: Colors.orange,
-                              ),
-                            );
-                          },
-                          screenWidth,
-                        ),
-                      ),
-                      SizedBox(
-                        width: cardWidth,
-                        child: _buildQuickActionCard(
-                          'Analytics',
-                          Icons.analytics,
-                          Colors.green,
-                          () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Analytics feature coming soon!'),
-                                backgroundColor: Colors.green,
-                              ),
-                            );
-                          },
-                          screenWidth,
-                        ),
-                      ),
-                      SizedBox(
-                        width: cardWidth,
-                        child: _buildQuickActionCard(
-                          'Reports',
-                          Icons.assessment,
-                          Colors.purple,
-                          () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Reports feature coming soon!'),
-                                backgroundColor: Colors.purple,
-                              ),
-                            );
-                          },
-                          screenWidth,
-                        ),
-                      ),
-                    ],
-                  );
-                },
-              ),
-
-              SizedBox(height: screenHeight * 0.03),
-
-              // Add bottom padding for scroll
-              SizedBox(height: screenHeight * 0.05),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildAppBar(User? user) {
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Row(
+        children: [
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.3),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: IconButton(
+              icon: const Icon(Icons.menu_rounded,
+                  color: Color.fromARGB(255, 185, 144, 242)),
+              onPressed: () {
+                // Add drawer or navigation functionality here
+              },
+            ),
+          ),
+          const Spacer(),
+          const Text(
+            'Admin Dashboard',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w600,
+              color: Color.fromARGB(255, 251, 251, 251),
+            ),
+          ),
+          const Spacer(),
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.3),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: IconButton(
+              icon: const Icon(Icons.logout_rounded,
+                  color: Color.fromARGB(255, 185, 144, 242)),
+              onPressed: () => _showLogoutDialog(context),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWelcomeCard(
+      User? user, double screenWidth, double screenHeight) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.95),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: EdgeInsets.all(screenWidth * 0.05),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: screenWidth * 0.16,
+                  height: screenWidth * 0.16,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [
+                        Color.fromARGB(255, 185, 144, 242),
+                        Color.fromARGB(255, 165, 129, 195),
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color.fromARGB(255, 185, 144, 242)
+                            .withOpacity(0.3),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Icon(
+                    Icons.admin_panel_settings_rounded,
+                    color: Colors.white,
+                    size: screenWidth * 0.08,
+                  ),
+                ),
+                SizedBox(width: screenWidth * 0.04),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Welcome Back!',
+                        style: TextStyle(
+                          color: Colors.grey[800],
+                          fontSize: screenWidth * 0.055,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      SizedBox(height: screenHeight * 0.005),
+                      Text(
+                        user?.email ?? 'Unknown Admin',
+                        style: TextStyle(
+                          color: Colors.grey[600],
+                          fontSize: screenWidth * 0.035,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: screenHeight * 0.02),
+            Container(
+              width: double.infinity,
+              padding: EdgeInsets.all(screenWidth * 0.03),
+              decoration: BoxDecoration(
+                color:
+                    const Color.fromARGB(255, 180, 229, 180).withOpacity(0.2),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color:
+                      const Color.fromARGB(255, 180, 229, 180).withOpacity(0.3),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.check_circle_rounded,
+                    color: const Color.fromARGB(255, 103, 246, 103),
+                    size: screenWidth * 0.05,
+                  ),
+                  SizedBox(width: screenWidth * 0.02),
+                  Expanded(
+                    child: Text(
+                      'Admin privileges active',
+                      style: TextStyle(
+                        color: const Color.fromARGB(255, 103, 246, 103),
+                        fontWeight: FontWeight.w600,
+                        fontSize: screenWidth * 0.035,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildQuickActionsSection(
+      double screenWidth, double screenHeight, BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.02),
+          child: Text(
+            'Quick Actions',
+            style: TextStyle(
+              fontSize: screenWidth * 0.05,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+        ),
+        SizedBox(height: screenHeight * 0.02),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            double cardWidth = (constraints.maxWidth - 16) / 2;
+            return Wrap(
+              spacing: 16,
+              runSpacing: 16,
+              children: [
+                SizedBox(
+                  width: cardWidth,
+                  child: _buildQuickActionCard(
+                    'User Management',
+                    Icons.people_rounded,
+                    const Color.fromARGB(255, 149, 195, 255),
+                    () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ChangeNotifierProvider(
+                            create: (_) => AdminViewModel(),
+                            child: const UsersListScreen(),
+                          ),
+                        ),
+                      );
+                    },
+                    screenWidth,
+                  ),
+                ),
+                SizedBox(
+                  width: cardWidth,
+                  child: _buildQuickActionCard(
+                    'Item Review',
+                    Icons.rate_review_rounded,
+                    const Color.fromARGB(255, 255, 189, 139),
+                    () {
+                      _showComingSoonSnackBar(context, 'Item Review');
+                    },
+                    screenWidth,
+                  ),
+                ),
+                SizedBox(
+                  width: cardWidth,
+                  child: _buildQuickActionCard(
+                    'Analytics',
+                    Icons.analytics_rounded,
+                    const Color.fromARGB(255, 180, 229, 180),
+                    () {
+                      _showComingSoonSnackBar(context, 'Analytics');
+                    },
+                    screenWidth,
+                  ),
+                ),
+                SizedBox(
+                  width: cardWidth,
+                  child: _buildQuickActionCard(
+                    'Reports',
+                    Icons.assessment_rounded,
+                    const Color.fromARGB(255, 255, 180, 180),
+                    () {
+                      _showComingSoonSnackBar(context, 'Reports');
+                    },
+                    screenWidth,
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+      ],
     );
   }
 
@@ -248,47 +349,57 @@ class AdminScreen extends StatelessWidget {
   ) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(20),
       child: Container(
         width: double.infinity,
-        padding: EdgeInsets.all(screenWidth * 0.04),
+        padding: EdgeInsets.all(screenWidth * 0.05),
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
+          color: Colors.white.withOpacity(0.95),
+          borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 6,
-              offset: const Offset(0, 2),
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 8,
+              offset: const Offset(0, 3),
             ),
           ],
-          border: Border.all(
-            color: color.withOpacity(0.2),
-            width: 1,
-          ),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              padding: EdgeInsets.all(screenWidth * 0.03),
+              padding: EdgeInsets.all(screenWidth * 0.04),
               decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
+                gradient: LinearGradient(
+                  colors: [
+                    color,
+                    color.withOpacity(0.7),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: color.withOpacity(0.3),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
               child: Icon(
                 icon,
-                color: color,
-                size: screenWidth * 0.06,
+                color: Colors.white,
+                size: screenWidth * 0.07,
               ),
             ),
             SizedBox(height: screenWidth * 0.03),
             Text(
               title,
               style: TextStyle(
-                fontSize: screenWidth * 0.035,
+                fontSize: screenWidth * 0.038,
                 fontWeight: FontWeight.w600,
-                color: const Color(0xFF2D3748),
+                color: Colors.grey[800],
               ),
               textAlign: TextAlign.center,
               maxLines: 2,
@@ -300,11 +411,31 @@ class AdminScreen extends StatelessWidget {
     );
   }
 
+  void _showComingSoonSnackBar(BuildContext context, String feature) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('$feature feature coming soon!'),
+        backgroundColor: const Color.fromARGB(255, 185, 144, 242),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        margin: const EdgeInsets.all(16),
+      ),
+    );
+  }
+
   void _showLogoutDialog(BuildContext context) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Logout'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Icon(Icons.logout_rounded,
+                color: const Color.fromARGB(255, 255, 180, 180)),
+            const SizedBox(width: 12),
+            const Text('Logout'),
+          ],
+        ),
         content: const Text('Are you sure you want to logout?'),
         actions: [
           TextButton(
@@ -313,11 +444,17 @@ class AdminScreen extends StatelessWidget {
           ),
           ElevatedButton(
             onPressed: () async {
-              Navigator.pop(context); // Close confirmation dialog
+              Navigator.pop(context);
               await _performQuickLogout(context);
             },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('Logout', style: TextStyle(color: Colors.white)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color.fromARGB(255, 255, 180, 180),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: const Text('Logout'),
           ),
         ],
       ),
@@ -328,11 +465,9 @@ class AdminScreen extends StatelessWidget {
     try {
       print('🔄 Quick logout started...');
 
-      // Simple Firebase signOut without complex loading dialogs
       await FirebaseAuth.instance.signOut();
       print('👋 Firebase signOut completed');
 
-      // Direct navigation to login screen
       if (context.mounted) {
         print('🔄 Navigating to login...');
 
@@ -346,7 +481,6 @@ class AdminScreen extends StatelessWidget {
     } catch (e) {
       print('❌ Logout error: $e');
 
-      // Even if Firebase logout fails, still navigate to login
       if (context.mounted) {
         Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
           MaterialPageRoute(builder: (context) => const LoginScreen()),

@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:koopon/data/models/user_model.dart';
+import 'package:koopon/data/models/login_model.dart'; // Updated import
 
 class AdminService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -56,7 +56,6 @@ class AdminService {
         'displayName':
             userData['displayName'] ?? user.displayName ?? 'Admin User',
         'role': userData['role'] ?? 'buyer',
-        'lastLoginAt': DateTime.now(),
       };
     } catch (e) {
       print('AdminService: Error getting current user info - $e');
@@ -64,52 +63,32 @@ class AdminService {
     }
   }
 
-  /// Update admin last login (simplified)
-  Future<void> updateAdminLastLogin() async {
-    try {
-      final user = _auth.currentUser;
-      if (user == null) return;
-
-      await _firestore.collection('users').doc(user.uid).update({
-        'lastLoginAt': FieldValue.serverTimestamp(),
-      });
-
-      print('AdminService: Updated last login for admin: ${user.email}');
-    } catch (e) {
-      print('AdminService: Error updating admin last login - $e');
-    }
-  }
-
-  /// Get basic stats for testing (simplified)
+  /// Get basic stats
   Future<Map<String, int>> getBasicStats() async {
     try {
-      // Get total users count
       final usersSnapshot = await _firestore.collection('users').get();
-      final totalUsers = usersSnapshot.docs.length;
 
-      // Get buyers count
-      final buyersSnapshot = await _firestore
-          .collection('users')
-          .where('role', isEqualTo: 'buyer')
-          .get();
-      final totalBuyers = buyersSnapshot.docs.length;
+      int totalUsers = usersSnapshot.docs.length;
+      int totalBuyers = 0;
+      int totalSellers = 0;
+      int totalAdmins = 0;
 
-      // Get sellers count
-      final sellersSnapshot = await _firestore
-          .collection('users')
-          .where('role', isEqualTo: 'seller')
-          .get();
-      final totalSellers = sellersSnapshot.docs.length;
+      for (var doc in usersSnapshot.docs) {
+        final data = doc.data();
+        final role = data['role'] ?? 'buyer';
 
-      // Get admins count
-      final adminsSnapshot = await _firestore
-          .collection('users')
-          .where('role', isEqualTo: 'admin')
-          .get();
-      final totalAdmins = adminsSnapshot.docs.length;
-
-      print(
-          'AdminService: Stats retrieved - Users: $totalUsers, Buyers: $totalBuyers, Sellers: $totalSellers, Admins: $totalAdmins');
+        switch (role) {
+          case 'buyer':
+            totalBuyers++;
+            break;
+          case 'seller':
+            totalSellers++;
+            break;
+          case 'admin':
+            totalAdmins++;
+            break;
+        }
+      }
 
       return {
         'totalUsers': totalUsers,
@@ -119,38 +98,39 @@ class AdminService {
       };
     } catch (e) {
       print('AdminService: Error getting basic stats - $e');
-      return {
-        'totalUsers': 0,
-        'totalBuyers': 0,
-        'totalSellers': 0,
-        'totalAdmins': 0,
-      };
+      return {};
     }
   }
 
-  /// Test connection to Firestore
+  /// Test connection
   Future<bool> testConnection() async {
     try {
-      await _firestore.collection('test').doc('connection').get();
-      print('AdminService: Firestore connection test successful');
+      await _firestore.collection('test').limit(1).get();
       return true;
     } catch (e) {
-      print('AdminService: Firestore connection test failed - $e');
+      print('AdminService: Connection test failed - $e');
       return false;
     }
   }
 
-  /// Create admin user (for testing purposes)
-  Future<bool> createAdminUser(String email, String password) async {
+  /// Create test admin user
+  Future<bool> createTestAdminUser(String email, String password) async {
     try {
-      // Create user with Firebase Auth
+      // Check if user already exists
+      final existingUser = await _auth.fetchSignInMethodsForEmail(email);
+      if (existingUser.isNotEmpty) {
+        print('AdminService: User already exists: $email');
+        return false;
+      }
+
+      // Create user
       final userCredential = await _auth.createUserWithEmailAndPassword(
         email: email,
         password: password,
       );
 
       if (userCredential.user != null) {
-        // Add user data to Firestore with admin role
+        // Save to Firestore with admin role
         await _firestore.collection('users').doc(userCredential.user!.uid).set({
           'email': email,
           'role': 'admin',
@@ -207,6 +187,54 @@ class AdminService {
     }
   }
 
+  /// Get all users - UPDATED TO USE LoginModel
+  Future<List<LoginModel>> getAllUsers() async {
+    try {
+      // Check if user is authenticated
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser == null) {
+        print('❌ No authenticated user');
+        return [];
+      }
+
+      print("📍 Fetching users from Firestore...");
+
+      // Try without ordering first to avoid permission issues
+      final querySnapshot =
+          await FirebaseFirestore.instance.collection('users').get();
+
+      print("📍 Found ${querySnapshot.docs.length} users");
+
+      // Convert documents to LoginModel objects
+      final users = querySnapshot.docs.map((doc) {
+        final data = doc.data();
+        print("Processing user: ${data['email']} with role: ${data['role']}");
+        return LoginModel.fromFirestoreMap(data, doc.id);
+      }).toList();
+
+      print("✅ Successfully loaded ${users.length} users");
+      return users;
+    } catch (e) {
+      print('❌ Error fetching users: $e');
+      print('❌ Stack trace: ${StackTrace.current}');
+      return [];
+    }
+  }
+
+  /// Deactivate user
+  Future<bool> deactivateUser(String userId) async {
+    try {
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userId)
+          .update({'isActive': false});
+      return true;
+    } catch (e) {
+      print('AdminService: Error deactivating user - $e');
+      return false;
+    }
+  }
+
   /// Logout current user
   Future<void> logout() async {
     try {
@@ -227,83 +255,77 @@ class AdminService {
   }
 
   /// Get current user
-  User? getCurrentUser() {
-    return _auth.currentUser;
-  }
+  User? get currentUser => _auth.currentUser;
 
-  /// Stream of auth state changes
-  Stream<User?> get authStateChanges => _auth.authStateChanges();
-
-  // Debug methods for testing
-
-  /// Print current user info for debugging
-  Future<void> debugCurrentUser() async {
+  /// Debug current user in Firestore
+  Future<void> debugCurrentUserInFirestore() async {
     try {
-      final user = _auth.currentUser;
+      final user = FirebaseAuth.instance.currentUser;
       if (user == null) {
-        print('DEBUG: No current user');
+        print('❌ No authenticated user');
         return;
       }
 
-      print('DEBUG: Current user:');
-      print('  - UID: ${user.uid}');
-      print('  - Email: ${user.email}');
-      print('  - Email verified: ${user.emailVerified}');
-      print('  - Display name: ${user.displayName}');
+      print('🔍 DEBUG: Current user UID: ${user.uid}');
+      print('🔍 DEBUG: Current user email: ${user.email}');
 
-      final userInfo = await getCurrentUserInfo();
-      if (userInfo != null) {
-        print('  - Firestore role: ${userInfo['role']}');
-        print('  - Firestore display name: ${userInfo['displayName']}');
-      } else {
-        print('  - No Firestore document found');
-      }
-    } catch (e) {
-      print('DEBUG: Error getting user info - $e');
-    }
-  }
-
-  Future<bool> updateUserRole(String userId, String newRole) async {
-    // TODO: Implement the logic to update the user's role in your backend or database.
-    // Return true if successful, false otherwise.
-    // Example placeholder:
-    await Future.delayed(const Duration(milliseconds: 500));
-    return true;
-  }
-
-  Future<List<Object>> getAllUsers() async {
-    try {
-      // Check if user is authenticated
-      final currentUser = FirebaseAuth.instance.currentUser;
-      if (currentUser == null) {
-        print('❌ No authenticated user');
-        return [];
-      }
-
-      print("📍 Fetching users from Firestore...");
-      final querySnapshot = await FirebaseFirestore.instance
+      // Check if user document exists in Firestore
+      final doc = await FirebaseFirestore.instance
           .collection('users')
-          .orderBy('createdAt', descending: true)
+          .doc(user.uid)
           .get();
 
-      return querySnapshot.docs.map((doc) {
-        final data = doc.data();
-        return UserModel.fromMap(data, doc.id);
-      }).toList();
+      if (doc.exists) {
+        final userData = doc.data() as Map<String, dynamic>;
+        print('✅ User document found in Firestore:');
+        print('   - Email: ${userData['email']}');
+        print('   - Role: ${userData['role']}');
+        print('   - Display Name: ${userData['displayName']}');
+        print('   - Is Active: ${userData['isActive']}');
+        print('   - Created At: ${userData['dateCreated']}');
+
+        // Check if role is admin
+        if (userData['role'] == 'admin') {
+          print('✅ User has admin role!');
+        } else {
+          print(
+              '❌ User does NOT have admin role. Current role: ${userData['role']}');
+          print(
+              '🔧 To fix: Update this user\'s role to "admin" in Firestore console');
+        }
+      } else {
+        print('❌ User document does NOT exist in Firestore!');
+        print('🔧 To fix: Create user document in Firestore with admin role');
+      }
     } catch (e) {
-      print('❌ Error fetching users: $e');
-      return [];
+      print('❌ Error debugging user: $e');
     }
   }
 
-  Future<bool> deactivateUser(String userId) async {
+  /// Fix current user admin role
+  Future<bool> fixCurrentUserAdminRole() async {
     try {
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(userId)
-          .update({'isActive': false});
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        print('❌ No authenticated user to fix');
+        return false;
+      }
+
+      print('🔧 Fixing admin role for user: ${user.email}');
+
+      // Set/update user document with admin role
+      await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+        'email': user.email,
+        'role': 'admin',
+        'displayName': user.displayName ?? 'Admin User',
+        'dateCreated': FieldValue.serverTimestamp(),
+        'isActive': true,
+      }, SetOptions(merge: true)); // Use merge to keep existing data
+
+      print('✅ User role set to admin successfully!');
       return true;
     } catch (e) {
+      print('❌ Error fixing admin role: $e');
       return false;
     }
   }
