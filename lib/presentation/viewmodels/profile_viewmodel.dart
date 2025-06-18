@@ -1,236 +1,307 @@
-import 'package:flutter/foundation.dart';
+// lib/presentation/viewmodels/profile_viewmodel.dart
+import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:koopon/data/models/item_model.dart';
-import 'package:koopon/data/services/item_services.dart';
-import 'package:koopon/data/services/auth_service.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../data/repositories/item_repository.dart';
+import '../../data/repositories/user_repository.dart';
+import '../../data/services/order_service.dart';
+import '../../data/models/item_model.dart';
+import '../../data/models/user_model.dart';
+import '../../data/models/order_model.dart';
 
 class ProfileViewModel extends ChangeNotifier {
-  final ItemService _itemService = ItemService();
-  final AuthService _authService = AuthService();
-  
+  final ItemRepository _itemRepository = ItemRepository();
+  final UserRepository _userRepository = UserRepository();
+  final OrderService _orderService = OrderService();
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+
+  // State variables
   List<ItemModel> _userItems = [];
+  UserModel? _currentUser;
   bool _isLoading = false;
-  String? _errorMessage;
   bool _isInitialized = false;
-  bool _disposed = false; // ADD: Track if disposed
+  String? _errorMessage;
+  
+  // Order statistics
+  List<OrderRequest> _sellerOrders = [];
+  int _totalSoldItems = 0;
+  double _totalRevenue = 0.0;
+  double _averageRating = 5.0;
 
   // Getters
   List<ItemModel> get userItems => _userItems;
+  UserModel? get currentUser => _currentUser;
   bool get isLoading => _isLoading;
-  String? get errorMessage => _errorMessage;
   bool get isInitialized => _isInitialized;
+  String? get errorMessage => _errorMessage;
+  List<OrderRequest> get sellerOrders => _sellerOrders;
+  int get totalSoldItems => _totalSoldItems;
+  double get totalRevenue => _totalRevenue;
+  double get averageRating => _averageRating;
 
-  // User information getters
-  User? get currentUser => _authService.currentUser;
-  String get currentUserDisplayName => _authService.currentUserDisplayName;
-  String get currentUserEmail => currentUser?.email ?? 'No email';
-  String? get currentUserPhotoUrl => currentUser?.photoURL;
-  String get currentUserId => currentUser?.uid ?? '';
-
-int get soldItemsCount {
-    // Replace this with your actual logic to count sold items
-    return userItems.where((item) => item.status.toLowerCase() == 'sold').length;
-  }
-  
-  // ADD: Override dispose to track disposal
-  @override
-  void dispose() {
-    _disposed = true;
-    super.dispose();
+  // User info getters
+  String get currentUserDisplayName {
+    return _currentUser?.displayName ?? 
+           _auth.currentUser?.displayName ?? 
+           _auth.currentUser?.email?.split('@').first ?? 
+           'User';
   }
 
-  // ADD: Safe notifyListeners that checks disposal
-  void _safeNotifyListeners() {
-    if (!_disposed) {
-      notifyListeners();
+  String get currentUserEmail {
+    return _currentUser?.email ?? 
+           _auth.currentUser?.email ?? 
+           'No email';
+  }
+
+  String? get currentUserPhotoUrl {
+    return _currentUser?.profileImageUrl ?? 
+           _auth.currentUser?.photoURL;
+  }
+
+  // Initialize the view model
+  Future<void> initialize() async {
+    if (_isInitialized) return;
+    
+    print('🚀 ProfileViewModel: Initializing...');
+    _setLoading(true);
+    
+    try {
+      await _loadCurrentUser();
+      await Future.wait([
+        _loadUserItems(),
+        _loadSellerOrders(),
+      ]);
+      _calculateStatistics();
+      _isInitialized = true;
+      print('✅ ProfileViewModel: Initialization completed');
+    } catch (e) {
+      print('❌ ProfileViewModel: Initialization error: $e');
+      _setError('Failed to load profile data: $e');
+    } finally {
+      _setLoading(false);
     }
   }
 
-  // Initialize and fetch user's items
-  Future<void> initialize() async {
-    if (_isInitialized || _disposed) return;
-    _isInitialized = true;
-    await refreshUserItems();
+  // Load current user data
+  Future<void> _loadCurrentUser() async {
+    try {
+      _currentUser = await _userRepository.getCurrentUserData();
+      print('📱 ProfileViewModel: Current user loaded: ${_currentUser?.displayName}');
+    } catch (e) {
+      print('❌ ProfileViewModel: Error loading current user: $e');
+    }
   }
 
-  // Fetch user's items from Firebase
-  Future<void> refreshUserItems() async {
-    if (_disposed) return; // CHECK: Early return if disposed
-    
-    _setLoading(true);
-    _clearError();
-    
+  // Load user's items
+  Future<void> _loadUserItems() async {
     try {
-      if (currentUser == null) {
+      final user = _auth.currentUser;
+      if (user == null) {
         throw Exception('User not authenticated');
       }
 
-      _userItems = await _itemService.getItemsBySeller(currentUser!.uid);
-      if (!_disposed) { // CHECK: Before notifying
-        _safeNotifyListeners();
-      }
+      print('🔍 ProfileViewModel: Loading items for user: ${user.uid}');
+      _userItems = await _itemRepository.getItemsBySeller(user.uid);
+      print('✅ ProfileViewModel: Loaded ${_userItems.length} items');
     } catch (e) {
-      if (!_disposed) { // CHECK: Before setting error
-        _setError('Failed to load your products: ${e.toString()}');
+      print('❌ ProfileViewModel: Error loading user items: $e');
+      _userItems = [];
+    }
+  }
+
+  // Load seller orders (orders for this user's items)
+  Future<void> _loadSellerOrders() async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) {
+        throw Exception('User not authenticated');
       }
+
+      print('🔍 ProfileViewModel: Loading seller orders for user: ${user.uid}');
+      _sellerOrders = await _orderService.getOrdersForSeller(user.uid);
+      print('✅ ProfileViewModel: Loaded ${_sellerOrders.length} seller orders');
+    } catch (e) {
+      print('❌ ProfileViewModel: Error loading seller orders: $e');
+      _sellerOrders = [];
+    }
+  }
+
+  // Calculate statistics from orders
+  void _calculateStatistics() {
+    print('📊 ProfileViewModel: Calculating statistics...');
+    
+    // Calculate total sold items
+    _totalSoldItems = 0;
+    _totalRevenue = 0.0;
+    
+    // Count completed orders only for revenue and sold items
+    final completedOrders = _sellerOrders.where(
+      (order) => order.status == OrderStatus.completed
+    ).toList();
+    
+    for (final order in completedOrders) {
+      _totalSoldItems += order.items.length;
+      _totalRevenue += order.total;
+    }
+    
+    // Calculate sold items from item status as well (backup calculation)
+    final soldItemsFromStatus = _userItems.where(
+      (item) => item.status == 'sold'
+    ).length;
+    
+    // Use the higher count (more accurate)
+    if (soldItemsFromStatus > _totalSoldItems) {
+      _totalSoldItems = soldItemsFromStatus;
+    }
+    
+    print('📈 ProfileViewModel: Statistics calculated:');
+    print('   Total sold items: $_totalSoldItems');
+    print('   Total revenue: RM${_totalRevenue.toStringAsFixed(2)}');
+    print('   Average rating: $_averageRating');
+  }
+
+  // Refresh user items
+  Future<void> refreshUserItems() async {
+    print('🔄 ProfileViewModel: Refreshing user items...');
+    _setLoading(true);
+    
+    try {
+      await _loadUserItems();
+      await _loadSellerOrders(); // Also refresh orders to update statistics
+      _calculateStatistics();
+      _clearError();
+      print('✅ ProfileViewModel: User items refreshed');
+    } catch (e) {
+      print('❌ ProfileViewModel: Error refreshing user items: $e');
+      _setError('Failed to refresh items: $e');
     } finally {
-      if (!_disposed) { // CHECK: Before setting loading false
-        _setLoading(false);
-      }
+      _setLoading(false);
     }
   }
 
-  // Refresh profile data (ENHANCED)
+  // Refresh entire profile
   Future<void> refreshProfile() async {
-    if (_disposed) return; // CHECK: Early return if disposed
+    print('🔄 ProfileViewModel: Refreshing entire profile...');
+    _setLoading(true);
     
     try {
-      print('🔄 Refreshing profile data...');
-      
-      // Force reload Firebase Auth user data first
-      if (currentUser != null) {
-        await currentUser!.reload();
-        print('✅ Firebase Auth user data reloaded');
-      }
-      
-      // Refresh user items
-      await refreshUserItems();
-      
-      // Force a UI update for profile info
-      if (!_disposed) {
-        _safeNotifyListeners();
-        print('✅ Profile data refreshed');
-      }
+      await _loadCurrentUser();
+      await Future.wait([
+        _loadUserItems(),
+        _loadSellerOrders(),
+      ]);
+      _calculateStatistics();
+      _clearError();
+      print('✅ ProfileViewModel: Profile refreshed');
     } catch (e) {
-      print('❌ Error refreshing profile: $e');
-      if (!_disposed) {
-        _setError('Failed to refresh profile: ${e.toString()}');
-      }
+      print('❌ ProfileViewModel: Error refreshing profile: $e');
+      _setError('Failed to refresh profile: $e');
+    } finally {
+      _setLoading(false);
     }
   }
 
-  // Delete an item
+  // Delete item
   Future<bool> deleteItem(String itemId) async {
-    if (_disposed) return false; // CHECK: Early return if disposed
-    
     try {
-      await _itemService.deleteItem(itemId);
+      print('🗑️ ProfileViewModel: Deleting item: $itemId');
+      await _itemRepository.deleteItem(itemId);
       
-      if (!_disposed) { // CHECK: Before updating list
-        // Remove from local list
-        _userItems.removeWhere((item) => item.id == itemId);
-        _safeNotifyListeners();
-      }
+      // Remove from local list
+      _userItems.removeWhere((item) => item.id == itemId);
+      notifyListeners();
+      
+      print('✅ ProfileViewModel: Item deleted successfully');
       return true;
     } catch (e) {
-      if (!_disposed) { // CHECK: Before setting error
-        _setError('Failed to delete product: ${e.toString()}');
-      }
+      print('❌ ProfileViewModel: Error deleting item: $e');
+      _setError('Failed to delete item: $e');
       return false;
     }
   }
 
-  // Update user profile (for future use)
-  Future<bool> updateProfile({
-    String? displayName,
-    String? photoURL,
-  }) async {
-    if (_disposed) return false; // CHECK: Early return if disposed
-    
+  // Update user profile
+  Future<bool> updateUserProfile(Map<String, dynamic> updates) async {
     try {
-      final user = currentUser;
-      if (user == null) return false;
-
-      if (displayName != null) {
-        await user.updateDisplayName(displayName);
-      }
-      
-      if (photoURL != null) {
-        await user.updatePhotoURL(photoURL);
+      final user = _auth.currentUser;
+      if (user == null) {
+        throw Exception('User not authenticated');
       }
 
-      // Reload user data
-      await user.reload();
-      if (!_disposed) { // CHECK: Before notifying
-        _safeNotifyListeners();
-      }
+      print('📝 ProfileViewModel: Updating user profile...');
+      await _userRepository.updateUserData(user.uid, updates);
       
+      // Refresh current user data
+      await _loadCurrentUser();
+      
+      print('✅ ProfileViewModel: Profile updated successfully');
       return true;
     } catch (e) {
-      if (!_disposed) { // CHECK: Before setting error
-        _setError('Failed to update profile: ${e.toString()}');
-      }
+      print('❌ ProfileViewModel: Error updating profile: $e');
+      _setError('Failed to update profile: $e');
       return false;
     }
   }
 
-  // Get statistics for profile
-  Map<String, int> get profileStats {
+  // Get order statistics for display
+  Map<String, dynamic> getOrderStatistics() {
+    final allOrders = _sellerOrders.length;
+    final completedOrders = _sellerOrders.where(
+      (order) => order.status == OrderStatus.completed
+    ).length;
+    final pendingOrders = _sellerOrders.where(
+      (order) => [OrderStatus.placed, OrderStatus.confirmed, OrderStatus.shipped].contains(order.status)
+    ).length;
+    final cancelledOrders = _sellerOrders.where(
+      (order) => order.status == OrderStatus.cancelled
+    ).length;
+
     return {
-      'totalProducts': _userItems.length,
-      'activeProducts': _userItems.length, // All products are currently active
-      'soldProducts': 0, // You can implement this later when you add order functionality
+      'totalOrders': allOrders,
+      'completedOrders': completedOrders,
+      'pendingOrders': pendingOrders,
+      'cancelledOrders': cancelledOrders,
+      'totalSoldItems': _totalSoldItems,
+      'totalRevenue': _totalRevenue,
+      'averageRating': _averageRating,
     };
   }
 
-  // Get products by category for the current user
-  List<ItemModel> getItemsByCategory(String category) {
-    return _userItems.where((item) => 
-      item.category.toLowerCase() == category.toLowerCase()).toList();
+  // Listen to real-time order updates (optional enhancement)
+  void startListeningToOrderUpdates() {
+    final user = _auth.currentUser;
+    if (user == null) return;
+
+    FirebaseFirestore.instance
+        .collection('orders')
+        .where('sellerId', isEqualTo: user.uid)
+        .snapshots()
+        .listen((snapshot) {
+      print('🔄 ProfileViewModel: Real-time order update received');
+      _loadSellerOrders().then((_) {
+        _calculateStatistics();
+        notifyListeners();
+      });
+    });
   }
 
-  // Search user's products
-  List<ItemModel> searchUserItems(String query) {
-    if (query.trim().isEmpty) return _userItems;
-    
-    return _userItems.where((item) => 
-      item.name.toLowerCase().contains(query.toLowerCase()) ||
-      item.category.toLowerCase().contains(query.toLowerCase())).toList();
-  }
-
-  // Helper methods with disposal checks
+  // Helper methods
   void _setLoading(bool loading) {
-    if (_disposed) return; // CHECK: Before setting state
     _isLoading = loading;
-    _safeNotifyListeners();
+    notifyListeners();
   }
 
   void _setError(String error) {
-    if (_disposed) return; // CHECK: Before setting state
     _errorMessage = error;
-    _safeNotifyListeners();
+    notifyListeners();
   }
 
   void _clearError() {
-    if (_disposed) return; // CHECK: Before setting state
     _errorMessage = null;
   }
 
-  // Check if user has any products
-  bool get hasProducts => _userItems.isNotEmpty;
-
-  // Get recent products (last 5)
-  List<ItemModel> get recentProducts {
-    final sorted = List<ItemModel>.from(_userItems);
-    sorted.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-    return sorted.take(5).toList();
-  }
-
-  // Sign out user
-  Future<void> signOut() async {
-    if (_disposed) return; // CHECK: Early return if disposed
-    
-    try {
-      await _authService.signOut();
-      if (!_disposed) { // CHECK: Before updating state
-        _userItems.clear();
-        _isInitialized = false;
-        _safeNotifyListeners();
-      }
-    } catch (e) {
-      if (!_disposed) { // CHECK: Before setting error
-        _setError('Failed to sign out: ${e.toString()}');
-      }
-    }
+  @override
+  void dispose() {
+    super.dispose();
   }
 }

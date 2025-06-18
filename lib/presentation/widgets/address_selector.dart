@@ -15,9 +15,6 @@ class _AddressSelectorState extends State<AddressSelector> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<AddressViewModel>().loadAddresses();
-    });
   }
 
   @override
@@ -46,7 +43,8 @@ class _AddressSelectorState extends State<AddressSelector> {
             Container(
               width: double.infinity,
               child: OutlinedButton.icon(
-                onPressed: () => _showAddAddressDialog(context, addressViewModel),
+                onPressed: () =>
+                    _showAddAddressDialog(context, addressViewModel),
                 icon: Icon(Icons.add),
                 label: Text('Add New Address'),
                 style: OutlinedButton.styleFrom(
@@ -55,7 +53,7 @@ class _AddressSelectorState extends State<AddressSelector> {
               ),
             ),
             SizedBox(height: 16),
-            
+
             // Address list
             if (addressViewModel.addresses.isEmpty)
               _buildEmptyState()
@@ -107,7 +105,9 @@ class _AddressSelectorState extends State<AddressSelector> {
             ),
           ),
           TextButton(
-            onPressed: () => context.read<AddressViewModel>().loadAddresses(),
+            onPressed: () => context
+                .read<AddressViewModel>()
+                .refreshAddresses(), // USE refreshAddresses
             child: Text('Retry'),
           ),
         ],
@@ -186,13 +186,15 @@ class _AddressSelectorState extends State<AddressSelector> {
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
-                          color: isSelected ? Colors.blue.shade700 : Colors.black,
+                          color:
+                              isSelected ? Colors.blue.shade700 : Colors.black,
                         ),
                       ),
                       if (address.isDefault) ...[
                         SizedBox(width: 8),
                         Container(
-                          padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          padding:
+                              EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                           decoration: BoxDecoration(
                             color: Colors.green,
                             borderRadius: BorderRadius.circular(10),
@@ -243,7 +245,8 @@ class _AddressSelectorState extends State<AddressSelector> {
     );
   }
 
-  void _showAddAddressDialog(BuildContext context, AddressViewModel addressViewModel) {
+  void _showAddAddressDialog(
+      BuildContext context, AddressViewModel addressViewModel) {
     final titleController = TextEditingController();
     final addressController = TextEditingController();
     final buildingController = TextEditingController();
@@ -359,7 +362,8 @@ class _AddressSelectorState extends State<AddressSelector> {
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text(addressViewModel.error ?? 'Failed to add address'),
+                      content: Text(
+                          addressViewModel.error ?? 'Failed to add address'),
                       backgroundColor: Colors.red,
                     ),
                   );

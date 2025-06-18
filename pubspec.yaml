@@ -22,7 +22,7 @@ dependencies:
   
   # Add other dependencies as needed
   cupertino_icons: ^1.0.2
-  flutter_stripe: ^11.5.0
+  flutter_stripe: ^10.1.1
   intl: ^0.20.2
 
 dev_dependencies:

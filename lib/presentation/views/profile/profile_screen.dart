@@ -1,3 +1,4 @@
+// lib/presentation/views/profile_screen.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:koopon/presentation/views/add_item_screen.dart';
@@ -5,7 +6,7 @@ import 'package:koopon/presentation/views/edit_item_screen.dart';
 import 'package:koopon/presentation/views/profile/edit_profile_screen.dart';
 import 'package:koopon/presentation/viewmodels/profile_viewmodel.dart';
 import 'package:koopon/data/models/item_model.dart';
-import 'package:koopon/presentation/views/seller_order_history_page.dart';
+import 'order_history_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({Key? key}) : super(key: key);
@@ -38,7 +39,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   // Header Section
                   _buildHeader(viewModel),
                   
-                  // Profile Info Section
+                  // Profile Info Section with Real-time Stats
                   _buildProfileInfo(viewModel),
                   
                   // My Products Section Header (now with Order History button)
@@ -92,17 +93,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
           
           const Spacer(),
           
-          // Settings Icon
+          // Refresh Icon instead of Settings
           Container(
             padding: const EdgeInsets.all(4),
             child: GestureDetector(
               onTap: () {
+                viewModel.refreshProfile();
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Settings coming soon')),
+                  const SnackBar(content: Text('Profile refreshed!')),
                 );
               },
               child: const Icon(
-                Icons.settings,
+                Icons.refresh,
                 color: Color(0xFF2D1B35),
                 size: 24,
               ),
@@ -197,7 +199,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           
           const SizedBox(height: 20),
           
-          // Stats Row
+          // ENHANCED: Real-time Stats Row with Seller Statistics
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
@@ -205,16 +207,39 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 'Products',
                 viewModel.userItems.length.toString(),
                 Icons.inventory,
+                onTap: () {
+                  // Could navigate to products management
+                },
               ),
               _buildStatItem(
                 'Sold',
-                '0', // You can implement this later
+                viewModel.totalSoldItems.toString(), // UPDATED: Real-time sold count
                 Icons.sell,
+                onTap: () async {
+                  await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => OrderHistoryScreen(),
+                    ),
+                  );
+                  // Refresh when returning from order history
+                  viewModel.refreshProfile();
+                },
               ),
               _buildStatItem(
-                'Rating',
-                '5.0', // You can implement this later
-                Icons.star,
+                'Revenue',
+                'RM${viewModel.totalRevenue.toStringAsFixed(0)}', // UPDATED: Real revenue
+                Icons.attach_money,
+                onTap: () async {
+                  await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => OrderHistoryScreen(),
+                    ),
+                  );
+                  // Refresh when returning from order history
+                  viewModel.refreshProfile();
+                },
               ),
             ],
           ),
@@ -258,39 +283,57 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildStatItem(String label, String value, IconData icon) {
-    return Column(
-      children: [
-        Container(
-          width: 50,
-          height: 50,
-          decoration: BoxDecoration(
-            color: const Color(0xFF9C27B0).withOpacity(0.1),
-            shape: BoxShape.circle,
-          ),
-          child: Icon(
-            icon,
-            color: const Color(0xFF9C27B0),
-            size: 24,
-          ),
+  Widget _buildStatItem(String label, String value, IconData icon, {VoidCallback? onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          color: onTap != null ? const Color(0xFF9C27B0).withOpacity(0.05) : Colors.transparent,
         ),
-        const SizedBox(height: 8),
-        Text(
-          value,
-          style: const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: Color(0xFF2D1B35),
-          ),
+        child: Column(
+          children: [
+            Container(
+              width: 50,
+              height: 50,
+              decoration: BoxDecoration(
+                color: const Color(0xFF9C27B0).withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                icon,
+                color: const Color(0xFF9C27B0),
+                size: 24,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              value,
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF2D1B35),
+              ),
+            ),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey[600],
+              ),
+            ),
+            if (onTap != null) ...[
+              const SizedBox(height: 4),
+              Icon(
+                Icons.touch_app,
+                size: 12,
+                color: Colors.grey[400],
+              ),
+            ],
+          ],
         ),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.grey[600],
-          ),
-        ),
-      ],
+      ),
     );
   }
 
@@ -308,15 +351,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           ),
           const Spacer(),
-          // Updated: Order History button instead of Add New
+          // Order History button
           TextButton.icon(
             onPressed: () async {
               await Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => SellerOrderHistoryPage(),
+                  builder: (context) => OrderHistoryScreen(),
                 ),
               );
+              // Refresh profile when returning from order history
+              viewModel.refreshProfile();
             },
             icon: const Icon(
               Icons.history,
@@ -514,21 +559,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ),
                           ),
                     
-                    // Status badge
+                    // ENHANCED: Status badge with better colors
                     Positioned(
                       top: 8,
                       left: 8,
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
-                          color: Colors.black54,
-                          borderRadius: BorderRadius.circular(8),
+                          color: _getStatusBadgeColor(item.status),
+                          borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(
-                          item.status,
+                          _getStatusDisplayText(item.status),
                           style: const TextStyle(
                             color: Colors.white,
-                            fontSize: 8,
+                            fontSize: 10,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -573,102 +618,133 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       const SizedBox(height: 4),
                       Text(
                         'RM ${item.price.toStringAsFixed(2)}',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 12,
-                          color: Color(0xFFE91E63),
+                          color: item.status == 'sold' ? Colors.grey : const Color(0xFFE91E63),
+                          decoration: item.status == 'sold' ? TextDecoration.lineThrough : null,
                         ),
                       ),
                     ],
                   ),
                   
-                  // Action buttons
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      // Edit Button
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: () async {
-                            final result = await Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => EditItemPage(item: item),
+                  // ENHANCED: Action buttons with status-aware functionality
+                  if (item.status != 'sold') ...[
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        // Edit Button
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () async {
+                              final result = await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => EditItemPage(item: item),
+                                ),
+                              );
+                              
+                              // Refresh items if edit was successful
+                              if (result == true) {
+                                viewModel.refreshUserItems();
+                              }
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 6),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF9C27B0).withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(8),
                               ),
-                            );
-                            
-                            // Refresh items if edit was successful
-                            if (result == true) {
-                              viewModel.refreshUserItems();
-                            }
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(vertical: 6),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF9C27B0).withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: const Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.edit,
-                                  size: 14,
-                                  color: Color(0xFF9C27B0),
-                                ),
-                                SizedBox(width: 4),
-                                Text(
-                                  'Edit',
-                                  style: TextStyle(
-                                    fontSize: 10,
+                              child: const Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.edit,
+                                    size: 14,
                                     color: Color(0xFF9C27B0),
-                                    fontWeight: FontWeight.w600,
                                   ),
-                                ),
-                              ],
+                                  SizedBox(width: 4),
+                                  Text(
+                                    'Edit',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      color: Color(0xFF9C27B0),
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                      
-                      const SizedBox(width: 8),
-                      
-                      // Delete Button
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: () {
-                            _showDeleteDialog(item, viewModel);
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(vertical: 6),
-                            decoration: BoxDecoration(
-                              color: Colors.red.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: const Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.delete,
-                                  size: 14,
-                                  color: Colors.red,
-                                ),
-                                SizedBox(width: 4),
-                                Text(
-                                  'Delete',
-                                  style: TextStyle(
-                                    fontSize: 10,
+                        
+                        const SizedBox(width: 8),
+                        
+                        // Delete Button
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () {
+                              _showDeleteDialog(item, viewModel);
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 6),
+                              decoration: BoxDecoration(
+                                color: Colors.red.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.delete,
+                                    size: 14,
                                     color: Colors.red,
-                                    fontWeight: FontWeight.w600,
                                   ),
-                                ),
-                              ],
+                                  SizedBox(width: 4),
+                                  Text(
+                                    'Delete',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      color: Colors.red,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ),
+                      ],
+                    ),
+                  ] else ...[
+                    // Sold item - show sold status
+                    Container(
+                      padding: const EdgeInsets.symmetric(vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.green.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
                       ),
-                    ],
-                  ),
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.check_circle,
+                            size: 14,
+                            color: Colors.green,
+                          ),
+                          SizedBox(width: 4),
+                          Text(
+                            'SOLD',
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: Colors.green,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -676,6 +752,38 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ],
       ),
     );
+  }
+
+  // ENHANCED: Helper method to get status badge color
+  Color _getStatusBadgeColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'available':
+        return Colors.green;
+      case 'sold':
+        return Colors.red;
+      case 'pending':
+        return Colors.orange;
+      case 'unavailable':
+        return Colors.grey;
+      default:
+        return Colors.blue;
+    }
+  }
+
+  // ENHANCED: Helper method to get status display text
+  String _getStatusDisplayText(String status) {
+    switch (status.toLowerCase()) {
+      case 'available':
+        return 'AVAILABLE';
+      case 'sold':
+        return 'SOLD';
+      case 'pending':
+        return 'PENDING';
+      case 'unavailable':
+        return 'UNAVAILABLE';
+      default:
+        return status.toUpperCase();
+    }
   }
 
   void _showDeleteDialog(ItemModel item, ProfileViewModel viewModel) {
@@ -689,6 +797,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('Are you sure you want to delete "${item.name}"?'),
+            const SizedBox(height: 8),
+            if (item.status == 'sold')
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Row(
+                  children: [
+                    Icon(Icons.warning, color: Colors.orange, size: 16),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'This item has been sold. Deleting it may affect order records.',
+                        style: TextStyle(fontSize: 12, color: Colors.orange),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             const SizedBox(height: 8),
             Text(
               'This action cannot be undone.',

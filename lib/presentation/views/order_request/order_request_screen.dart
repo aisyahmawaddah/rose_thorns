@@ -50,7 +50,7 @@ class _OrderRequestScreenState extends State<OrderRequestScreen> {
 
   void _nextStep() {
     final orderViewModel = context.read<OrderRequestViewModel>();
-    
+
     // Validate current step before proceeding
     if (!orderViewModel.validateCurrentStep(_currentStep)) {
       final error = orderViewModel.getValidationError(_currentStep);
@@ -99,7 +99,8 @@ class _OrderRequestScreenState extends State<OrderRequestScreen> {
             if (!orderViewModel.isInitialized) {
               orderViewModel.initializeOrder(widget.cartItems);
             }
-            if (addressViewModel.addresses.isEmpty && !addressViewModel.isLoading) {
+            // CHANGE THIS LINE:
+            if (!addressViewModel.hasLoaded && !addressViewModel.isLoading) {
               addressViewModel.loadAddresses();
             }
           });
@@ -114,7 +115,7 @@ class _OrderRequestScreenState extends State<OrderRequestScreen> {
                   children: List.generate(_stepTitles.length, (index) {
                     final isActive = index == _currentStep;
                     final isCompleted = index < _currentStep;
-                    
+
                     return Expanded(
                       child: Row(
                         children: [
@@ -143,8 +144,12 @@ class _OrderRequestScreenState extends State<OrderRequestScreen> {
                               _stepTitles[index],
                               style: TextStyle(
                                 fontSize: 12,
-                                fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
-                                color: isActive ? Colors.blue : Colors.grey.shade600,
+                                fontWeight: isActive
+                                    ? FontWeight.bold
+                                    : FontWeight.normal,
+                                color: isActive
+                                    ? Colors.blue
+                                    : Colors.grey.shade600,
                               ),
                             ),
                           ),
@@ -160,7 +165,7 @@ class _OrderRequestScreenState extends State<OrderRequestScreen> {
                   }),
                 ),
               ),
-              
+
               // Content
               Expanded(
                 child: PageView(
@@ -174,7 +179,7 @@ class _OrderRequestScreenState extends State<OrderRequestScreen> {
                   ],
                 ),
               ),
-              
+
               // Navigation buttons
               Container(
                 padding: EdgeInsets.all(16),
@@ -200,13 +205,15 @@ class _OrderRequestScreenState extends State<OrderRequestScreen> {
                     if (_currentStep > 0) SizedBox(width: 16),
                     Expanded(
                       child: ElevatedButton(
-                        onPressed: orderViewModel.isLoading ? null : _handleNextAction,
+                        onPressed:
+                            orderViewModel.isLoading ? null : _handleNextAction,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.blue,
                           foregroundColor: Colors.white,
                         ),
                         child: orderViewModel.isLoading
-                            ? CircularProgressIndicator(color: Colors.white, strokeWidth: 2)
+                            ? CircularProgressIndicator(
+                                color: Colors.white, strokeWidth: 2)
                             : Text(_getButtonText(orderViewModel)),
                       ),
                     ),
@@ -264,10 +271,10 @@ class _OrderRequestScreenState extends State<OrderRequestScreen> {
                 style: TextStyle(color: Colors.grey.shade600),
               ),
               SizedBox(height: 16),
-              
+
               // Show AddressSelector for both deal methods
               AddressSelector(),
-              
+
               // Optional info box based on deal method
               if (viewModel.selectedDealMethod == DealMethod.delivery) ...[
                 SizedBox(height: 16),
@@ -321,10 +328,10 @@ class _OrderRequestScreenState extends State<OrderRequestScreen> {
                 style: TextStyle(color: Colors.grey.shade600),
               ),
               SizedBox(height: 16),
-              
+
               // Show TimeSlotSelector for both deal methods
               TimeSlotSelector(),
-              
+
               // Optional info box based on deal method
               if (viewModel.selectedDealMethod == DealMethod.delivery) ...[
                 SizedBox(height: 16),
@@ -424,7 +431,7 @@ class _OrderRequestScreenState extends State<OrderRequestScreen> {
 
   void _handleNextAction() async {
     final viewModel = context.read<OrderRequestViewModel>();
-    
+
     switch (_currentStep) {
       case 0:
       case 1:
@@ -433,7 +440,7 @@ class _OrderRequestScreenState extends State<OrderRequestScreen> {
         break;
       case 3:
         bool success = false;
-        
+
         if (viewModel.selectedDealMethod == DealMethod.delivery) {
           // Navigate to payment screen
           final paymentResult = await Navigator.push(
@@ -452,7 +459,7 @@ class _OrderRequestScreenState extends State<OrderRequestScreen> {
           // Place order directly for in-campus meetup
           success = await viewModel.placeOrder();
         }
-        
+
         if (success) {
           _showSuccessDialog();
         }
@@ -472,7 +479,8 @@ class _OrderRequestScreenState extends State<OrderRequestScreen> {
             Text('Order Placed!'),
           ],
         ),
-        content: Text('Your order has been placed successfully. You can track its status in your order history.'),
+        content: Text(
+            'Your order has been placed successfully. You can track its status in your order history.'),
         actions: [
           TextButton(
             onPressed: () {

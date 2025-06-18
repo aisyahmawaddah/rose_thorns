@@ -1,11 +1,10 @@
 // lib/presentation/views/order_request/payment_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_stripe/flutter_stripe.dart';
-import 'package:koopon/presentation/views/order_request/purchase_history_screen.dart';
 import 'package:provider/provider.dart';
 import '../../../data/services/stripe_payment_service.dart';
-import '../../../presentation/viewmodels/order_history_viewmodel.dart';
-//import 'purchase_history_screen.dart'; // UPDATED: Use correct import path
+import '../../../presentation/viewmodels/purchase_history_viewmodel.dart'; // UPDATED: Correct import
+import 'purchase_history_screen.dart'; // UPDATED: Correct import path
 
 class PaymentScreen extends StatefulWidget {
   final double amount;
@@ -235,8 +234,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
       final orderSuccess = await widget.onPaymentSuccess();
       
       if (orderSuccess) {
-        // UPDATED: Navigate to order history
-        await _navigateToOrderHistory();
+        // UPDATED: Navigate to purchase history
+        await _navigateToPurchaseHistory();
       } else {
         _showErrorDialog('Payment successful but order failed. Contact support.');
       }
@@ -245,8 +244,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
     }
   }
 
-  // NAVIGATE TO ORDER HISTORY
-  Future<void> _navigateToOrderHistory() async {
+  // UPDATED: Navigate to Purchase History
+  Future<void> _navigateToPurchaseHistory() async {
     try {
       // Show success message
       if (mounted) {
@@ -259,21 +258,20 @@ class _PaymentScreenState extends State<PaymentScreen> {
         );
       }
       
-      // Refresh order history to show new order
-      if (mounted) {
-        final orderHistoryViewModel = context.read<OrderHistoryViewModel>();
-        await orderHistoryViewModel.loadOrderHistory(); // Load latest orders
-      }
-      
-      // Navigate to order history screen
+      // Navigate to purchase history screen with provider
       if (mounted) {
         Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => PurchaseHistoryScreen()),
+          MaterialPageRoute(
+            builder: (_) => ChangeNotifierProvider(
+              create: (_) => PurchaseHistoryViewModel(), // UPDATED: Create correct viewmodel
+              child: PurchaseHistoryScreen(), // UPDATED: Navigate to purchase history
+            ),
+          ),
           (route) => route.isFirst, // Keep only the home screen in the stack
         );
       }
     } catch (e) {
-      print('Error navigating to order history: $e');
+      print('Error navigating to purchase history: $e');
       // Fallback: show success dialog if navigation fails
       _showSuccessDialog();
     }
