@@ -18,6 +18,10 @@ class OrderRequest {
   final OrderStatus status;
   final DateTime createdAt;
   final DateTime? updatedAt;
+  final String? trackingNumber;
+  final String? cancelReason;
+  final DateTime? deliveredAt;
+  final DateTime? shippedAt;
 
   OrderRequest({
     required this.id,
@@ -34,6 +38,10 @@ class OrderRequest {
     required this.status,
     required this.createdAt,
     this.updatedAt,
+    this.trackingNumber,
+    this.cancelReason,
+    this.deliveredAt,
+    this.shippedAt,
   });
 
   Map<String, dynamic> toJson() {
@@ -52,6 +60,10 @@ class OrderRequest {
       'status': status.toString().split('.').last,
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt?.toIso8601String(),
+      'trackingNumber': trackingNumber,
+      'cancelReason': cancelReason,
+      'deliveredAt': deliveredAt?.toIso8601String(),
+      'shippedAt': shippedAt?.toIso8601String(),
     };
   }
 
@@ -67,13 +79,12 @@ class OrderRequest {
             items.add(CartItem.fromJson(itemJson));
           } catch (e) {
             print('❌ Error parsing cart item: $e');
-            // Skip malformed items instead of crashing
           }
         }
       }
       
       // Parse deal method with fallback
-      DealMethod dealMethod = DealMethod.inCampusMeetup; // Default fallback
+      DealMethod dealMethod = DealMethod.inCampusMeetup;
       try {
         dealMethod = DealMethod.values.firstWhere(
           (e) => e.toString().split('.').last == json['dealMethod'],
@@ -92,13 +103,31 @@ class OrderRequest {
         }
       }
       
-      // Parse selected date with error handling
+      // Parse dates with error handling
       DateTime? selectedDate;
       if (json['selectedDate'] != null) {
         try {
           selectedDate = DateTime.parse(json['selectedDate']);
         } catch (e) {
           print('❌ Error parsing selected date: $e');
+        }
+      }
+      
+      DateTime? deliveredAt;
+      if (json['deliveredAt'] != null) {
+        try {
+          deliveredAt = DateTime.parse(json['deliveredAt']);
+        } catch (e) {
+          print('❌ Error parsing delivered date: $e');
+        }
+      }
+      
+      DateTime? shippedAt;
+      if (json['shippedAt'] != null) {
+        try {
+          shippedAt = DateTime.parse(json['shippedAt']);
+        } catch (e) {
+          print('❌ Error parsing shipped date: $e');
         }
       }
       
@@ -113,7 +142,7 @@ class OrderRequest {
       }
       
       // Parse order status with fallback
-      OrderStatus status = OrderStatus.placed; // Default fallback
+      OrderStatus status = OrderStatus.placed;
       try {
         status = OrderStatus.values.firstWhere(
           (e) => e.toString().split('.').last == json['status'],
@@ -123,7 +152,7 @@ class OrderRequest {
       }
       
       // Parse dates with error handling
-      DateTime createdAt = DateTime.now(); // Fallback
+      DateTime createdAt = DateTime.now();
       try {
         createdAt = DateTime.parse(json['createdAt']);
       } catch (e) {
@@ -176,6 +205,10 @@ class OrderRequest {
         status: status,
         createdAt: createdAt,
         updatedAt: updatedAt,
+        trackingNumber: json['trackingNumber'],
+        cancelReason: json['cancelReason'],
+        deliveredAt: deliveredAt,
+        shippedAt: shippedAt,
       );
       
       print('✅ Successfully parsed OrderRequest: ${order.id}');
@@ -201,6 +234,49 @@ class OrderRequest {
       );
     }
   }
+
+  // Create a copy with updated fields
+  OrderRequest copyWith({
+    String? id,
+    String? userId,
+    String? sellerId,
+    List<CartItem>? items,
+    DealMethod? dealMethod,
+    Address? meetupLocation,
+    DateTime? selectedDate,
+    TimeSlot? selectedTimeSlot,
+    double? subtotal,
+    double? deliveryFee,
+    double? total,
+    OrderStatus? status,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    String? trackingNumber,
+    String? cancelReason,
+    DateTime? deliveredAt,
+    DateTime? shippedAt,
+  }) {
+    return OrderRequest(
+      id: id ?? this.id,
+      userId: userId ?? this.userId,
+      sellerId: sellerId ?? this.sellerId,
+      items: items ?? this.items,
+      dealMethod: dealMethod ?? this.dealMethod,
+      meetupLocation: meetupLocation ?? this.meetupLocation,
+      selectedDate: selectedDate ?? this.selectedDate,
+      selectedTimeSlot: selectedTimeSlot ?? this.selectedTimeSlot,
+      subtotal: subtotal ?? this.subtotal,
+      deliveryFee: deliveryFee ?? this.deliveryFee,
+      total: total ?? this.total,
+      status: status ?? this.status,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      trackingNumber: trackingNumber ?? this.trackingNumber,
+      cancelReason: cancelReason ?? this.cancelReason,
+      deliveredAt: deliveredAt ?? this.deliveredAt,
+      shippedAt: shippedAt ?? this.shippedAt,
+    );
+  }
 }
 
 enum DealMethod {
@@ -208,9 +284,13 @@ enum DealMethod {
   delivery,
 }
 
+// UPDATED: Extended order status enum with all the statuses you requested
 enum OrderStatus {
-  placed,
-  confirmed,
-  completed,
-  cancelled,
+  placed,          // When buyer places order
+  pendingPayment,  // Waiting for payment (if payment integration)
+  confirmed,       // Seller confirms order
+  shipped,         // Order has been shipped (for delivery)
+  delivered,       // Order delivered (for delivery)
+  completed,       // Transaction completed
+  cancelled,       // Order cancelled
 }

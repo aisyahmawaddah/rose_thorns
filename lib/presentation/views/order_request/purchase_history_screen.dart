@@ -372,6 +372,12 @@ class _PurchaseHistoryScreenState extends State<PurchaseHistoryScreen> with Sing
         return Colors.green;
       case OrderStatus.cancelled:
         return Colors.red;
+      case OrderStatus.pendingPayment:
+        return Colors.amber;
+      case OrderStatus.shipped:
+        return Colors.purple;
+      case OrderStatus.delivered:
+        return Colors.teal;
     }
   }
 
@@ -385,6 +391,12 @@ class _PurchaseHistoryScreenState extends State<PurchaseHistoryScreen> with Sing
         return 'Completed';
       case OrderStatus.cancelled:
         return 'Cancelled';
+      case OrderStatus.pendingPayment:
+        return 'Pending Payment';
+      case OrderStatus.shipped:
+        return 'Shipped';
+      case OrderStatus.delivered:
+        return 'Delivered';
     }
   }
 

@@ -121,6 +121,15 @@ class PurchaseHistoryViewModel extends ChangeNotifier {
         case OrderStatus.cancelled:
           stats['cancelled'] = (stats['cancelled'] ?? 0) + 1;
           break;
+        case OrderStatus.pendingPayment:
+          // Optionally, you can add a new stat for pendingPayment if needed
+          break;
+        case OrderStatus.shipped:
+          // Optionally, you can add a new stat for shipped if needed
+          break;
+        case OrderStatus.delivered:
+          // Optionally, you can add a new stat for delivered if needed
+          break;
       }
     }
 
