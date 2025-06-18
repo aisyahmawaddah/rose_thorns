@@ -135,32 +135,69 @@ class CartService {
     }
   }
 
-  // NEW: Remove specific sold items from ALL users' carts (FIXED: No ordering)
-  Future<bool> removeSoldItemsFromAllCarts(List<String> soldItemIds) async {
+  // NEW: Remove specific purchased items from current user's cart only
+  Future<bool> removePurchasedItemsFromCart(List<String> purchasedItemIds) async {
     try {
-      print('🧹 Removing sold items from all carts: $soldItemIds');
+      final userId = _auth.currentUser?.uid;
+      if (userId == null) return false;
+
+      print('🛒 Removing purchased items from current user cart: $purchasedItemIds');
       
       final batch = _firestore.batch();
       int removedCount = 0;
 
-      // For each sold item, find and remove from all carts
-      for (String itemId in soldItemIds) {
-        // FIXED: Remove orderBy to avoid composite index and permission issues
+      // For each purchased item, find and remove from CURRENT USER's cart only
+      for (String itemId in purchasedItemIds) {
         final cartSnapshot = await _firestore
             .collection('carts')
+            .where('userId', isEqualTo: userId)
             .where('itemId', isEqualTo: itemId)
-            .get(); // NO .orderBy() here!
+            .get();
 
         for (var cartDoc in cartSnapshot.docs) {
           batch.delete(cartDoc.reference);
           removedCount++;
-          print('   Removing item $itemId from cart ${cartDoc.id}');
+          print('   Removing purchased item $itemId from current user cart');
         }
       }
 
       if (removedCount > 0) {
         await batch.commit();
-        print('✅ Removed $removedCount cart entries for sold items');
+        print('✅ Removed $removedCount purchased items from current user cart');
+      }
+
+      return true;
+    } catch (e) {
+      print('Error removing purchased items from cart: $e');
+      return false;
+    }
+  }
+
+  // UPDATED: Remove sold items from ALL users' carts (when items get sold by others)
+  Future<bool> removeSoldItemsFromAllCarts(List<String> soldItemIds) async {
+    try {
+      print('🧹 Removing sold items from all users carts: $soldItemIds');
+      
+      final batch = _firestore.batch();
+      int removedCount = 0;
+
+      // For each sold item, find and remove from ALL users' carts
+      for (String itemId in soldItemIds) {
+        final cartSnapshot = await _firestore
+            .collection('carts')
+            .where('itemId', isEqualTo: itemId)
+            .get();
+
+        for (var cartDoc in cartSnapshot.docs) {
+          batch.delete(cartDoc.reference);
+          removedCount++;
+          print('   Removing sold item $itemId from cart ${cartDoc.id}');
+        }
+      }
+
+      if (removedCount > 0) {
+        await batch.commit();
+        print('✅ Removed $removedCount cart entries for sold items from all users');
       }
 
       return true;

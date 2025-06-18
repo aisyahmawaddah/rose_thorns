@@ -1,6 +1,6 @@
 // lib/core/config/app_config.dart
 class AppConfig {
-  static const String stripePublishableKey = 'pk_test_51RYnQ5RMJ7wIqqAUh2c9NQ4BcsD52xNWdl513ood8OXgwThM0xfbPh4eQunJirNz7GswjVeymBDJMDxGLEMSNV1l005eadlGNv';
+  static const String stripePublishableKey = 'pk_test_51RbLKZQ7pm5NWh7m3hsyzQqokSPm9HuP6CsAgeR6pPJDXaECofmKz8g8qX99oqYIukTTTE21g5DgAshQovPjmPWD00KlHYoY8k';
   
   // REMOVED: stripeSecretKey - Now safely in server.js
   
