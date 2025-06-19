@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:koopon/data/services/supabase_image_service.dart';
+import 'package:cloud_firestore/cloud_firestore.dart'; // ADD THIS IMPORT
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({Key? key}) : super(key: key);
@@ -15,9 +16,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   bool _isLoading = false;
-  File? _selectedImage; // NEW: For storing selected image
-  final ImagePicker _picker = ImagePicker(); // NEW: Image picker instance
-  final SupabaseImageService _imageService = SupabaseImageService(); // NEW: Supabase service
+  File? _selectedImage;
+  final ImagePicker _picker = ImagePicker();
+  final SupabaseImageService _imageService = SupabaseImageService();
   
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
@@ -137,7 +138,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     try {
       final XFile? pickedFile = await _picker.pickImage(
         source: source,
-        maxWidth: 512, // Smaller size for profile pictures
+        maxWidth: 512,
         maxHeight: 512,
         imageQuality: 85,
       );
@@ -217,10 +218,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Profile Picture Section (ENHANCED)
+              // Profile Picture Section
               Center(
                 child: GestureDetector(
-                  onTap: _showImageSourceDialog, // UPDATED: Show dialog instead of placeholder message
+                  onTap: _showImageSourceDialog,
                   child: Container(
                     width: 120,
                     height: 120,
@@ -241,7 +242,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       alignment: Alignment.center,
                       children: [
                         ClipOval(
-                          child: _buildProfileImage(), // NEW: Custom method to build image
+                          child: _buildProfileImage(),
                         ),
                         Positioned(
                           right: 0,
@@ -267,7 +268,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 ),
               ),
 
-              // NEW: Image status text
+              // Image status text
               if (_selectedImage != null)
                 Center(
                   child: Container(
@@ -291,7 +292,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
               const SizedBox(height: 24),
 
-              // Display Name Field (ENHANCED with existing data feedback)
+              // Display Name Field
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -332,7 +333,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 ),
               ),
 
-              // Email Field (Read-only) (ENHANCED with current data feedback)
+              // Email Field (Read-only)
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -375,7 +376,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
               const SizedBox(height: 24),
 
-              // Info Text (UPDATED)
+              // Info Text
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -408,7 +409,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
               const SizedBox(height: 32),
 
-              // Save Button (ENHANCED with new functionality)
+              // Save Button
               Center(
                 child: Container(
                   width: 200,
@@ -451,7 +452,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     );
   }
 
-  // NEW: Build profile image widget
+  // Build profile image widget
   Widget _buildProfileImage() {
     // Show selected image if available
     if (_selectedImage != null) {
@@ -503,7 +504,40 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     );
   }
 
-  // FIXED: Save profile avoiding Firebase Auth photo URL bug
+  // INTEGRATED: Updated Firestore user info method
+  Future<void> _updateUserInfo() async {
+    final user = _auth.currentUser;
+    if (user?.uid == null) return;
+
+    setState(() => _isLoading = true);
+
+    try {
+      // Update Firestore user document
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user!.uid)
+          .update({
+        'displayName': _nameController.text.trim(),
+        'email': user.email ?? '',
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
+      setState(() {
+        _isLoading = false;
+      });
+
+      if (mounted) {
+        _showSuccessSnackBar('User information updated successfully');
+      }
+    } catch (e) {
+      setState(() => _isLoading = false);
+      if (mounted) {
+        _showErrorSnackBar('Error updating user info: $e');
+      }
+    }
+  }
+
+  // IMPROVED: Enhanced save profile with Firestore integration
   void _saveProfile() async {
     if (_nameController.text.trim().isEmpty) {
       _showErrorSnackBar('Please enter a display name');
@@ -517,59 +551,140 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     try {
       final user = _auth.currentUser;
       if (user == null) {
-        _showErrorSnackBar('User not found');
+        _showErrorSnackBar('User not found. Please log in again.');
         return;
       }
 
-      String? newPhotoURL = user.photoURL;
+      print('🚀 Starting profile update process...');
+      print('   - Current user: ${user.email}');
+      print('   - New display name: "${_nameController.text.trim()}"');
+      print('   - Has new image: ${_selectedImage != null}');
 
-      // Handle profile image upload
+      String? newPhotoURL = user.photoURL;
+      bool imageUploadSuccess = true;
+
+      // Step 1: Handle profile image upload first (if selected)
       if (_selectedImage != null) {
-        print('📸 Uploading new profile image...');
-        newPhotoURL = await _imageService.uploadProfileImage(_selectedImage!, user.uid);
-        
-        if (newPhotoURL == null) {
-          throw Exception('Failed to upload profile image');
+        try {
+          print('📸 Uploading profile image to Supabase...');
+          newPhotoURL = await _imageService.uploadProfileImage(_selectedImage!, user.uid);
+          
+          if (newPhotoURL == null) {
+            throw Exception('Image upload returned null URL');
+          }
+          print('✅ Image uploaded successfully: $newPhotoURL');
+        } catch (imageError) {
+          print('❌ Image upload failed: $imageError');
+          imageUploadSuccess = false;
+          _showErrorSnackBar('Failed to upload profile picture. Saving name only.');
         }
-        print('✅ Profile image uploaded: $newPhotoURL');
       }
 
-      // Update only display name via Firebase Auth (avoid photo URL bug)
+      // Step 2: Update Firebase Auth
+      bool displayNameUpdated = false;
+      bool photoURLUpdated = false;
+
+      // Update Display Name in Firebase Auth
       try {
+        print('📝 Updating Firebase Auth display name...');
         await user.updateDisplayName(_nameController.text.trim());
-        print('✅ Display name updated');
-        
-        // Only update photo URL if it changed AND we have a new one
-        if (_selectedImage != null && newPhotoURL != null && newPhotoURL != user.photoURL) {
-          // Try updating photo URL, but don't fail if it doesn't work
-          try {
-            await user.updatePhotoURL(newPhotoURL);
-            print('✅ Photo URL updated');
-          } catch (photoError) {
-            print('⚠️ Photo URL update failed (using Firestore fallback): $photoError');
-            // Photo URL update failed, but that's okay - the image is still uploaded to Supabase
-            // The ProfileScreen can read directly from Supabase if needed
-          }
+        displayNameUpdated = true;
+        print('✅ Firebase Auth display name updated successfully');
+      } catch (nameError) {
+        print('❌ Firebase Auth display name update failed: $nameError');
+      }
+
+      // Update Photo URL in Firebase Auth (only if image was uploaded successfully)
+      if (imageUploadSuccess && _selectedImage != null && newPhotoURL != null) {
+        try {
+          print('📷 Updating Firebase Auth photo URL...');
+          await user.updatePhotoURL(newPhotoURL);
+          photoURLUpdated = true;
+          print('✅ Firebase Auth photo URL updated successfully');
+        } catch (photoError) {
+          print('⚠️ Firebase Auth photo URL update failed: $photoError');
         }
+      }
+
+      // Step 3: Update Firestore user document
+      try {
+        print('📝 Updating Firestore user document...');
+        final updateData = {
+          'displayName': _nameController.text.trim(),
+          'email': user.email ?? '',
+          'updatedAt': FieldValue.serverTimestamp(),
+        };
+
+        // Add photo URL to Firestore if available
+        if (newPhotoURL != null) {
+          updateData['photoURL'] = newPhotoURL;
+        }
+
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .update(updateData);
         
+        print('✅ Firestore user document updated successfully');
+      } catch (firestoreError) {
+        print('⚠️ Firestore update failed: $firestoreError');
+        // Continue - Firestore update failure shouldn't block the entire operation
+      }
+
+      // Step 4: Reload user data
+      try {
+        print('🔄 Reloading user data...');
         await user.reload();
         print('✅ User data reloaded');
-        
-      } catch (authError) {
-        print('❌ Firebase Auth update error: $authError');
-        throw Exception('Failed to update profile');
+      } catch (reloadError) {
+        print('⚠️ User reload failed: $reloadError');
       }
+
+      // Step 5: Show appropriate success message
+      String successMessage = 'Profile updated successfully!';
       
-      _showSuccessSnackBar('Profile updated successfully!');
+      if (displayNameUpdated && imageUploadSuccess && photoURLUpdated) {
+        successMessage = 'Profile and picture updated successfully!';
+      } else if (displayNameUpdated && !photoURLUpdated && _selectedImage != null) {
+        successMessage = 'Profile updated! Picture uploaded but may take time to sync.';
+      } else if (displayNameUpdated) {
+        successMessage = 'Profile name updated successfully!';
+      }
+
+      _showSuccessSnackBar(successMessage);
       
-      await Future.delayed(const Duration(seconds: 1));
+      // Step 6: Wait and navigate back
+      await Future.delayed(const Duration(milliseconds: 1500));
       
       if (mounted) {
         Navigator.of(context).pop(true);
       }
+
     } catch (e) {
-      print('❌ Error updating profile: $e');
-      _showErrorSnackBar('Error updating profile: ${e.toString()}');
+      print('❌ Profile update failed: $e');
+      
+      // Show user-friendly error message
+      String errorMessage = 'Failed to update profile';
+      
+      if (e.toString().contains('network') || e.toString().contains('timeout')) {
+        errorMessage = 'Network error. Please check your connection.';
+      } else if (e.toString().contains('requires-recent-login')) {
+        errorMessage = 'Please log out and log back in to update your profile.';
+      } else if (e.toString().contains('permission-denied')) {
+        errorMessage = 'Permission denied. Please try logging in again.';
+      } else if (e.toString().contains('user-disabled')) {
+        errorMessage = 'Your account has been disabled. Contact support.';
+      } else {
+        final String fullError = e.toString();
+        if (fullError.startsWith('Exception: ')) {
+          errorMessage = fullError.substring(11);
+        } else {
+          errorMessage = 'Update failed. Please try again.';
+        }
+      }
+      
+      _showErrorSnackBar(errorMessage);
+      
     } finally {
       if (mounted) {
         setState(() {
@@ -585,13 +700,22 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         SnackBar(
           content: Row(
             children: [
-              const Icon(Icons.error, color: Colors.white),
+              const Icon(Icons.error, color: Colors.white, size: 20),
               const SizedBox(width: 8),
-              Expanded(child: Text(message)),
+              Expanded(
+                child: Text(
+                  message,
+                  style: const TextStyle(fontSize: 14),
+                ),
+              ),
             ],
           ),
-          backgroundColor: Colors.red,
-          duration: const Duration(seconds: 3),
+          backgroundColor: Colors.red[600],
+          duration: const Duration(seconds: 4),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
         ),
       );
     }
@@ -603,13 +727,22 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         SnackBar(
           content: Row(
             children: [
-              const Icon(Icons.check_circle, color: Colors.white),
+              const Icon(Icons.check_circle, color: Colors.white, size: 20),
               const SizedBox(width: 8),
-              Expanded(child: Text(message)),
+              Expanded(
+                child: Text(
+                  message,
+                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                ),
+              ),
             ],
           ),
-          backgroundColor: Colors.green,
+          backgroundColor: Colors.green[600],
           duration: const Duration(seconds: 2),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
         ),
       );
     }
