@@ -24,10 +24,14 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isSearchVisible = false;
 
   @override
-  void initState() {
-    super.initState();
-    // Initialize cart viewmodel's auth listener
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+void initState() {
+  super.initState();
+  // Initialize cart viewmodel's auth listener with mounted check
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    // Add mounted check to prevent accessing disposed widget
+    if (!mounted) return;
+    
+    try {
       final cartViewModel = Provider.of<CartViewModel>(context, listen: false);
       cartViewModel.listenToAuthChanges();
       
@@ -36,8 +40,13 @@ class _HomeScreenState extends State<HomeScreen> {
         cartViewModel.initializeCart();
         print('HomeScreen: Initializing cart for user token: ${cartViewModel.userToken}');
       }
-    });
-  }
+    } catch (e) {
+      print('HomeScreen initState error: $e');
+      // Handle error gracefully - widget might be disposed
+    }
+  });
+}
+
 
   @override
   void dispose() {
@@ -119,48 +128,56 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    // Use existing providers from main.dart - no new provider scope needed
-    return Consumer<HomeViewModel>(
-      builder: (context, viewModel, child) {
-        // Initialize the view model when the Consumer is first built
-        WidgetsBinding.instance.addPostFrameCallback((_) {
+Widget build(BuildContext context) {
+  // Use existing providers from main.dart - no new provider scope needed
+  return Consumer<HomeViewModel>(
+    builder: (context, viewModel, child) {
+      // Initialize the view model when the Consumer is first built with mounted check
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        // Add mounted check to prevent accessing disposed widget
+        if (!mounted) return;
+        
+        try {
           if (!viewModel.isInitialized) {
             viewModel.initialize();
           }
-        });
-
-          return Scaffold(
-            backgroundColor: const Color(0xFFE8D4F1), // Light purple background
-            body: SafeArea(
-              child: Column(
-                children: [
-                  // Header Section
-                  _buildHeader(viewModel),
-
-                  // Search Section (conditionally visible)
-                  if (_isSearchVisible) _buildSearchSection(viewModel),
-
-                  // Action Buttons Section
-                  _buildActionButtons(viewModel),
-
-                  // Category Section
-                  _buildCategorySection(viewModel),
-
-                  // Items Grid
-                  Expanded(
-                    child: _buildItemsGrid(viewModel),
-                  ),
-
-                  // Bottom Navigation
-                  _buildBottomNavigation(),
-                ],
-              ),
-            ),
-          );
+        } catch (e) {
+          print('HomeScreen build error: $e');
+          // Handle error gracefully - widget might be disposed
         }
+      });
+
+      return Scaffold(
+        backgroundColor: const Color(0xFFE8D4F1), // Light purple background
+        body: SafeArea(
+          child: Column(
+            children: [
+              // Header Section
+              _buildHeader(viewModel),
+
+              // Search Section (conditionally visible)
+              if (_isSearchVisible) _buildSearchSection(viewModel),
+
+              // Action Buttons Section
+              _buildActionButtons(viewModel),
+
+              // Category Section
+              _buildCategorySection(viewModel),
+
+              // Items Grid
+              Expanded(
+                child: _buildItemsGrid(viewModel),
+              ),
+
+              // Bottom Navigation
+              _buildBottomNavigation(),
+            ],
+          ),
+        ),
       );
-  }
+    }
+  );
+}
 
   Widget _buildHeader(HomeViewModel viewModel) {
     return Container(
@@ -736,12 +753,13 @@ Widget _buildActionButtons(HomeViewModel viewModel) {
     );
   }
 
-  // ENHANCED: _buildItemCard method for HomeScreen
-// Replace your existing _buildItemCard method with this enhanced version
-
+// UPDATED: _buildItemCard method for HomeScreen - Replace your existing method with this
 Widget _buildItemCard(ItemModel item, HomeViewModel viewModel) {
   // Check if item is sold
   final bool isSold = item.status == 'sold';
+  
+  // Get condition from additionalFields, fallback to 'Unknown' if not available
+  final String condition = item.additionalFields['condition']?.toString() ?? 'Unknown';
   
   return GestureDetector(
     onTap: () {
@@ -770,7 +788,7 @@ Widget _buildItemCard(ItemModel item, HomeViewModel viewModel) {
         children: [
           // Item Image
           Expanded(
-            flex: 3,
+            flex: 5, // Changed from 3 to 5 to give more space to image
             child: Container(
               decoration: const BoxDecoration(
                 borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
@@ -899,27 +917,7 @@ Widget _buildItemCard(ItemModel item, HomeViewModel viewModel) {
                         ),
                       ),
                     
-                    // Status badge (top left)
-                    Positioned(
-                      top: 8,
-                      left: 8,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: isSold ? Colors.red : Colors.green,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          isSold ? 'SOLD' : item.status,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 8,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ),
+                    // REMOVED: Status badge (top left) - This was the green badge
                     
                     // Cart icon (only show if user has token, not their own item, and item not sold)
                     if (!viewModel.isCurrentUserSeller(item.sellerId) && !isSold)
@@ -1056,9 +1054,9 @@ Widget _buildItemCard(ItemModel item, HomeViewModel viewModel) {
 
           // Item Details
           Expanded(
-            flex: 2,
+            flex: 3, // Changed from 2 to 3 to give more space to details
             child: Padding(
-              padding: const EdgeInsets.all(8.0),
+              padding: const EdgeInsets.all(6.0), // Reduced from 8.0 to 6.0
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1070,27 +1068,28 @@ Widget _buildItemCard(ItemModel item, HomeViewModel viewModel) {
                         item.name,
                         style: TextStyle(
                           fontWeight: FontWeight.w600,
-                          fontSize: 12,
+                          fontSize: 11, // Reduced from 12 to 11
                           color: isSold ? Colors.grey : const Color(0xFF2D1B35),
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 2),
+                      // UPDATED: Display condition instead of status
                       Text(
-                        isSold ? 'SOLD' : item.status,
+                        isSold ? 'SOLD' : condition,
                         style: TextStyle(
-                          fontSize: 10,
+                          fontSize: 9, // Reduced from 10 to 9
                           color: isSold ? Colors.red : Colors.grey[600],
                           fontWeight: isSold ? FontWeight.bold : FontWeight.normal,
                         ),
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 3), // Reduced from 4 to 3
                       Text(
                         'RM ${item.price.toStringAsFixed(2)}',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
-                          fontSize: 12,
+                          fontSize: 11, // Reduced from 12 to 11
                           color: isSold ? Colors.grey : const Color(0xFFE91E63),
                           decoration: isSold ? TextDecoration.lineThrough : null,
                         ),
@@ -1106,8 +1105,8 @@ Widget _buildItemCard(ItemModel item, HomeViewModel viewModel) {
                         child: Row(
                           children: [
                             Container(
-                              width: 16,
-                              height: 16,
+                              width: 14, // Reduced from 16 to 14
+                              height: 14, // Reduced from 16 to 14
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
                                 border: Border.all(color: Colors.grey.shade300),
@@ -1121,7 +1120,7 @@ Widget _buildItemCard(ItemModel item, HomeViewModel viewModel) {
                                       color: const Color(0xFFE8D4F1),
                                       child: const Icon(
                                         Icons.person,
-                                        size: 10,
+                                        size: 8, // Reduced from 10 to 8
                                         color: Color(0xFF9C27B0),
                                       ),
                                     );
@@ -1134,7 +1133,7 @@ Widget _buildItemCard(ItemModel item, HomeViewModel viewModel) {
                               child: Text(
                                 item.sellerName,
                                 style: TextStyle(
-                                  fontSize: 9,
+                                  fontSize: 8, // Reduced from 9 to 8
                                   color: isSold ? Colors.grey : Colors.grey[600],
                                 ),
                                 overflow: TextOverflow.ellipsis,
@@ -1167,10 +1166,10 @@ Widget _buildItemCard(ItemModel item, HomeViewModel viewModel) {
                                   }
                                 },
                                 child: Container(
-                                  padding: const EdgeInsets.all(4),
+                                  padding: const EdgeInsets.all(3), // Reduced from 4 to 3
                                   child: const Icon(
                                     Icons.edit,
-                                    size: 14,
+                                    size: 12, // Reduced from 14 to 12
                                     color: Color(0xFF9C27B0),
                                   ),
                                 ),
@@ -1180,10 +1179,10 @@ Widget _buildItemCard(ItemModel item, HomeViewModel viewModel) {
                                   _showDeleteDialog(item, viewModel);
                                 },
                                 child: Container(
-                                  padding: const EdgeInsets.all(4),
+                                  padding: const EdgeInsets.all(3), // Reduced from 4 to 3
                                   child: const Icon(
                                     Icons.delete,
-                                    size: 14,
+                                    size: 12, // Reduced from 14 to 12
                                     color: Color(0xFF9C27B0),
                                   ),
                                 ),
@@ -1193,15 +1192,15 @@ Widget _buildItemCard(ItemModel item, HomeViewModel viewModel) {
                             else
                               Container(
                                 padding: const EdgeInsets.symmetric(
-                                    horizontal: 6, vertical: 2),
+                                    horizontal: 4, vertical: 1), // Reduced padding
                                 decoration: BoxDecoration(
                                   color: Colors.green.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(8),
+                                  borderRadius: BorderRadius.circular(6), // Reduced from 8 to 6
                                 ),
                                 child: const Text(
                                   'SOLD',
                                   style: TextStyle(
-                                    fontSize: 8,
+                                    fontSize: 7, // Reduced from 8 to 7
                                     color: Colors.green,
                                     fontWeight: FontWeight.bold,
                                   ),
@@ -1218,15 +1217,15 @@ Widget _buildItemCard(ItemModel item, HomeViewModel viewModel) {
                               if (isSold) {
                                 return Container(
                                   padding: const EdgeInsets.symmetric(
-                                      horizontal: 6, vertical: 2),
+                                      horizontal: 4, vertical: 1), // Reduced padding
                                   decoration: BoxDecoration(
                                     color: Colors.red.withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(8),
+                                    borderRadius: BorderRadius.circular(6), // Reduced from 8 to 6
                                   ),
                                   child: const Text(
                                     'SOLD',
                                     style: TextStyle(
-                                      fontSize: 8,
+                                      fontSize: 7, // Reduced from 8 to 7
                                       color: Colors.red,
                                       fontWeight: FontWeight.bold,
                                     ),
@@ -1239,17 +1238,17 @@ Widget _buildItemCard(ItemModel item, HomeViewModel viewModel) {
                                     
                                     return Container(
                                       padding: const EdgeInsets.symmetric(
-                                          horizontal: 6, vertical: 2),
+                                          horizontal: 4, vertical: 1), // Reduced padding
                                       decoration: BoxDecoration(
                                         color: isInCart 
                                             ? Colors.blue.withOpacity(0.1)
                                             : Colors.green.withOpacity(0.1),
-                                        borderRadius: BorderRadius.circular(8),
+                                        borderRadius: BorderRadius.circular(6), // Reduced from 8 to 6
                                       ),
                                       child: Text(
                                         isInCart ? 'In Cart' : 'Available',
                                         style: TextStyle(
-                                          fontSize: 8,
+                                          fontSize: 7, // Reduced from 8 to 7
                                           color: isInCart ? Colors.blue : Colors.green,
                                           fontWeight: FontWeight.bold,
                                         ),
@@ -1261,17 +1260,17 @@ Widget _buildItemCard(ItemModel item, HomeViewModel viewModel) {
                             } else {
                               return Container(
                                 padding: const EdgeInsets.symmetric(
-                                    horizontal: 6, vertical: 2),
+                                    horizontal: 4, vertical: 1), // Reduced padding
                                 decoration: BoxDecoration(
                                   color: isSold 
                                       ? Colors.red.withOpacity(0.1)
                                       : Colors.green.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(8),
+                                  borderRadius: BorderRadius.circular(6), // Reduced from 8 to 6
                                 ),
                                 child: Text(
                                   isSold ? 'SOLD' : 'Available',
                                   style: TextStyle(
-                                    fontSize: 8,
+                                    fontSize: 7, // Reduced from 8 to 7
                                     color: isSold ? Colors.red : Colors.green,
                                     fontWeight: FontWeight.bold,
                                   ),
