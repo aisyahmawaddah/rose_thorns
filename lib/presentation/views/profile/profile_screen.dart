@@ -36,21 +36,32 @@ class _ProfileScreenState extends State<ProfileScreen> {
             body: SafeArea(
               child: Column(
                 children: [
-                  // Header Section
+                  // Header Section (Fixed at top)
                   _buildHeader(viewModel),
-                  
-                  // Profile Info Section with Real-time Stats
-                  _buildProfileInfo(viewModel),
-                  
-                  // My Products Section Header (now with Order History button)
-                  _buildMyProductsHeader(viewModel),
-                  
-                  // User's Products Grid
+
+                  // Scrollable Content
                   Expanded(
-                    child: _buildUserProductsGrid(viewModel),
+                    child: SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      child: Column(
+                        children: [
+                          // Profile Info Section
+                          _buildProfileInfo(viewModel),
+
+                          // My Products Section Header
+                          _buildMyProductsHeader(viewModel),
+
+                          // User's Products Grid (with fixed height)
+                          _buildUserProductsGrid(viewModel),
+
+                          // Extra padding at bottom for better UX
+                          const SizedBox(height: 20),
+                        ],
+                      ),
+                    ),
                   ),
-                  
-                  // Bottom Navigation
+
+                  // Bottom Navigation (Fixed at bottom)
                   _buildBottomNavigation(),
                 ],
               ),
@@ -78,9 +89,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ),
           ),
-          
+
           const Spacer(),
-          
+
           // Title
           const Text(
             'My Profile',
@@ -90,9 +101,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
               fontWeight: FontWeight.w600,
             ),
           ),
-          
+
           const Spacer(),
-          
+
           // Refresh Icon instead of Settings
           Container(
             padding: const EdgeInsets.all(4),
@@ -173,9 +184,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
             ),
           ),
-          
+
           const SizedBox(height: 16),
-          
+
           // User Name
           Text(
             viewModel.currentUserDisplayName,
@@ -185,9 +196,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
               color: Color(0xFF2D1B35),
             ),
           ),
-          
+
           const SizedBox(height: 4),
-          
+
           // User Email
           Text(
             viewModel.currentUserEmail,
@@ -196,9 +207,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
               color: Colors.grey[600],
             ),
           ),
-          
+
           const SizedBox(height: 20),
-          
+
           // ENHANCED: Real-time Stats Row with Seller Statistics
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -213,7 +224,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               _buildStatItem(
                 'Sold',
-                viewModel.totalSoldItems.toString(), // UPDATED: Real-time sold count
+                viewModel.totalSoldItems
+                    .toString(), // UPDATED: Real-time sold count
                 Icons.sell,
                 onTap: () async {
                   await Navigator.push(
@@ -243,9 +255,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ],
           ),
-          
+
           const SizedBox(height: 20),
-          
+
           // Edit Profile Button
           SizedBox(
             width: double.infinity,
@@ -257,7 +269,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     builder: (context) => const EditProfileScreen(),
                   ),
                 );
-                
+
                 // Refresh profile if edit was successful
                 if (result == true) {
                   viewModel.refreshProfile();
@@ -283,14 +295,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildStatItem(String label, String value, IconData icon, {VoidCallback? onTap}) {
+  Widget _buildStatItem(String label, String value, IconData icon,
+      {VoidCallback? onTap}) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12),
-          color: onTap != null ? const Color(0xFF9C27B0).withOpacity(0.05) : Colors.transparent,
+          color: onTap != null
+              ? const Color(0xFF9C27B0).withOpacity(0.05)
+              : Colors.transparent,
         ),
         child: Column(
           children: [
@@ -384,110 +399,123 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Widget _buildUserProductsGrid(ProfileViewModel viewModel) {
     if (viewModel.isLoading) {
-      return const Center(
-        child: CircularProgressIndicator(
-          color: Color(0xFF9C27B0),
+      return Container(
+        height: 200,
+        child: const Center(
+          child: CircularProgressIndicator(
+            color: Color(0xFF9C27B0),
+          ),
         ),
       );
     }
 
     if (viewModel.errorMessage != null) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(
-              Icons.error_outline,
-              size: 64,
-              color: Color(0xFF9C27B0),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              viewModel.errorMessage!,
-              style: const TextStyle(
-                fontSize: 16,
-                color: Color(0xFF2D1B35),
+      return Container(
+        height: 200,
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(
+                Icons.error_outline,
+                size: 64,
+                color: Color(0xFF9C27B0),
               ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: () {
-                viewModel.refreshUserItems();
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF9C27B0),
+              const SizedBox(height: 16),
+              Text(
+                viewModel.errorMessage!,
+                style: const TextStyle(
+                  fontSize: 16,
+                  color: Color(0xFF2D1B35),
+                ),
+                textAlign: TextAlign.center,
               ),
-              child: const Text('Retry', style: TextStyle(color: Colors.white)),
-            ),
-          ],
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () {
+                  viewModel.refreshUserItems();
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF9C27B0),
+                ),
+                child:
+                    const Text('Retry', style: TextStyle(color: Colors.white)),
+              ),
+            ],
+          ),
         ),
       );
     }
 
     if (viewModel.userItems.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(
-              Icons.inventory_2_outlined,
-              size: 64,
-              color: Color(0xFF9C27B0),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'No products yet\nStart selling by adding your first product!',
-              style: TextStyle(
-                fontSize: 16,
-                color: Color(0xFF2D1B35),
+      return Container(
+        height: 200,
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(
+                Icons.inventory_2_outlined,
+                size: 64,
+                color: Color(0xFF9C27B0),
               ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton.icon(
-              onPressed: () async {
-                final result = await Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const AddItemPage(),
-                  ),
-                );
-                
-                if (result == true) {
-                  viewModel.refreshUserItems();
-                }
-              },
-              icon: const Icon(Icons.add),
-              label: const Text('Add Product'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF9C27B0),
-                foregroundColor: Colors.white,
+              const SizedBox(height: 16),
+              const Text(
+                'No products yet\nStart selling by adding your first product!',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Color(0xFF2D1B35),
+                ),
+                textAlign: TextAlign.center,
               ),
-            ),
-          ],
+              const SizedBox(height: 16),
+              ElevatedButton.icon(
+                onPressed: () async {
+                  final result = await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const AddItemPage(),
+                    ),
+                  );
+
+                  if (result == true) {
+                    viewModel.refreshUserItems();
+                  }
+                },
+                icon: const Icon(Icons.add),
+                label: const Text('Add Product'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF9C27B0),
+                  foregroundColor: Colors.white,
+                ),
+              ),
+            ],
+          ),
         ),
       );
     }
 
-    return RefreshIndicator(
-      onRefresh: viewModel.refreshUserItems,
-      color: const Color(0xFF9C27B0),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: GridView.builder(
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            childAspectRatio: 0.8,
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 12,
-          ),
-          itemCount: viewModel.userItems.length,
-          itemBuilder: (context, index) {
-            final item = viewModel.userItems[index];
-            return _buildProductCard(item, viewModel);
-          },
+    // Calculate grid height based on number of items
+    final int itemCount = viewModel.userItems.length;
+    final int rows = (itemCount / 2).ceil();
+    final double gridHeight = rows * 240.0; // Approximate height per row
+
+    return Container(
+      height: gridHeight,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: GridView.builder(
+        physics: const NeverScrollableScrollPhysics(), // Disable grid scroll
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          childAspectRatio: 0.8,
+          crossAxisSpacing: 12,
+          mainAxisSpacing: 12,
         ),
+        itemCount: viewModel.userItems.length,
+        itemBuilder: (context, index) {
+          final item = viewModel.userItems[index];
+          return _buildProductCard(item, viewModel);
+        },
       ),
     );
   }
@@ -508,74 +536,105 @@ class _ProfileScreenState extends State<ProfileScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Item Image
+          // Item Image - Fixed Container with proper constraints
           Expanded(
             flex: 3,
             child: Container(
+              width: double.infinity,
               decoration: const BoxDecoration(
                 borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
               ),
               child: ClipRRect(
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(12)),
                 child: Stack(
-                  fit: StackFit.expand,
                   children: [
-                    item.imageUrl != null && item.imageUrl!.isNotEmpty
-                        ? Image.network(
-                            item.imageUrl!,
-                            fit: BoxFit.cover,
-                            headers: {
-                              'Cache-Control': 'no-cache',
-                            },
-                            loadingBuilder: (context, child, loadingProgress) {
-                              if (loadingProgress == null) return child;
-                              return Center(
-                                child: CircularProgressIndicator(
-                                  value: loadingProgress.expectedTotalBytes != null
-                                      ? loadingProgress.cumulativeBytesLoaded /
-                                          loadingProgress.expectedTotalBytes!
-                                      : null,
-                                  color: const Color(0xFF9C27B0),
-                                ),
-                              );
-                            },
-                            errorBuilder: (context, error, stackTrace) {
-                              return Container(
-                                color: Colors.grey[200],
-                                child: const Icon(
-                                  Icons.broken_image,
+                    // Image Container with fixed dimensions
+                    Container(
+                      width: double.infinity,
+                      height: double.infinity,
+                      child: item.imageUrl != null && item.imageUrl!.isNotEmpty
+                          ? Image.network(
+                              item.imageUrl!,
+                              width: double.infinity,
+                              height: double.infinity,
+                              fit: BoxFit.cover,
+                              headers: const {
+                                'Cache-Control': 'no-cache',
+                              },
+                              loadingBuilder:
+                                  (context, child, loadingProgress) {
+                                if (loadingProgress == null) return child;
+                                return Container(
+                                  width: double.infinity,
+                                  height: double.infinity,
+                                  color: Colors.grey[100],
+                                  child: Center(
+                                    child: CircularProgressIndicator(
+                                      value:
+                                          loadingProgress.expectedTotalBytes !=
+                                                  null
+                                              ? loadingProgress
+                                                      .cumulativeBytesLoaded /
+                                                  loadingProgress
+                                                      .expectedTotalBytes!
+                                              : null,
+                                      color: const Color(0xFF9C27B0),
+                                    ),
+                                  ),
+                                );
+                              },
+                              errorBuilder: (context, error, stackTrace) {
+                                return Container(
+                                  width: double.infinity,
+                                  height: double.infinity,
+                                  color: Colors.grey[200],
+                                  child: const Center(
+                                    child: Icon(
+                                      Icons.broken_image,
+                                      color: Colors.grey,
+                                      size: 40,
+                                    ),
+                                  ),
+                                );
+                              },
+                            )
+                          : Container(
+                              width: double.infinity,
+                              height: double.infinity,
+                              color: Colors.grey[200],
+                              child: const Center(
+                                child: Icon(
+                                  Icons.image,
                                   color: Colors.grey,
                                   size: 40,
                                 ),
-                              );
-                            },
-                          )
-                        : Container(
-                            color: Colors.grey[200],
-                            child: const Icon(
-                              Icons.image,
-                              color: Colors.grey,
-                              size: 40,
+                              ),
                             ),
-                          ),
-                    
-                    // ENHANCED: Status badge with better colors
+                    ),
+
+                    // Status badge with proper positioning
                     Positioned(
                       top: 8,
                       left: 8,
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        constraints: const BoxConstraints(
+                          maxWidth: 80, // Prevent badge overflow
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 3),
                         decoration: BoxDecoration(
                           color: _getStatusBadgeColor(item.status),
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(10),
                         ),
                         child: Text(
                           _getStatusDisplayText(item.status),
                           style: const TextStyle(
                             color: Colors.white,
-                            fontSize: 10,
+                            fontSize: 9,
                             fontWeight: FontWeight.bold,
                           ),
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                     ),
@@ -584,17 +643,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ),
           ),
-          
-          // Item Details
-          Expanded(
-            flex: 2,
-            child: Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
+
+          // Item Details - Fixed height container
+          Container(
+            height: 120, // Fixed height to prevent overflow
+            padding: const EdgeInsets.all(8.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                // Product Info Section
+                Expanded(
+                  child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
@@ -604,7 +664,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           fontSize: 12,
                           color: Color(0xFF2D1B35),
                         ),
-                        maxLines: 1,
+                        maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 2),
@@ -614,6 +674,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           fontSize: 10,
                           color: Colors.grey[600],
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 4),
                       Text(
@@ -621,132 +683,138 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 12,
-                          color: item.status == 'sold' ? Colors.grey : const Color(0xFFE91E63),
-                          decoration: item.status == 'sold' ? TextDecoration.lineThrough : null,
+                          color: item.status == 'sold'
+                              ? Colors.grey
+                              : const Color(0xFFE91E63),
+                          decoration: item.status == 'sold'
+                              ? TextDecoration.lineThrough
+                              : null,
                         ),
                       ),
                     ],
                   ),
-                  
-                  // ENHANCED: Action buttons with status-aware functionality
-                  if (item.status != 'sold') ...[
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        // Edit Button
-                        Expanded(
-                          child: GestureDetector(
-                            onTap: () async {
-                              final result = await Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => EditItemPage(item: item),
+                ),
+
+                // Action buttons section with fixed height
+                Container(
+                  height: 30, // Fixed height for buttons
+                  child: item.status != 'sold'
+                      ? Row(
+                          children: [
+                            // Edit Button
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: () async {
+                                  final result = await Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) =>
+                                          EditItemPage(item: item),
+                                    ),
+                                  );
+
+                                  if (result == true) {
+                                    viewModel.refreshUserItems();
+                                  }
+                                },
+                                child: Container(
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 6),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF9C27B0)
+                                        .withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: const Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        Icons.edit,
+                                        size: 12,
+                                        color: Color(0xFF9C27B0),
+                                      ),
+                                      SizedBox(width: 4),
+                                      Text(
+                                        'Edit',
+                                        style: TextStyle(
+                                          fontSize: 9,
+                                          color: Color(0xFF9C27B0),
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                              );
-                              
-                              // Refresh items if edit was successful
-                              if (result == true) {
-                                viewModel.refreshUserItems();
-                              }
-                            },
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(vertical: 6),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF9C27B0).withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: const Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    Icons.edit,
-                                    size: 14,
-                                    color: Color(0xFF9C27B0),
-                                  ),
-                                  SizedBox(width: 4),
-                                  Text(
-                                    'Edit',
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      color: Color(0xFF9C27B0),
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ],
                               ),
                             ),
+
+                            const SizedBox(width: 6),
+
+                            // Delete Button
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: () {
+                                  _showDeleteDialog(item, viewModel);
+                                },
+                                child: Container(
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 6),
+                                  decoration: BoxDecoration(
+                                    color: Colors.red.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: const Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        Icons.delete,
+                                        size: 12,
+                                        color: Colors.red,
+                                      ),
+                                      SizedBox(width: 4),
+                                      Text(
+                                        'Delete',
+                                        style: TextStyle(
+                                          fontSize: 9,
+                                          color: Colors.red,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        )
+                      : Container(
+                          padding: const EdgeInsets.symmetric(vertical: 6),
+                          decoration: BoxDecoration(
+                            color: Colors.green.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.check_circle,
+                                size: 12,
+                                color: Colors.green,
+                              ),
+                              SizedBox(width: 4),
+                              Text(
+                                'SOLD',
+                                style: TextStyle(
+                                  fontSize: 9,
+                                  color: Colors.green,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                        
-                        const SizedBox(width: 8),
-                        
-                        // Delete Button
-                        Expanded(
-                          child: GestureDetector(
-                            onTap: () {
-                              _showDeleteDialog(item, viewModel);
-                            },
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(vertical: 6),
-                              decoration: BoxDecoration(
-                                color: Colors.red.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: const Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    Icons.delete,
-                                    size: 14,
-                                    color: Colors.red,
-                                  ),
-                                  SizedBox(width: 4),
-                                  Text(
-                                    'Delete',
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      color: Colors.red,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ] else ...[
-                    // Sold item - show sold status
-                    Container(
-                      padding: const EdgeInsets.symmetric(vertical: 6),
-                      decoration: BoxDecoration(
-                        color: Colors.green.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.check_circle,
-                            size: 14,
-                            color: Colors.green,
-                          ),
-                          SizedBox(width: 4),
-                          Text(
-                            'SOLD',
-                            style: TextStyle(
-                              fontSize: 10,
-                              color: Colors.green,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ],
@@ -837,7 +905,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           TextButton(
             onPressed: () async {
               Navigator.pop(context);
-              
+
               // Show loading indicator
               showDialog(
                 context: context,
@@ -848,12 +916,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                 ),
               );
-              
+
               final success = await viewModel.deleteItem(item.id!);
-              
+
               // Hide loading indicator
               Navigator.pop(context);
-              
+
               if (success) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
@@ -864,7 +932,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
               } else {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text(viewModel.errorMessage ?? 'Failed to delete product'),
+                    content: Text(
+                        viewModel.errorMessage ?? 'Failed to delete product'),
                     backgroundColor: Colors.red,
                   ),
                 );
@@ -955,10 +1024,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
           context,
           MaterialPageRoute(builder: (context) => const AddItemPage()),
         );
-        
+
         // Refresh items when returning from add item page
         if (result == true) {
-          Provider.of<ProfileViewModel>(context, listen: false).refreshUserItems();
+          Provider.of<ProfileViewModel>(context, listen: false)
+              .refreshUserItems();
         }
       },
       child: Container(
