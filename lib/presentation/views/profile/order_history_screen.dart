@@ -17,7 +17,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> with SingleTick
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 5, vsync: this); // Updated to 5 tabs
+    _tabController = TabController(length: 3, vsync: this); // Changed to 3 tabs
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<OrderHistoryViewModel>().loadSellerOrders();
     });
@@ -47,9 +47,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> with SingleTick
           tabs: const [
             Tab(text: 'All'),
             Tab(text: 'Pending'),
-            // Tab(text: 'Shipped'),
             Tab(text: 'Completed'),
-            Tab(text: 'Cancelled'),
           ],
         ),
       ),
@@ -79,9 +77,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> with SingleTick
                   children: [
                     _buildOrderList(viewModel.orders, viewModel), // All orders
                     _buildOrderList(viewModel.pendingOrders, viewModel), // Pending orders
-                    _buildOrderList(viewModel.getOrdersByStatus2(OrderStatus.shipped), viewModel), // Shipped orders
                     _buildOrderList(viewModel.completedOrders, viewModel), // Completed orders
-                    _buildOrderList(viewModel.cancelledOrders, viewModel), // Cancelled orders
                   ],
                 ),
               ),
@@ -508,127 +504,32 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> with SingleTick
         );
 
       case OrderStatus.confirmed:
-        if (order.dealMethod == DealMethod.delivery) {
-          return Padding(
-            padding: const EdgeInsets.only(top: 12),
-            child: Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: () => _shipOrder(order, viewModel),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue,
-                      foregroundColor: Colors.white,
-                    ),
-                    child: const Text('Mark as Shipped'),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () => _cancelOrder(order, viewModel),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.red,
-                      side: const BorderSide(color: Colors.red),
-                    ),
-                    child: const Text('Cancel'),
-                  ),
-                ),
-              ],
-            ),
-          );
-        } else {
-          // For meetup orders, can directly mark as completed
-          return Padding(
-            padding: const EdgeInsets.only(top: 12),
-            child: Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: () => _completeOrder(order, viewModel),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
-                      foregroundColor: Colors.white,
-                    ),
-                    child: const Text('Mark as Completed'),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () => _cancelOrder(order, viewModel),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.red,
-                      side: const BorderSide(color: Colors.red),
-                    ),
-                    child: const Text('Cancel'),
-                  ),
-                ),
-              ],
-            ),
-          );
-        }
-
-      case OrderStatus.shipped:
         return Padding(
           padding: const EdgeInsets.only(top: 12),
-          child: Column(
+          child: Row(
             children: [
-              if (order.trackingNumber != null) ...[
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.blue.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: () => _completeOrder(order, viewModel),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green,
+                    foregroundColor: Colors.white,
                   ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.local_shipping, color: Colors.blue, size: 16),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Tracking: ${order.trackingNumber}',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Colors.blue,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
+                  child: const Text('Mark as Completed'),
                 ),
-                const SizedBox(height: 8),
-              ],
-              Row(
-                children: [
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () => _markAsDelivered(order, viewModel),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.orange,
-                        foregroundColor: Colors.white,
-                      ),
-                      child: const Text('Mark as Delivered'),
-                    ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => _cancelOrder(order, viewModel),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.red,
+                    side: const BorderSide(color: Colors.red),
                   ),
-                ],
+                  child: const Text('Cancel'),
+                ),
               ),
             ],
-          ),
-        );
-
-      case OrderStatus.delivered:
-        return Padding(
-          padding: const EdgeInsets.only(top: 12),
-          child: SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: () => _completeOrder(order, viewModel),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green,
-                foregroundColor: Colors.white,
-              ),
-              child: const Text('Mark as Completed'),
-            ),
           ),
         );
 
@@ -659,31 +560,10 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> with SingleTick
         );
 
       case OrderStatus.cancelled:
-        return Padding(
-          padding: const EdgeInsets.only(top: 12),
-          child: Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: Colors.red.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.cancel, color: Colors.red, size: 16),
-                const SizedBox(width: 8),
-                Text(
-                  'Order Cancelled${order.cancelReason != null ? ' - ${order.cancelReason}' : ''}',
-                  style: const TextStyle(
-                    color: Colors.red,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
+        // Hide cancelled orders from all tabs since we removed the cancelled tab
+        return const SizedBox.shrink();
 
+      // Remove all shipped and delivered cases
       default:
         return const SizedBox.shrink();
     }
@@ -747,7 +627,13 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> with SingleTick
             onPressed: () async {
               Navigator.pop(context);
               
+              // Show loading
+              _showLoadingDialog();
+              
               final success = await viewModel.confirmOrder(order.id);
+              
+              // Hide loading
+              Navigator.pop(context);
               
               if (success && mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -775,111 +661,6 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> with SingleTick
     );
   }
 
-  void _shipOrder(OrderRequest order, OrderHistoryViewModel viewModel) {
-    final trackingController = TextEditingController();
-    
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Ship Order'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text('Mark order #${order.id.substring(0, 8)} as shipped?'),
-            const SizedBox(height: 16),
-            TextField(
-              controller: trackingController,
-              decoration: const InputDecoration(
-                labelText: 'Tracking Number (Optional)',
-                border: OutlineInputBorder(),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              
-              final trackingNumber = trackingController.text.trim();
-              final success = await viewModel.shipOrder(
-                order.id,
-                trackingNumber: trackingNumber.isEmpty ? null : trackingNumber,
-              );
-              
-              if (success && mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Order marked as shipped'),
-                    backgroundColor: Colors.green,
-                  ),
-                );
-              } else if (!success && mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(viewModel.errorMessage ?? 'Failed to ship order'),
-                    backgroundColor: Colors.red,
-                  ),
-                );
-              }
-            },
-            child: const Text(
-              'Ship',
-              style: TextStyle(color: Colors.blue),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _markAsDelivered(OrderRequest order, OrderHistoryViewModel viewModel) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Mark as Delivered'),
-        content: Text('Mark order #${order.id.substring(0, 8)} as delivered?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              
-              final success = await viewModel.markAsDelivered(order.id);
-              
-              if (success && mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Order marked as delivered'),
-                    backgroundColor: Colors.green,
-                  ),
-                );
-              } else if (!success && mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(viewModel.errorMessage ?? 'Failed to mark as delivered'),
-                    backgroundColor: Colors.red,
-                  ),
-                );
-              }
-            },
-            child: const Text(
-              'Mark Delivered',
-              style: TextStyle(color: Colors.orange),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   void _completeOrder(OrderRequest order, OrderHistoryViewModel viewModel) {
     showDialog(
       context: context,
@@ -895,7 +676,13 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> with SingleTick
             onPressed: () async {
               Navigator.pop(context);
               
+              // Show loading
+              _showLoadingDialog();
+              
               final success = await viewModel.completeOrder(order.id);
+              
+              // Hide loading
+              Navigator.pop(context);
               
               if (success && mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -929,59 +716,168 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> with SingleTick
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Cancel Order'),
+        title: Row(
+          children: [
+            Icon(Icons.warning_amber, color: Colors.orange),
+            SizedBox(width: 8),
+            Text('Cancel Order'),
+          ],
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Cancel order #${order.id.substring(0, 8)}?'),
+            Text(
+              'Are you sure you want to cancel order #${order.id.substring(0, 8)}?',
+              style: TextStyle(fontWeight: FontWeight.w500),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'This action cannot be undone. The order will be deleted after cancellation.',
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey[600],
+                fontStyle: FontStyle.italic,
+              ),
+            ),
             const SizedBox(height: 16),
             TextField(
               controller: reasonController,
               decoration: const InputDecoration(
-                labelText: 'Cancellation Reason (Optional)',
+                labelText: 'Cancellation Reason',
+                hintText: 'Please provide a reason for cancellation',
                 border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.edit_note),
               ),
               maxLines: 2,
+              maxLength: 200,
             ),
           ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('No'),
+            child: const Text('Keep Order'),
           ),
-          TextButton(
+          ElevatedButton(
             onPressed: () async {
-              Navigator.pop(context);
-              
               final reason = reasonController.text.trim();
-              final success = await viewModel.cancelOrder(
-                order.id,
-                reason: reason.isEmpty ? null : reason,
-              );
               
-              if (success && mounted) {
+              if (reason.isEmpty) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
-                    content: Text('Order cancelled successfully'),
-                    backgroundColor: Colors.green,
+                    content: Text('Please provide a cancellation reason'),
+                    backgroundColor: Colors.orange,
                   ),
                 );
+                return;
+              }
+              
+              Navigator.pop(context);
+              
+              // Show enhanced loading dialog
+              _showCancellationLoadingDialog();
+              
+              final success = await viewModel.cancelOrder(
+                order.id,
+                reason: reason,
+              );
+              
+              // Hide loading
+              Navigator.pop(context);
+              
+              if (success && mounted) {
+                // Show success message
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Row(
+                      children: [
+                        Icon(Icons.check_circle, color: Colors.white),
+                        SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Order cancelled successfully and will be auto-deleted',
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        ),
+                      ],
+                    ),
+                    backgroundColor: Colors.green,
+                    duration: Duration(seconds: 4),
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+                
               } else if (!success && mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text(viewModel.errorMessage ?? 'Failed to cancel order'),
+                    content: Row(
+                      children: [
+                        Icon(Icons.error, color: Colors.white),
+                        SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            viewModel.errorMessage ?? 'Failed to cancel order',
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        ),
+                      ],
+                    ),
                     backgroundColor: Colors.red,
+                    behavior: SnackBarBehavior.floating,
                   ),
                 );
               }
             },
-            child: const Text(
-              'Cancel Order',
-              style: TextStyle(color: Colors.red),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
             ),
+            child: const Text('Cancel Order'),
           ),
         ],
+      ),
+    );
+  }
+
+  void _showCancellationLoadingDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const CircularProgressIndicator(
+              color: Color(0xFF9C27B0),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Cancelling Order...',
+              style: TextStyle(fontWeight: FontWeight.w500),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Updating order status and releasing items',
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey[600],
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showLoadingDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(
+          color: Color(0xFF9C27B0),
+        ),
       ),
     );
   }

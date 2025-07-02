@@ -18,7 +18,7 @@ class _EditItemPageState extends State<EditItemPage> {
   final TextEditingController _priceController = TextEditingController();
 
   String _selectedCategory = 'Choose category';
-  String _selectedStatus = 'Lightly used';
+  String _selectedStatus = 'available'; // Default to available
   File? _newImageFile;
   String? _currentImageUrl;
   final ImagePicker _picker = ImagePicker();
@@ -35,12 +35,36 @@ class _EditItemPageState extends State<EditItemPage> {
     'Food'
   ];
 
+  // FIXED: Updated status options to match what's actually used in the system
   final List<String> _statusOptions = [
-    'Brand new',
-    'Lightly used',
-    'Well used',
-    'Heavily used'
+    'available',    // Item is available for sale
+    'Brand new',    // Condition: Brand new
+    'Lightly used', // Condition: Lightly used
+    'Well used',    // Condition: Well used
+    'Heavily used', // Condition: Heavily used
   ];
+
+  // Helper method to get display text for status
+  String _getStatusDisplayText(String status) {
+    switch (status.toLowerCase()) {
+      case 'available':
+        return 'Available for Sale';
+      case 'brand new':
+        return 'Brand New';
+      case 'lightly used':
+        return 'Lightly Used';
+      case 'well used':
+        return 'Well Used';
+      case 'heavily used':
+        return 'Heavily Used';
+      case 'sold':
+        return 'Sold (Cannot Edit)';
+      case 'unavailable':
+        return 'Unavailable';
+      default:
+        return status;
+    }
+  }
 
   @override
   void initState() {
@@ -52,8 +76,58 @@ class _EditItemPageState extends State<EditItemPage> {
     _nameController.text = widget.item.name;
     _priceController.text = widget.item.price.toString();
     _selectedCategory = widget.item.category;
-    _selectedStatus = widget.item.status;
+    
+    // FIXED: Handle status properly - if it's sold/unavailable, don't allow editing
+    if (widget.item.status == 'sold' || widget.item.status == 'unavailable') {
+      // Show info and prevent editing
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _showStatusWarning();
+      });
+      _selectedStatus = widget.item.status;
+    } else {
+      // For available items or condition statuses, set appropriately
+      if (_statusOptions.contains(widget.item.status)) {
+        _selectedStatus = widget.item.status;
+      } else {
+        // Default to available if status is not in our options
+        _selectedStatus = 'available';
+      }
+    }
+    
     _currentImageUrl = widget.item.imageUrl;
+  }
+
+  void _showStatusWarning() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Item Status Notice'),
+        content: Text(
+          widget.item.status == 'sold' 
+            ? 'This item has been sold and cannot be edited. You can only view the details.'
+            : 'This item is currently unavailable and cannot be edited.'
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context); // Close dialog
+              Navigator.pop(context); // Go back to previous screen
+            },
+            child: const Text('Go Back'),
+          ),
+          if (widget.item.status == 'unavailable')
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                setState(() {
+                  _selectedStatus = 'available';
+                });
+              },
+              child: const Text('Make Available'),
+            ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -64,6 +138,12 @@ class _EditItemPageState extends State<EditItemPage> {
   }
 
   Future<void> _pickImage() async {
+    // Don't allow image changes for sold items
+    if (widget.item.status == 'sold') {
+      _showErrorSnackBar('Cannot edit sold items');
+      return;
+    }
+
     try {
       final XFile? pickedFile = await _picker.pickImage(
         source: ImageSource.gallery,
@@ -84,6 +164,9 @@ class _EditItemPageState extends State<EditItemPage> {
 
   @override
   Widget build(BuildContext context) {
+    // Check if item is sold or unavailable
+    final bool isEditable = widget.item.status != 'sold';
+    
     return Scaffold(
       backgroundColor: const Color(0xFFE5F6FF),
       appBar: PreferredSize(
@@ -105,11 +188,11 @@ class _EditItemPageState extends State<EditItemPage> {
                     icon: const Icon(Icons.arrow_back, color: Color(0xFF473173)),
                     onPressed: () => Navigator.of(context).pop(),
                   ),
-                  const Expanded(
+                  Expanded(
                     child: Center(
                       child: Text(
-                        'Edit Item',
-                        style: TextStyle(
+                        isEditable ? 'Edit Item' : 'View Item',
+                        style: const TextStyle(
                           color: Color(0xFF473173),
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -137,11 +220,47 @@ class _EditItemPageState extends State<EditItemPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Status warning banner for sold/unavailable items
+              if (!isEditable) ...[
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: widget.item.status == 'sold' ? Colors.green.withOpacity(0.1) : Colors.orange.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: widget.item.status == 'sold' ? Colors.green : Colors.orange,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        widget.item.status == 'sold' ? Icons.check_circle : Icons.warning,
+                        color: widget.item.status == 'sold' ? Colors.green : Colors.orange,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          widget.item.status == 'sold' 
+                            ? 'This item has been sold and cannot be modified'
+                            : 'This item is unavailable and has limited editing options',
+                          style: TextStyle(
+                            color: widget.item.status == 'sold' ? Colors.green.shade700 : Colors.orange.shade700,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+
               // Category Dropdown
               Container(
                 margin: const EdgeInsets.only(bottom: 16.0),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: isEditable ? Colors.white : Colors.grey.shade200,
                   borderRadius: BorderRadius.circular(20.0),
                 ),
                 child: DropdownButtonFormField<String>(
@@ -152,18 +271,18 @@ class _EditItemPageState extends State<EditItemPage> {
                   value: _selectedCategory,
                   icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF8A56AC)),
                   isExpanded: true,
-                  onChanged: (String? newValue) {
+                  onChanged: isEditable ? (String? newValue) {
                     setState(() {
                       _selectedCategory = newValue!;
                     });
-                  },
+                  } : null,
                   items: _categories.map<DropdownMenuItem<String>>((String value) {
                     return DropdownMenuItem<String>(
                       value: value,
                       child: Text(
                         value,
-                        style: const TextStyle(
-                          color: Color(0xFF8A56AC),
+                        style: TextStyle(
+                          color: isEditable ? const Color(0xFF8A56AC) : Colors.grey,
                           fontSize: 14,
                         ),
                       ),
@@ -176,13 +295,13 @@ class _EditItemPageState extends State<EditItemPage> {
                 // Image Upload Section
                 Center(
                   child: GestureDetector(
-                    onTap: _pickImage,
+                    onTap: isEditable ? _pickImage : null,
                     child: Container(
                       width: 120,
                       height: 120,
                       margin: const EdgeInsets.symmetric(vertical: 16),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: isEditable ? Colors.white : Colors.grey.shade200,
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
@@ -212,49 +331,50 @@ class _EditItemPageState extends State<EditItemPage> {
                                 width: 120,
                                 height: 120,
                                 errorBuilder: (context, error, stackTrace) {
-                                  return const Icon(
+                                  return Icon(
                                     Icons.add_photo_alternate,
-                                    color: Color(0xFF8A56AC),
+                                    color: isEditable ? const Color(0xFF8A56AC) : Colors.grey,
                                     size: 40,
                                   );
                                 },
                               ),
                             )
                           else
-                            const Column(
+                            Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 Icon(
                                   Icons.add_photo_alternate,
-                                  color: Color(0xFF8A56AC),
+                                  color: isEditable ? const Color(0xFF8A56AC) : Colors.grey,
                                   size: 40,
                                 ),
-                                SizedBox(height: 4),
+                                const SizedBox(height: 4),
                                 Text(
-                                  'Optional',
+                                  isEditable ? 'Optional' : 'View Only',
                                   style: TextStyle(
-                                    color: Color(0xFF8A56AC),
+                                    color: isEditable ? const Color(0xFF8A56AC) : Colors.grey,
                                     fontSize: 10,
                                   ),
                                 ),
                               ],
                             ),
-                          Positioned(
-                            right: 0,
-                            bottom: 0,
-                            child: Container(
-                              padding: const EdgeInsets.all(4),
-                              decoration: const BoxDecoration(
-                                color: Color(0xFF8A56AC),
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(
-                                Icons.edit,
-                                color: Colors.white,
-                                size: 18,
+                          if (isEditable)
+                            Positioned(
+                              right: 0,
+                              bottom: 0,
+                              child: Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: const BoxDecoration(
+                                  color: Color(0xFF8A56AC),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.edit,
+                                  color: Colors.white,
+                                  size: 18,
+                                ),
                               ),
                             ),
-                          ),
                         ],
                       ),
                     ),
@@ -274,11 +394,12 @@ class _EditItemPageState extends State<EditItemPage> {
                 Container(
                   margin: const EdgeInsets.only(bottom: 16.0),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF9E7FF),
+                    color: isEditable ? const Color(0xFFF9E7FF) : Colors.grey.shade200,
                     borderRadius: BorderRadius.circular(20.0),
                   ),
                   child: TextField(
                     controller: _nameController,
+                    enabled: isEditable,
                     decoration: const InputDecoration(
                       contentPadding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
                       border: InputBorder.none,
@@ -300,7 +421,7 @@ class _EditItemPageState extends State<EditItemPage> {
                 Container(
                   margin: const EdgeInsets.only(bottom: 16.0),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF9E7FF),
+                    color: isEditable ? const Color(0xFFF9E7FF) : Colors.grey.shade200,
                     borderRadius: BorderRadius.circular(20.0),
                   ),
                   child: DropdownButtonFormField<String>(
@@ -311,18 +432,18 @@ class _EditItemPageState extends State<EditItemPage> {
                     value: _selectedStatus,
                     icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF8A56AC)),
                     isExpanded: true,
-                    onChanged: (String? newValue) {
+                    onChanged: isEditable ? (String? newValue) {
                       setState(() {
                         _selectedStatus = newValue!;
                       });
-                    },
+                    } : null,
                     items: _statusOptions.map<DropdownMenuItem<String>>((String value) {
                       return DropdownMenuItem<String>(
                         value: value,
                         child: Text(
-                          value,
-                          style: const TextStyle(
-                            color: Color(0xFF8A56AC),
+                          _getStatusDisplayText(value),
+                          style: TextStyle(
+                            color: isEditable ? const Color(0xFF8A56AC) : Colors.grey,
                             fontSize: 14,
                           ),
                         ),
@@ -344,11 +465,12 @@ class _EditItemPageState extends State<EditItemPage> {
                 Container(
                   margin: const EdgeInsets.only(bottom: 16.0),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF9E7FF),
+                    color: isEditable ? const Color(0xFFF9E7FF) : Colors.grey.shade200,
                     borderRadius: BorderRadius.circular(20.0),
                   ),
                   child: TextField(
                     controller: _priceController,
+                    enabled: isEditable,
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
                     decoration: const InputDecoration(
                       contentPadding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
@@ -358,12 +480,12 @@ class _EditItemPageState extends State<EditItemPage> {
                   ),
                 ),
 
-                // Update Button
+                // Action Buttons
                 Center(
                   child: Container(
                     width: 200,
                     margin: const EdgeInsets.symmetric(vertical: 16.0),
-                    child: ElevatedButton(
+                    child: isEditable ? ElevatedButton(
                       onPressed: _isLoading ? null : _updateItem,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: _isLoading ? Colors.grey : const Color(0xFF2196F3),
@@ -389,6 +511,23 @@ class _EditItemPageState extends State<EditItemPage> {
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
+                    ) : ElevatedButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.grey,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(30),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      child: const Text(
+                        'Go Back',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
                   ),
                 ),
@@ -433,14 +572,26 @@ class _EditItemPageState extends State<EditItemPage> {
     });
 
     try {
-      final updateData = <String, dynamic>{
-        'name': _nameController.text.trim(),
-        'category': _selectedCategory,
-        'status': _selectedStatus,
-        'price': price,
-      };
+      // Use updateItemWithImage if there's a new image, otherwise use regular update
+      if (_newImageFile != null) {
+        await _itemService.updateItemWithImage(
+          itemId: widget.item.id!,
+          name: _nameController.text.trim(),
+          category: _selectedCategory,
+          status: _selectedStatus,
+          price: price,
+          newImageFile: _newImageFile,
+        );
+      } else {
+        final updateData = <String, dynamic>{
+          'name': _nameController.text.trim(),
+          'category': _selectedCategory,
+          'status': _selectedStatus,
+          'price': price,
+        };
 
-      await _itemService.updateItem(widget.item.id!, updateData);
+        await _itemService.updateItem(widget.item.id!, updateData);
+      }
 
       _showSuccessSnackBar('Item updated successfully!');
       

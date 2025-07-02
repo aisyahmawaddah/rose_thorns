@@ -141,7 +141,7 @@ class OrderService {
     }
   }
 
-  /// ENHANCED: Update order status with proper validation and timestamps
+  /// CRITICAL: Enhanced updateOrderStatus with proper cancel reason and deletion support
   Future<bool> updateOrderStatus(String orderId, OrderStatus newStatus, {
     String? trackingNumber,
     String? cancelReason,
@@ -164,13 +164,18 @@ class OrderService {
         return false;
       }
       
-      // Prepare update data
+      // SPECIAL HANDLING FOR CANCELLATION
+      if (newStatus == OrderStatus.cancelled) {
+        return await _handleOrderCancellation(orderId, currentOrder, cancelReason);
+      }
+      
+      // Prepare update data for other status changes
       Map<String, dynamic> updateData = {
         'status': newStatus.toString().split('.').last,
         'updatedAt': DateTime.now().toIso8601String(),
       };
       
-      // Add specific timestamps based on status
+      // Add specific timestamps and data based on status
       switch (newStatus) {
         case OrderStatus.shipped:
           updateData['shippedAt'] = DateTime.now().toIso8601String();
@@ -181,17 +186,8 @@ class OrderService {
         case OrderStatus.delivered:
           updateData['deliveredAt'] = DateTime.now().toIso8601String();
           break;
-        case OrderStatus.cancelled:
-          if (cancelReason != null) {
-            updateData['cancelReason'] = cancelReason;
-          }
-          // IMPORTANT: If cancelled, mark items as available again
-          await _markItemsAsAvailable(currentOrder.items);
-          break;
         case OrderStatus.completed:
-          if (updateData['deliveredAt'] == null) {
-            updateData['deliveredAt'] = DateTime.now().toIso8601String();
-          }
+          updateData['completedAt'] = DateTime.now().toIso8601String();
           break;
         default:
           break;
@@ -208,9 +204,96 @@ class OrderService {
     }
   }
 
+  /// SPECIAL: Handle order cancellation with seller tagging and deletion
+  Future<bool> _handleOrderCancellation(String orderId, OrderRequest currentOrder, String? cancelReason) async {
+    try {
+      print('🚫 Handling order cancellation for order: $orderId');
+      
+      // Get current user (seller who is cancelling)
+      final currentUser = _auth.currentUser;
+      if (currentUser == null) {
+        print('❌ No authenticated user for cancellation');
+        return false;
+      }
+      
+      // Prepare cancellation data with seller information
+      Map<String, dynamic> cancellationData = {
+        'status': 'cancelled',
+        'updatedAt': DateTime.now().toIso8601String(),
+        'cancelledAt': DateTime.now().toIso8601String(),
+        'cancelledBy': currentUser.uid, // TRACK WHO CANCELLED
+        'cancelledByRole': currentUser.uid == currentOrder.sellerId ? 'seller' : 'buyer',
+        'cancelledByName': currentUser.displayName ?? 'Unknown User',
+      };
+      
+      // Add cancel reason if provided
+      if (cancelReason != null && cancelReason.isNotEmpty) {
+        cancellationData['cancelReason'] = cancelReason;
+      }
+      
+      // Add seller-specific tagging
+      if (currentUser.uid == currentOrder.sellerId) {
+        cancellationData['cancelReason'] = cancelReason?.isNotEmpty == true 
+          ? 'Cancelled by seller: $cancelReason'
+          : 'Cancelled by seller';
+        print('🏪 Order cancelled by seller with reason: ${cancellationData['cancelReason']}');
+      }
+      
+      // Start batch operation for atomic updates
+      final batch = _firestore.batch();
+      
+      // Update order with cancellation data
+      final orderRef = _firestore.collection(_collection).doc(orderId);
+      batch.update(orderRef, cancellationData);
+      
+      // Mark items as available again
+      for (final item in currentOrder.items) {
+        String itemId = item.itemId ?? '';
+        
+        if (itemId.isNotEmpty) {
+          final itemDocRef = _firestore.collection('items').doc(itemId);
+          batch.update(itemDocRef, {
+            'status': 'available',
+            'soldAt': FieldValue.delete(),
+            'soldTo': FieldValue.delete(),
+            'orderId': FieldValue.delete(),
+          });
+          print('🔄 Item $itemId will be marked as available again');
+        }
+      }
+      
+      // Commit the batch
+      await batch.commit();
+      print('✅ Order cancelled and items made available again');
+      
+      // AUTOMATIC DELETION AFTER 5 SECONDS (for demo purposes)
+      // In production, you might want to delete after longer period or manually
+      _scheduleOrderDeletion(orderId);
+      
+      return true;
+      
+    } catch (e) {
+      print('❌ Error handling order cancellation: $e');
+      return false;
+    }
+  }
+
+  /// Schedule order deletion after cancellation
+  void _scheduleOrderDeletion(String orderId) {
+    // Delete after 10 seconds for demo (in production, use longer delay or manual process)
+    Future.delayed(const Duration(seconds: 10), () async {
+      try {
+        await _firestore.collection(_collection).doc(orderId).delete();
+        print('🗑️ Cancelled order $orderId automatically deleted from database');
+      } catch (e) {
+        print('❌ Error auto-deleting cancelled order: $e');
+      }
+    });
+  }
+
   /// Helper method to validate status transitions
   bool _isValidStatusTransition(OrderStatus currentStatus, OrderStatus newStatus) {
-    // Define valid transitions
+    // Define valid transitions (simplified without shipping)
     const validTransitions = {
       OrderStatus.placed: [
         OrderStatus.confirmed,
@@ -222,16 +305,8 @@ class OrderService {
         OrderStatus.cancelled,
       ],
       OrderStatus.confirmed: [
-        OrderStatus.shipped,
-        OrderStatus.completed, // For meetup orders
+        OrderStatus.completed, // Direct completion for meetups
         OrderStatus.cancelled,
-      ],
-      OrderStatus.shipped: [
-        OrderStatus.delivered,
-        OrderStatus.cancelled,
-      ],
-      OrderStatus.delivered: [
-        OrderStatus.completed,
       ],
       OrderStatus.completed: [], // Final state
       OrderStatus.cancelled: [], // Final state
@@ -240,48 +315,9 @@ class OrderService {
     return validTransitions[currentStatus]?.contains(newStatus) ?? false;
   }
 
-  /// Helper method to mark items as available again (when order is cancelled)
-  Future<void> _markItemsAsAvailable(List<dynamic> items) async {
-    try {
-      final batch = _firestore.batch();
-      
-      for (final item in items) {
-        String itemId;
-        if (item is Map<String, dynamic>) {
-          itemId = item['itemId'] ?? '';
-        } else {
-          itemId = item.itemId ?? '';
-        }
-        
-        if (itemId.isNotEmpty) {
-          final itemDocRef = _firestore.collection('items').doc(itemId);
-          batch.update(itemDocRef, {
-            'status': 'available',
-            'soldAt': FieldValue.delete(),
-            'soldTo': FieldValue.delete(),
-            'orderId': FieldValue.delete(),
-          });
-        }
-      }
-      
-      await batch.commit();
-      print('✅ Items marked as available again');
-    } catch (e) {
-      print('❌ Error marking items as available: $e');
-    }
-  }
-
   /// Quick status update methods for common transitions
   Future<bool> confirmOrder(String orderId) async {
     return await updateOrderStatus(orderId, OrderStatus.confirmed);
-  }
-
-  Future<bool> shipOrder(String orderId, {String? trackingNumber}) async {
-    return await updateOrderStatus(orderId, OrderStatus.shipped, trackingNumber: trackingNumber);
-  }
-
-  Future<bool> markAsDelivered(String orderId) async {
-    return await updateOrderStatus(orderId, OrderStatus.delivered);
   }
 
   Future<bool> completeOrder(String orderId) async {
@@ -317,8 +353,7 @@ class OrderService {
       int completedOrders = orders.where((o) => o.status == OrderStatus.completed).length;
       int pendingOrders = orders.where((o) => [
         OrderStatus.placed, 
-        OrderStatus.confirmed, 
-        OrderStatus.shipped
+        OrderStatus.confirmed
       ].contains(o.status)).length;
       int cancelledOrders = orders.where((o) => o.status == OrderStatus.cancelled).length;
       

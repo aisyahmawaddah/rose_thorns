@@ -552,4 +552,191 @@ class ItemService {
       print('Error in migration: $e');
     }
   }
+
+  // Add these methods to your existing ItemService class (item_services.dart)
+
+  // ADMIN: Get ALL items including sold ones (for admin management)
+  Future<List<ItemModel>> getAllItemsForAdmin() async {
+    try {
+      print('🔧 ADMIN: Loading ALL items (including sold items)...');
+      
+      final querySnapshot = await _itemsCollection
+          .orderBy('createdAt', descending: true)
+          .get();
+      
+      final allItems = querySnapshot.docs
+          .map((doc) => ItemModel.fromMap(
+              doc.data() as Map<String, dynamic>, 
+              doc.id))
+          .toList();
+
+      print('✅ ADMIN: Loaded ${allItems.length} total items (including sold items)');
+      return allItems;
+    } catch (e) {
+      print('Error getting all items for admin: $e');
+      throw Exception('Failed to get all items for admin: ${e.toString()}');
+    }
+  }
+
+  // ADMIN: Get items by category including sold ones
+  Future<List<ItemModel>> getItemsByCategoryForAdmin(String category) async {
+    try {
+      print('🔧 ADMIN: Loading items by category: $category (including sold items)...');
+      
+      final querySnapshot = await _itemsCollection
+          .where('category', isEqualTo: category)
+          .get();
+      
+      final allItems = querySnapshot.docs
+          .map((doc) => ItemModel.fromMap(
+              doc.data() as Map<String, dynamic>, 
+              doc.id))
+          .toList();
+      
+      // Sort in memory by creation date
+      allItems.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      
+      print('✅ ADMIN: Loaded ${allItems.length} items in category "$category" (including sold)');
+      return allItems;
+    } catch (e) {
+      print('Error getting items by category for admin: $e');
+      throw Exception('Failed to get items by category for admin: ${e.toString()}');
+    }
+  }
+
+  // ADMIN: Search all items including sold ones
+  Future<List<ItemModel>> searchAllItemsForAdmin(String query) async {
+    try {
+      print('🔧 ADMIN: Searching ALL items for: "$query" (including sold items)...');
+      
+      // Get all items first
+      final querySnapshot = await _itemsCollection.get();
+      
+      final allItems = querySnapshot.docs
+          .map((doc) => ItemModel.fromMap(
+              doc.data() as Map<String, dynamic>, 
+              doc.id))
+          .toList();
+      
+      // Filter items that contain the query in name, seller, or category
+      final searchResults = allItems.where((item) => 
+          item.name.toLowerCase().contains(query.toLowerCase()) ||
+          item.sellerName.toLowerCase().contains(query.toLowerCase()) ||
+          item.category.toLowerCase().contains(query.toLowerCase())).toList();
+      
+      print('✅ ADMIN: Found ${searchResults.length} items matching "$query" (including sold)');
+      return searchResults;
+    } catch (e) {
+      print('Error searching all items for admin: $e');
+      throw Exception('Failed to search all items for admin: ${e.toString()}');
+    }
+  }
+
+  // ADMIN: Get items by status
+  Future<List<ItemModel>> getItemsByStatusForAdmin(String status) async {
+    try {
+      print('🔧 ADMIN: Loading items with status: $status...');
+      
+      QuerySnapshot querySnapshot;
+      
+      if (status.toLowerCase() == 'all') {
+        querySnapshot = await _itemsCollection
+            .orderBy('createdAt', descending: true)
+            .get();
+      } else {
+        querySnapshot = await _itemsCollection
+            .where('status', isEqualTo: status)
+            .get();
+      }
+      
+      final items = querySnapshot.docs
+          .map((doc) => ItemModel.fromMap(
+              doc.data() as Map<String, dynamic>, 
+              doc.id))
+          .toList();
+      
+      // Sort if not already sorted
+      if (status.toLowerCase() != 'all') {
+        items.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      }
+      
+      print('✅ ADMIN: Loaded ${items.length} items with status "$status"');
+      return items;
+    } catch (e) {
+      print('Error getting items by status for admin: $e');
+      throw Exception('Failed to get items by status for admin: ${e.toString()}');
+    }
+  }
+
+  // ADMIN: Get statistics about items
+  Future<Map<String, dynamic>> getItemStatisticsForAdmin() async {
+    try {
+      print('🔧 ADMIN: Calculating item statistics...');
+      
+      final querySnapshot = await _itemsCollection.get();
+      
+      final allItems = querySnapshot.docs
+          .map((doc) => ItemModel.fromMap(
+              doc.data() as Map<String, dynamic>, 
+              doc.id))
+          .toList();
+      
+      final Map<String, int> statusCount = {};
+      final Map<String, int> categoryCount = {};
+      final Map<String, int> sellerCount = {};
+      
+      for (final item in allItems) {
+        // Count by status
+        statusCount[item.status] = (statusCount[item.status] ?? 0) + 1;
+        
+        // Count by category
+        categoryCount[item.category] = (categoryCount[item.category] ?? 0) + 1;
+        
+        // Count by seller
+        sellerCount[item.sellerId] = (sellerCount[item.sellerId] ?? 0) + 1;
+      }
+      
+      final statistics = {
+        'totalItems': allItems.length,
+        'availableItems': allItems.where((item) => item.status != 'sold').length,
+        'soldItems': allItems.where((item) => item.status == 'sold').length,
+        'statusBreakdown': statusCount,
+        'categoryBreakdown': categoryCount,
+        'sellerBreakdown': sellerCount,
+        'totalSellers': sellerCount.keys.length,
+      };
+      
+      print('✅ ADMIN: Statistics calculated');
+      return statistics;
+    } catch (e) {
+      print('Error getting item statistics for admin: $e');
+      return {};
+    }
+  }
+
+  // ADMIN: Log admin actions for audit trail
+  Future<void> logAdminAction({
+    required String action,
+    required String itemId,
+    String? details,
+  }) async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) return;
+
+      await _firestore.collection('adminLogs').add({
+        'adminId': user.uid,
+        'adminEmail': user.email,
+        'action': action,
+        'itemId': itemId,
+        'details': details,
+        'timestamp': FieldValue.serverTimestamp(),
+      });
+
+      print('✅ ADMIN: Action logged - $action for item $itemId');
+    } catch (e) {
+      print('Error logging admin action: $e');
+      // Don't throw error as this is just for logging
+    }
+  }
 }

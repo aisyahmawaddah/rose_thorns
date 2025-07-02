@@ -30,12 +30,11 @@ class OrderHistoryViewModel extends ChangeNotifier {
     return _orders.where((order) => order.status == status).toList();
   }
 
-  // Get all pending orders (placed, confirmed, shipped)
+  // Get all pending orders (placed, confirmed)
   List<OrderRequest> get pendingOrders {
     return _orders.where((order) => [
       OrderStatus.placed,
       OrderStatus.confirmed,
-      OrderStatus.shipped,
       OrderStatus.pendingPayment,
     ].contains(order.status)).toList();
   }
@@ -50,7 +49,7 @@ class OrderHistoryViewModel extends ChangeNotifier {
     return _orders.where((order) => order.status == OrderStatus.cancelled).toList();
   }
 
-  // Load seller orders (orders for current user's items)
+  // CRITICAL: Load seller orders (orders for current user's items)
   Future<void> loadSellerOrders() async {
     final user = _auth.currentUser;
     if (user == null) {
@@ -86,25 +85,33 @@ class OrderHistoryViewModel extends ChangeNotifier {
     }
   }
 
-  // ENHANCED: Update order status with validation
+  // CRITICAL: Update order status with validation and proper error handling
   Future<bool> updateOrderStatus(String orderId, OrderStatus newStatus, {
     String? trackingNumber,
     String? cancelReason,
   }) async {
     try {
       print('📝 Seller updating order $orderId status to: $newStatus');
+      _clearError(); // Clear previous errors
       
       // Find the order to validate current status
-      final order = _orders.firstWhere((o) => o.id == orderId);
+      final orderIndex = _orders.indexWhere((o) => o.id == orderId);
+      if (orderIndex == -1) {
+        print('❌ Order not found in local list: $orderId');
+        _setError('Order not found');
+        return false;
+      }
+      
+      final order = _orders[orderIndex];
       
       // Validate transition
       if (!_isValidTransitionForSeller(order.status, newStatus)) {
         print('❌ Invalid status transition from ${order.status} to $newStatus');
-        _setError('Invalid status transition');
+        _setError('Invalid status transition from ${order.status} to $newStatus');
         return false;
       }
       
-      // Update status in Firestore
+      // Update status in Firestore using enhanced OrderService method
       final success = await _orderService.updateOrderStatus(
         orderId, 
         newStatus,
@@ -113,89 +120,93 @@ class OrderHistoryViewModel extends ChangeNotifier {
       );
       
       if (success) {
-        // Update local state for immediate UI feedback
-        final orderIndex = _orders.indexWhere((order) => order.id == orderId);
-        if (orderIndex != -1) {
-          _orders[orderIndex] = _orders[orderIndex].copyWith(
-            status: newStatus,
-            updatedAt: DateTime.now(),
-            trackingNumber: trackingNumber ?? _orders[orderIndex].trackingNumber,
-            cancelReason: cancelReason ?? _orders[orderIndex].cancelReason,
-          );
-          
-          // Update timestamps based on status
-          switch (newStatus) {
-            case OrderStatus.shipped:
-              _orders[orderIndex] = _orders[orderIndex].copyWith(
-                shippedAt: DateTime.now(),
-              );
-              break;
-            case OrderStatus.delivered:
-              _orders[orderIndex] = _orders[orderIndex].copyWith(
-                deliveredAt: DateTime.now(),
-              );
-              break;
-            default:
-              break;
-          }
-          
-          // Recalculate statistics
-          await _loadStatistics(_auth.currentUser!.uid);
-          notifyListeners();
+        print('✅ Order status updated in Firestore, updating local state...');
+        
+        // Update local state immediately for UI responsiveness
+        _orders[orderIndex] = _orders[orderIndex].copyWith(
+          status: newStatus,
+          updatedAt: DateTime.now(),
+          trackingNumber: trackingNumber ?? _orders[orderIndex].trackingNumber,
+          cancelReason: cancelReason ?? _orders[orderIndex].cancelReason,
+        );
+        
+        // Update timestamps based on status
+        switch (newStatus) {
+          case OrderStatus.shipped:
+            _orders[orderIndex] = _orders[orderIndex].copyWith(
+              shippedAt: DateTime.now(),
+            );
+            break;
+          case OrderStatus.delivered:
+            _orders[orderIndex] = _orders[orderIndex].copyWith(
+              deliveredAt: DateTime.now(),
+            );
+            break;
+          default:
+            break;
         }
         
-        print('✅ Order status updated successfully');
+        // Reload statistics after successful update
+        final user = _auth.currentUser;
+        if (user != null) {
+          await _loadStatistics(user.uid);
+        }
+        
+        notifyListeners();
+        print('✅ Order status updated successfully in UI');
         return true;
       } else {
-        print('❌ Failed to update order status');
-        _setError('Failed to update order status');
+        print('❌ Failed to update order status in Firestore');
+        _setError('Failed to update order status in database');
         return false;
       }
     } catch (e) {
       print('❌ Error updating order status: $e');
-      _setError('Error updating order status: $e');
+      _setError('Error updating order status: ${e.toString()}');
       return false;
     }
   }
 
-  // Validate status transitions for sellers
+  // Validate status transitions for sellers (simplified without shipped states)
   bool _isValidTransitionForSeller(OrderStatus currentStatus, OrderStatus newStatus) {
     const sellerAllowedTransitions = {
       OrderStatus.placed: [OrderStatus.confirmed, OrderStatus.cancelled],
       OrderStatus.pendingPayment: [OrderStatus.confirmed, OrderStatus.cancelled],
-      OrderStatus.confirmed: [OrderStatus.shipped, OrderStatus.completed, OrderStatus.cancelled],
-      OrderStatus.shipped: [OrderStatus.delivered, OrderStatus.cancelled],
-      OrderStatus.delivered: [OrderStatus.completed],
+      OrderStatus.confirmed: [OrderStatus.completed, OrderStatus.cancelled],
       OrderStatus.completed: [], // Final state
       OrderStatus.cancelled: [], // Final state
     };
     
-    return sellerAllowedTransitions[currentStatus]?.contains(newStatus) ?? false;
+    final allowedTransitions = sellerAllowedTransitions[currentStatus];
+    if (allowedTransitions == null) {
+      print('❌ No transitions defined for status: $currentStatus');
+      return false;
+    }
+    
+    final isValid = allowedTransitions.contains(newStatus);
+    print('🔍 Transition validation: $currentStatus → $newStatus = $isValid');
+    return isValid;
   }
 
-  // Quick action methods for common status updates
+  // CRITICAL: Quick action methods for common status updates
   Future<bool> confirmOrder(String orderId) async {
+    print('🔄 Confirming order: $orderId');
     return await updateOrderStatus(orderId, OrderStatus.confirmed);
   }
 
-  Future<bool> shipOrder(String orderId, {String? trackingNumber}) async {
-    return await updateOrderStatus(orderId, OrderStatus.shipped, trackingNumber: trackingNumber);
-  }
-
-  Future<bool> markAsDelivered(String orderId) async {
-    return await updateOrderStatus(orderId, OrderStatus.delivered);
-  }
-
   Future<bool> completeOrder(String orderId) async {
+    print('🔄 Completing order: $orderId');
     return await updateOrderStatus(orderId, OrderStatus.completed);
   }
 
   Future<bool> cancelOrder(String orderId, {String? reason}) async {
+    print('🔄 Cancelling order: $orderId with reason: $reason');
     return await updateOrderStatus(orderId, OrderStatus.cancelled, cancelReason: reason);
   }
 
-  // Refresh orders
+  // Refresh orders with error handling
   Future<void> refreshOrders() async {
+    print('🔄 Refreshing orders...');
     await loadSellerOrders();
   }
 
@@ -206,27 +217,30 @@ class OrderHistoryViewModel extends ChangeNotifier {
       'placed': _orders.where((o) => o.status == OrderStatus.placed).length,
       'pendingPayment': _orders.where((o) => o.status == OrderStatus.pendingPayment).length,
       'confirmed': _orders.where((o) => o.status == OrderStatus.confirmed).length,
-      'shipped': _orders.where((o) => o.status == OrderStatus.shipped).length,
-      'delivered': _orders.where((o) => o.status == OrderStatus.delivered).length,
       'completed': _orders.where((o) => o.status == OrderStatus.completed).length,
       'cancelled': _orders.where((o) => o.status == OrderStatus.cancelled).length,
     };
 
+    print('📊 Order statistics: $stats');
     return stats;
   }
 
   // Get total revenue from completed orders
   double getTotalRevenue() {
-    return _orders
+    final revenue = _orders
         .where((order) => order.status == OrderStatus.completed)
         .fold(0.0, (sum, order) => sum + order.total);
+    print('💰 Total revenue: RM${revenue.toStringAsFixed(2)}');
+    return revenue;
   }
 
   // Get total items sold
   int getTotalItemsSold() {
-    return _orders
+    final itemsSold = _orders
         .where((order) => order.status == OrderStatus.completed)
         .fold(0, (sum, order) => sum + order.items.length);
+    print('📦 Total items sold: $itemsSold');
+    return itemsSold;
   }
 
   // Start listening to real-time updates
@@ -234,16 +248,13 @@ class OrderHistoryViewModel extends ChangeNotifier {
     final user = _auth.currentUser;
     if (user == null) return;
 
+    print('👂 Starting to listen to real-time order updates for seller: ${user.uid}');
     _orderService.getSellerOrdersStream(user.uid).listen((orders) {
+      print('🔄 Real-time update received: ${orders.length} orders');
       _orders = orders;
       _loadStatistics(user.uid);
       notifyListeners();
     });
-  }
-
-  // Stop listening to real-time updates
-  void stopListeningToOrders() {
-    // Stream subscriptions are automatically cancelled when the widget is disposed
   }
 
   // Helper methods
@@ -254,6 +265,7 @@ class OrderHistoryViewModel extends ChangeNotifier {
 
   void _setError(String error) {
     _errorMessage = error;
+    print('❌ ViewModel Error: $error');
     notifyListeners();
   }
 
@@ -263,6 +275,7 @@ class OrderHistoryViewModel extends ChangeNotifier {
 
   @override
   void dispose() {
+    print('🗑️ OrderHistoryViewModel disposed');
     super.dispose();
   }
 }

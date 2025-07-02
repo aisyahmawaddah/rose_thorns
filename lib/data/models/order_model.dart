@@ -22,6 +22,12 @@ class OrderRequest {
   final String? cancelReason;
   final DateTime? deliveredAt;
   final DateTime? shippedAt;
+  final DateTime? completedAt;
+  // NEW: Cancellation tracking fields
+  final DateTime? cancelledAt;
+  final String? cancelledBy;
+  final String? cancelledByRole;
+  final String? cancelledByName;
 
   OrderRequest({
     required this.id,
@@ -42,6 +48,12 @@ class OrderRequest {
     this.cancelReason,
     this.deliveredAt,
     this.shippedAt,
+    this.completedAt,
+    // NEW: Cancellation tracking
+    this.cancelledAt,
+    this.cancelledBy,
+    this.cancelledByRole,
+    this.cancelledByName,
   });
 
   Map<String, dynamic> toJson() {
@@ -64,6 +76,12 @@ class OrderRequest {
       'cancelReason': cancelReason,
       'deliveredAt': deliveredAt?.toIso8601String(),
       'shippedAt': shippedAt?.toIso8601String(),
+      'completedAt': completedAt?.toIso8601String(),
+      // NEW: Include cancellation fields in JSON
+      'cancelledAt': cancelledAt?.toIso8601String(),
+      'cancelledBy': cancelledBy,
+      'cancelledByRole': cancelledByRole,
+      'cancelledByName': cancelledByName,
     };
   }
 
@@ -128,6 +146,25 @@ class OrderRequest {
           shippedAt = DateTime.parse(json['shippedAt']);
         } catch (e) {
           print('❌ Error parsing shipped date: $e');
+        }
+      }
+      
+      DateTime? completedAt;
+      if (json['completedAt'] != null) {
+        try {
+          completedAt = DateTime.parse(json['completedAt']);
+        } catch (e) {
+          print('❌ Error parsing completed date: $e');
+        }
+      }
+      
+      // NEW: Parse cancellation dates
+      DateTime? cancelledAt;
+      if (json['cancelledAt'] != null) {
+        try {
+          cancelledAt = DateTime.parse(json['cancelledAt']);
+        } catch (e) {
+          print('❌ Error parsing cancelled date: $e');
         }
       }
       
@@ -209,6 +246,12 @@ class OrderRequest {
         cancelReason: json['cancelReason'],
         deliveredAt: deliveredAt,
         shippedAt: shippedAt,
+        completedAt: completedAt,
+        // NEW: Parse cancellation fields
+        cancelledAt: cancelledAt,
+        cancelledBy: json['cancelledBy'],
+        cancelledByRole: json['cancelledByRole'],
+        cancelledByName: json['cancelledByName'],
       );
       
       print('✅ Successfully parsed OrderRequest: ${order.id}');
@@ -255,6 +298,11 @@ class OrderRequest {
     String? cancelReason,
     DateTime? deliveredAt,
     DateTime? shippedAt,
+    DateTime? completedAt,
+    DateTime? cancelledAt,
+    String? cancelledBy,
+    String? cancelledByRole,
+    String? cancelledByName,
   }) {
     return OrderRequest(
       id: id ?? this.id,
@@ -275,7 +323,41 @@ class OrderRequest {
       cancelReason: cancelReason ?? this.cancelReason,
       deliveredAt: deliveredAt ?? this.deliveredAt,
       shippedAt: shippedAt ?? this.shippedAt,
+      completedAt: completedAt ?? this.completedAt,
+      cancelledAt: cancelledAt ?? this.cancelledAt,
+      cancelledBy: cancelledBy ?? this.cancelledBy,
+      cancelledByRole: cancelledByRole ?? this.cancelledByRole,
+      cancelledByName: cancelledByName ?? this.cancelledByName,
     );
+  }
+
+  // Helper method to get cancellation display text
+  String get cancellationDisplayText {
+    if (status != OrderStatus.cancelled) return '';
+    
+    String text = 'Order Cancelled';
+    
+    if (cancelledByRole != null) {
+      text += ' by ${cancelledByRole}';
+    }
+    
+    if (cancelReason != null && cancelReason!.isNotEmpty) {
+      text += ' - $cancelReason';
+    }
+    
+    return text;
+  }
+
+  // Helper method to check if cancelled by seller
+  bool get isCancelledBySeller {
+    return status == OrderStatus.cancelled && 
+           cancelledByRole == 'seller';
+  }
+
+  // Helper method to check if cancelled by buyer
+  bool get isCancelledByBuyer {
+    return status == OrderStatus.cancelled && 
+           cancelledByRole == 'buyer';
   }
 }
 
