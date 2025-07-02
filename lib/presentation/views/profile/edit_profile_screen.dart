@@ -19,7 +19,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   File? _selectedImage;
   final ImagePicker _picker = ImagePicker();
   final SupabaseImageService _imageService = SupabaseImageService();
-  
+
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
   @override
@@ -35,16 +35,29 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         // Force refresh user data
         await user.reload();
         final freshUser = _auth.currentUser;
-        
+
         if (freshUser != null && mounted) {
           setState(() {
-            // Always load existing data into text fields
-            _nameController.text = freshUser.displayName ?? 'User';
+            // Use actual display name or derive from email, avoid 'User' default
+            String displayName = freshUser.displayName ?? '';
+
+            // If no display name is set, derive from email
+            if (displayName.isEmpty && freshUser.email != null) {
+              displayName = freshUser.email!.split('@')[0];
+            }
+
+            // Only use 'User' as absolute last resort if everything else fails
+            if (displayName.isEmpty) {
+              displayName = 'User';
+            }
+
+            _nameController.text = displayName;
             _emailController.text = freshUser.email ?? '';
           });
-          
+
           print('👤 Loaded user data for editing:');
-          print('   - Display Name: "${freshUser.displayName ?? "Not set"}" -> TextField');
+          print(
+              '   - Display Name: "${freshUser.displayName ?? "Not set"}" -> TextField: "${_nameController.text}"');
           print('   - Email: "${freshUser.email ?? "Not set"}" -> TextField');
           print('   - Photo URL: ${freshUser.photoURL ?? "Not set"}');
         }
@@ -54,8 +67,21 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       // Set defaults if loading fails
       if (mounted) {
         setState(() {
-          _nameController.text = 'User';
-          _emailController.text = _auth.currentUser?.email ?? '';
+          final currentUser = _auth.currentUser;
+          String fallbackName = '';
+
+          // Try to get display name even in error case
+          if (currentUser?.displayName != null &&
+              currentUser!.displayName!.isNotEmpty) {
+            fallbackName = currentUser.displayName!;
+          } else if (currentUser?.email != null) {
+            fallbackName = currentUser!.email!.split('@')[0];
+          } else {
+            fallbackName = 'User'; // Last resort only
+          }
+
+          _nameController.text = fallbackName;
+          _emailController.text = currentUser?.email ?? '';
         });
       }
     }
@@ -142,12 +168,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         maxHeight: 512,
         imageQuality: 85,
       );
-      
+
       if (pickedFile != null) {
         setState(() {
           _selectedImage = File(pickedFile.path);
         });
-        
+
         _showSuccessSnackBar('Profile picture selected!');
       }
     } catch (e) {
@@ -183,7 +209,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               child: Row(
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.arrow_back, color: Color(0xFF473173)),
+                    icon:
+                        const Icon(Icons.arrow_back, color: Color(0xFF473173)),
                     onPressed: () => Navigator.of(context).pop(),
                   ),
                   const Expanded(
@@ -229,7 +256,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     decoration: BoxDecoration(
                       color: Colors.white,
                       shape: BoxShape.circle,
-                      border: Border.all(color: const Color(0xFF9C27B0), width: 3),
+                      border:
+                          Border.all(color: const Color(0xFF9C27B0), width: 3),
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withOpacity(0.1),
@@ -254,7 +282,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                               shape: BoxShape.circle,
                             ),
                             child: Icon(
-                              _selectedImage != null || _auth.currentUser?.photoURL != null
+                              _selectedImage != null ||
+                                      _auth.currentUser?.photoURL != null
                                   ? Icons.edit
                                   : Icons.camera_alt,
                               color: Colors.white,
@@ -273,11 +302,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 Center(
                   child: Container(
                     margin: const EdgeInsets.only(bottom: 16),
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
                       color: const Color(0xFF9C27B0).withOpacity(0.1),
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: const Color(0xFF9C27B0).withOpacity(0.3)),
+                      border: Border.all(
+                          color: const Color(0xFF9C27B0).withOpacity(0.3)),
                     ),
                     child: const Text(
                       '📸 New profile picture selected',
@@ -325,8 +356,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 child: TextField(
                   controller: _nameController,
                   decoration: const InputDecoration(
-                    contentPadding: EdgeInsets.symmetric(
-                        horizontal: 16.0, vertical: 12.0),
+                    contentPadding:
+                        EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
                     border: InputBorder.none,
                     hintText: 'Enter your display name',
                   ),
@@ -366,8 +397,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   controller: _emailController,
                   readOnly: true,
                   decoration: const InputDecoration(
-                    contentPadding: EdgeInsets.symmetric(
-                        horizontal: 16.0, vertical: 12.0),
+                    contentPadding:
+                        EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
                     border: InputBorder.none,
                     hintText: 'Email cannot be changed',
                   ),
@@ -417,9 +448,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   child: ElevatedButton(
                     onPressed: _isLoading ? null : _saveProfile,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: _isLoading 
-                          ? Colors.grey 
-                          : const Color(0xFF8BC34A),
+                      backgroundColor:
+                          _isLoading ? Colors.grey : const Color(0xFF8BC34A),
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(30),
@@ -432,7 +462,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                             width: 20,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                              valueColor:
+                                  AlwaysStoppedAnimation<Color>(Colors.white),
                             ),
                           )
                         : const Text(
@@ -463,7 +494,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         height: 114,
       );
     }
-    
+
     // Show current profile image if available
     if (_auth.currentUser?.photoURL != null) {
       return Image.network(
@@ -492,7 +523,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         },
       );
     }
-    
+
     // Show default icon
     return Container(
       color: const Color(0xFFE8D4F1),
@@ -567,8 +598,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       if (_selectedImage != null) {
         try {
           print('📸 Uploading profile image to Supabase...');
-          newPhotoURL = await _imageService.uploadProfileImage(_selectedImage!, user.uid);
-          
+          newPhotoURL =
+              await _imageService.uploadProfileImage(_selectedImage!, user.uid);
+
           if (newPhotoURL == null) {
             throw Exception('Image upload returned null URL');
           }
@@ -576,7 +608,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         } catch (imageError) {
           print('❌ Image upload failed: $imageError');
           imageUploadSuccess = false;
-          _showErrorSnackBar('Failed to upload profile picture. Saving name only.');
+          _showErrorSnackBar(
+              'Failed to upload profile picture. Saving name only.');
         }
       }
 
@@ -624,7 +657,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             .collection('users')
             .doc(user.uid)
             .update(updateData);
-        
+
         print('✅ Firestore user document updated successfully');
       } catch (firestoreError) {
         print('⚠️ Firestore update failed: $firestoreError');
@@ -642,31 +675,34 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
       // Step 5: Show appropriate success message
       String successMessage = 'Profile updated successfully!';
-      
+
       if (displayNameUpdated && imageUploadSuccess && photoURLUpdated) {
         successMessage = 'Profile and picture updated successfully!';
-      } else if (displayNameUpdated && !photoURLUpdated && _selectedImage != null) {
-        successMessage = 'Profile updated! Picture uploaded but may take time to sync.';
+      } else if (displayNameUpdated &&
+          !photoURLUpdated &&
+          _selectedImage != null) {
+        successMessage =
+            'Profile updated! Picture uploaded but may take time to sync.';
       } else if (displayNameUpdated) {
         successMessage = 'Profile name updated successfully!';
       }
 
       _showSuccessSnackBar(successMessage);
-      
+
       // Step 6: Wait and navigate back
       await Future.delayed(const Duration(milliseconds: 1500));
-      
+
       if (mounted) {
         Navigator.of(context).pop(true);
       }
-
     } catch (e) {
       print('❌ Profile update failed: $e');
-      
+
       // Show user-friendly error message
       String errorMessage = 'Failed to update profile';
-      
-      if (e.toString().contains('network') || e.toString().contains('timeout')) {
+
+      if (e.toString().contains('network') ||
+          e.toString().contains('timeout')) {
         errorMessage = 'Network error. Please check your connection.';
       } else if (e.toString().contains('requires-recent-login')) {
         errorMessage = 'Please log out and log back in to update your profile.';
@@ -682,9 +718,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           errorMessage = 'Update failed. Please try again.';
         }
       }
-      
+
       _showErrorSnackBar(errorMessage);
-      
     } finally {
       if (mounted) {
         setState(() {
@@ -732,7 +767,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               Expanded(
                 child: Text(
                   message,
-                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                  style: const TextStyle(
+                      fontSize: 14, fontWeight: FontWeight.w500),
                 ),
               ),
             ],
