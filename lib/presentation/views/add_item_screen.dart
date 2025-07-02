@@ -1,7 +1,13 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:provider/provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:koopon/data/services/item_services.dart';
+import 'package:koopon/presentation/views/cart/cart_screen.dart';
+import 'package:koopon/presentation/views/order_request/purchase_history_screen.dart';
+import 'package:koopon/presentation/views/profile/profile_screen.dart';
+import 'package:koopon/presentation/viewmodels/cart_viewmodel.dart';
 
 class AddItemPage extends StatefulWidget {
   const AddItemPage({Key? key}) : super(key: key);
@@ -19,6 +25,7 @@ class _AddItemPageState extends State<AddItemPage> {
   File? _imageFile;
   final ImagePicker _picker = ImagePicker();
   bool _isLoading = false;
+  int _selectedNavIndex = 2; // Sell tab is selected
 
   // Instance of ItemService
   final ItemService _itemService = ItemService();
@@ -621,50 +628,250 @@ class _AddItemPageState extends State<AddItemPage> {
           ),
         ),
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: Colors.white,
-        selectedItemColor: const Color(0xFF8A56AC),
-        unselectedItemColor: Colors.grey,
-        showSelectedLabels: true,
-        showUnselectedLabels: true,
-        type: BottomNavigationBarType.fixed,
-        onTap: (index) {
-          if (index == 0) {
-            // Home - Go back to home screen
-            Navigator.of(context).pop();
-          }
-          // Add other navigation logic as needed
-        },
-        items: [
-          const BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Home',
-          ),
-          const BottomNavigationBarItem(
-            icon: Icon(Icons.bookmark_border),
-            label: 'Wishlist',
-          ),
-          BottomNavigationBarItem(
-            icon: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: const BoxDecoration(
-                color: Color(0xFF8A56AC),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.add, color: Colors.white),
+      bottomNavigationBar: Container(
+        height: 70,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 10,
+              offset: const Offset(0, -2),
             ),
-            label: 'Sell',
+          ],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            _buildNavItem(Icons.home, 'Home', 0),
+            _buildNavItem(Icons.shopping_cart, 'Cart', 1), // Changed from bookmark to cart
+            _buildSellButton(),
+            _buildNavItem(Icons.receipt_long, 'History', 3), // Changed from notifications to receipt/history
+            _buildNavItem(Icons.person_outline, 'Profile', 4),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNavItem(IconData icon, String label, int index) {
+    final isSelected = _selectedNavIndex == index;
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _selectedNavIndex = index;
+        });
+        
+        // Handle navigation based on index
+        switch (index) {
+          case 0:
+            // Home - Navigate back to home screen
+            Navigator.of(context).pop();
+            break;
+          case 1:
+            // Cart - Navigate to CartScreen
+            if (FirebaseAuth.instance.currentUser != null) {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const CartScreen(),
+                ),
+              ).then((value) {
+                // Reset navigation selection when returning from cart
+                setState(() {
+                  _selectedNavIndex = 2; // Keep sell selected
+                });
+              });
+            } else {
+              // Show login message for unauthenticated users
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Please login to access your cart'),
+                  backgroundColor: Colors.orange,
+                  duration: Duration(seconds: 3),
+                ),
+              );
+              // Reset selection to sell
+              setState(() {
+                _selectedNavIndex = 2;
+              });
+            }
+            break;
+          case 3:
+            // Purchase History - Navigate to PurchaseHistoryScreen
+            if (FirebaseAuth.instance.currentUser != null) {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => PurchaseHistoryScreen(),
+                ),
+              ).then((value) {
+                // Reset navigation selection when returning from history
+                setState(() {
+                  _selectedNavIndex = 2; // Keep sell selected
+                });
+              });
+            } else {
+              // Show login message for unauthenticated users
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Please login to view your purchase history'),
+                  backgroundColor: Colors.orange,
+                  duration: Duration(seconds: 3),
+                ),
+              );
+              // Reset selection to sell
+              setState(() {
+                _selectedNavIndex = 2;
+              });
+            }
+            break;
+          case 4:
+            // Profile - Navigate to ProfileScreen
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const ProfileScreen(),
+              ),
+            ).then((value) {
+              // Reset navigation selection when returning from profile
+              setState(() {
+                _selectedNavIndex = 2; // Keep sell selected
+              });
+            });
+            break;
+          default:
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('$label selected')),
+            );
+        }
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Add cart badge for cart navigation item
+            index == 1 ? // Cart navigation item
+              StreamBuilder<User?>(
+                stream: FirebaseAuth.instance.authStateChanges(),
+                builder: (context, snapshot) {
+                  if (snapshot.hasData && snapshot.data != null) {
+                    return Consumer<CartViewModel>(
+                      builder: (context, cartViewModel, child) {
+                        return Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            Icon(
+                              icon,
+                              color: isSelected ? const Color(0xFF8A56AC) : Colors.grey[400],
+                              size: 24,
+                            ),
+                            // Cart count badge (only show if items > 0 and user has token)
+                            if (cartViewModel.itemCount > 0 && cartViewModel.userToken != null)
+                              Positioned(
+                                right: -8,
+                                top: -8,
+                                child: Container(
+                                  padding: const EdgeInsets.all(4),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFE91E63),
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(color: Colors.white, width: 1),
+                                  ),
+                                  constraints: const BoxConstraints(
+                                    minWidth: 16,
+                                    minHeight: 16,
+                                  ),
+                                  child: Text(
+                                    '${cartViewModel.itemCount}',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        );
+                      },
+                    );
+                  } else {
+                    // Show cart icon without badge if user has no token
+                    return Icon(
+                      icon,
+                      color: isSelected ? const Color(0xFF8A56AC) : Colors.grey[400],
+                      size: 24,
+                    );
+                  }
+                },
+              )
+            : // Regular navigation items
+              Icon(
+                icon,
+                color: isSelected ? const Color(0xFF8A56AC) : Colors.grey[400],
+                size: 24,
+              ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 10,
+                color: isSelected ? const Color(0xFF8A56AC) : Colors.grey[400],
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSellButton() {
+    return GestureDetector(
+      onTap: () {
+        // Already on add item screen, show message or do nothing
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('You are currently adding an item'),
+            backgroundColor: Colors.blue,
+            duration: Duration(seconds: 2),
           ),
-          const BottomNavigationBarItem(
-            icon: Icon(Icons.notifications_none),
-            label: 'Updates',
-          ),
-          const BottomNavigationBarItem(
-            icon: Icon(Icons.person_outline),
-            label: 'Profile',
-          ),
-        ],
-        currentIndex: 2, // Sell tab is selected
+        );
+      },
+      child: Container(
+        width: 56,
+        height: 56,
+        decoration: BoxDecoration(
+          color: const Color(0xFF8A56AC),
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF8A56AC).withOpacity(0.3),
+              blurRadius: 8,
+              spreadRadius: 2,
+            ),
+          ],
+        ),
+        child: const Icon(
+          Icons.add,
+          color: Colors.white,
+          size: 30,
+        ),
+      ),
+    );
+  }
+
+  // Show error snackbar
+  void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+        duration: const Duration(seconds: 2),
       ),
     );
   }
@@ -713,102 +920,6 @@ class _AddItemPageState extends State<AddItemPage> {
             return;
           }
         } catch (e) {
-          _showErrorSnackBar('Please enter a valid percentage');
+          _showErrorSnackBar('Please enter a valid percentage (0-100)');
           return;
-        }
-      }
-    }
-
-    setState(() {
-      _isLoading = true;
-    });
-
-    try {
-      // Collect additional fields
-      final additionalFields = <String, dynamic>{};
-      
-      // Add condition if category requires it (except Cosmetics)
-      if (_categoriesWithCondition.contains(_selectedCategory) && _selectedCategory != 'Cosmetics') {
-        additionalFields['condition'] = _selectedCondition;
-      }
-      
-      // Add category-specific fields
-      for (var field in _currentFields) {
-        final controller = _dynamicControllers[field];
-        if (controller != null && controller.text.trim().isNotEmpty) {
-          additionalFields[field.toLowerCase().replaceAll(' ', '_')] = controller.text.trim();
-        }
-      }
-
-      // Add timeslot data
-      final Map<String, List<String>> timeslots = {};
-      _weeklyTimeslots.forEach((day, slots) {
-        final nonNullSlots = slots.where((slot) => slot != null).cast<String>().toList();
-        if (nonNullSlots.isNotEmpty) {
-          timeslots[day.toLowerCase()] = nonNullSlots;
-        }
-      });
-      
-      if (timeslots.isNotEmpty) {
-        additionalFields['meetup_timeslots'] = timeslots;
-      }
-
-      // Save item using ItemService
-      await _itemService.addItem(
-        name: _nameController.text.trim(),
-        category: _selectedCategory,
-        status: _categoriesWithCondition.contains(_selectedCategory) && _selectedCategory != 'Cosmetics' 
-            ? _selectedCondition 
-            : 'Available', // Default status for categories without condition
-        price: price,
-        imageFile: _imageFile,
-        additionalFields: additionalFields,
-      );
-
-      // Show success and navigate back
-      _showSuccessSnackBar('Item saved successfully!');
-      
-      // Wait a moment for user to see the success message
-      await Future.delayed(const Duration(seconds: 1));
-      
-      // Navigate back to home screen with success result
-      if (mounted) {
-        Navigator.of(context).pop(true); // Return true to indicate success
-      }
-    } catch (e) {
-      _showErrorSnackBar('Error saving item: ${e.toString()}');
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
-    }
-  }
-
-  // Show error SnackBar
-  void _showErrorSnackBar(String message) {
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(message),
-          backgroundColor: Colors.red,
-          duration: const Duration(seconds: 3),
-        ),
-      );
-    }
-  }
-
-  // Show success SnackBar
-  void _showSuccessSnackBar(String message) {
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(message),
-          backgroundColor: Colors.green,
-          duration: const Duration(seconds: 2),
-        ),
-      );
-    }
-  }
-}
+        }}}}}
