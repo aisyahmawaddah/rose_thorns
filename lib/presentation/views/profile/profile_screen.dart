@@ -7,6 +7,10 @@ import 'package:koopon/presentation/views/profile/edit_profile_screen.dart';
 import 'package:koopon/presentation/viewmodels/profile_viewmodel.dart';
 import 'package:koopon/data/models/item_model.dart';
 import 'order_history_screen.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:koopon/presentation/views/cart/cart_screen.dart';
+import 'package:koopon/presentation/views/order_request/purchase_history_screen.dart';
+import 'package:koopon/presentation/viewmodels/cart_viewmodel.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({Key? key}) : super(key: key);
@@ -949,7 +953,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildBottomNavigation() {
+Widget _buildBottomNavigation() {
     return Container(
       height: 70,
       decoration: BoxDecoration(
@@ -967,9 +971,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
           _buildNavItem(Icons.home, 'Home', 0),
-          _buildNavItem(Icons.bookmark_border, 'Wishlist', 1),
+          _buildNavItem(Icons.shopping_cart, 'Cart', 1), // Changed from bookmark to cart
           _buildSellButton(),
-          _buildNavItem(Icons.notifications_none, 'Updates', 3),
+          _buildNavItem(Icons.receipt_long, 'History', 3), // Changed from notifications to receipt/history
           _buildNavItem(Icons.person, 'Profile', 4), // Selected profile
         ],
       ),
@@ -980,16 +984,81 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final isSelected = _selectedNavIndex == index;
     return GestureDetector(
       onTap: () {
-        if (index == 0) {
-          // Navigate to home
-          Navigator.of(context).pop();
-        } else {
-          setState(() {
-            _selectedNavIndex = index;
-          });
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('$label selected')),
-          );
+        setState(() {
+          _selectedNavIndex = index;
+        });
+        
+        // Handle navigation based on index
+        switch (index) {
+          case 0:
+            // Home - Navigate back to home screen
+            Navigator.of(context).pop();
+            break;
+          case 1:
+            // Cart - Navigate to CartScreen
+            if (FirebaseAuth.instance.currentUser != null) {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const CartScreen(),
+                ),
+              ).then((value) {
+                // Reset navigation selection when returning from cart
+                setState(() {
+                  _selectedNavIndex = 4; // Keep profile selected
+                });
+              });
+            } else {
+              // Show login message for unauthenticated users
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Please login to access your cart'),
+                  backgroundColor: Colors.orange,
+                  duration: Duration(seconds: 3),
+                ),
+              );
+              // Reset selection to profile
+              setState(() {
+                _selectedNavIndex = 4;
+              });
+            }
+            break;
+          case 3:
+            // Purchase History - Navigate to PurchaseHistoryScreen
+            if (FirebaseAuth.instance.currentUser != null) {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => PurchaseHistoryScreen(),
+                ),
+              ).then((value) {
+                // Reset navigation selection when returning from history
+                setState(() {
+                  _selectedNavIndex = 4; // Keep profile selected
+                });
+              });
+            } else {
+              // Show login message for unauthenticated users
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Please login to view your purchase history'),
+                  backgroundColor: Colors.orange,
+                  duration: Duration(seconds: 3),
+                ),
+              );
+              // Reset selection to profile
+              setState(() {
+                _selectedNavIndex = 4;
+              });
+            }
+            break;
+          case 4:
+            // Profile - Already on profile screen, do nothing
+            break;
+          default:
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('$label selected')),
+            );
         }
       },
       child: Container(
@@ -997,11 +1066,69 @@ class _ProfileScreenState extends State<ProfileScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              icon,
-              color: isSelected ? const Color(0xFF9C27B0) : Colors.grey[400],
-              size: 24,
-            ),
+            // Add cart badge for cart navigation item
+            index == 1 ? // Cart navigation item
+              StreamBuilder<User?>(
+                stream: FirebaseAuth.instance.authStateChanges(),
+                builder: (context, snapshot) {
+                  if (snapshot.hasData && snapshot.data != null) {
+                    return Consumer<CartViewModel>(
+                      builder: (context, cartViewModel, child) {
+                        return Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            Icon(
+                              icon,
+                              color: isSelected ? const Color(0xFF9C27B0) : Colors.grey[400],
+                              size: 24,
+                            ),
+                            // Cart count badge (only show if items > 0 and user has token)
+                            if (cartViewModel.itemCount > 0 && cartViewModel.userToken != null)
+                              Positioned(
+                                right: -8,
+                                top: -8,
+                                child: Container(
+                                  padding: const EdgeInsets.all(4),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFE91E63),
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(color: Colors.white, width: 1),
+                                  ),
+                                  constraints: const BoxConstraints(
+                                    minWidth: 16,
+                                    minHeight: 16,
+                                  ),
+                                  child: Text(
+                                    '${cartViewModel.itemCount}',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        );
+                      },
+                    );
+                  } else {
+                    // Show cart icon without badge if user has no token
+                    return Icon(
+                      icon,
+                      color: isSelected ? const Color(0xFF9C27B0) : Colors.grey[400],
+                      size: 24,
+                    );
+                  }
+                },
+              )
+            : // Regular navigation items
+              Icon(
+                icon,
+                color: isSelected ? const Color(0xFF9C27B0) : Colors.grey[400],
+                size: 24,
+              ),
             const SizedBox(height: 4),
             Text(
               label,
@@ -1025,10 +1152,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
           MaterialPageRoute(builder: (context) => const AddItemPage()),
         );
 
-        // Refresh items when returning from add item page
+        // Refresh profile data when returning from add item page if needed
         if (result == true) {
-          Provider.of<ProfileViewModel>(context, listen: false)
-              .refreshUserItems();
+          // You can add refresh logic here if needed
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Item added successfully!'),
+              backgroundColor: Colors.green,
+            ),
+          );
         }
       },
       child: Container(
