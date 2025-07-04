@@ -1291,51 +1291,52 @@ Widget _buildItemCard(ItemModel item, HomeViewModel viewModel) {
   );
 }
 
-  void _showDeleteDialog(ItemModel item, HomeViewModel viewModel) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: const Text('Delete Item'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Are you sure you want to delete "${item.name}"?'),
-            const SizedBox(height: 8),
-            Text(
-              'This action cannot be undone.',
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey[600],
-                fontStyle: FontStyle.italic,
-              ),
+void _showDeleteDialog(ItemModel item, HomeViewModel viewModel) {
+  showDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      title: const Text('Delete Item'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Are you sure you want to delete "${item.name}"?'),
+          const SizedBox(height: 8),
+          Text(
+            'This action will permanently delete the item.',
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey[600],
+              fontStyle: FontStyle.italic,
             ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
           ),
-          TextButton(
-            onPressed: () async {
-              Navigator.pop(context);
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+        TextButton(
+          onPressed: () async {
+            Navigator.pop(context);
 
-              // Show loading indicator
-              showDialog(
-                context: context,
-                barrierDismissible: false,
-                builder: (context) => const Center(
-                  child: CircularProgressIndicator(
-                    color: Color(0xFF9C27B0),
-                  ),
+            // Show loading indicator
+            showDialog(
+              context: context,
+              barrierDismissible: false,
+              builder: (context) => const Center(
+                child: CircularProgressIndicator(
+                  color: Color(0xFF9C27B0),
                 ),
-              );
+              ),
+            );
 
-              final success = await viewModel.deleteItem(item.id!);
+            final success = await viewModel.deleteItem(item.id!);
 
-              // Hide loading indicator
+            // Hide loading indicator
+            if (mounted) {
               Navigator.pop(context);
 
               if (success) {
@@ -1354,16 +1355,17 @@ Widget _buildItemCard(ItemModel item, HomeViewModel viewModel) {
                   ),
                 );
               }
-            },
-            child: const Text(
-              'Delete',
-              style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
-            ),
+            }
+          },
+          child: const Text(
+            'Delete Permanently',
+            style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
           ),
-        ],
-      ),
-    );
-  }
+        ),
+      ],
+    ),
+  );
+}
 
   Widget _buildBottomNavigation() {
     return Container(

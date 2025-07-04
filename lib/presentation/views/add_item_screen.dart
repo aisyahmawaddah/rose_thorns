@@ -866,7 +866,127 @@ class _AddItemPageState extends State<AddItemPage> {
   }
 
   // Show error snackbar
-  void _showErrorSnackBar(String message) {
+  void _saveItem() async {
+  // Validate form
+  if (_nameController.text.trim().isEmpty) {
+    _showErrorSnackBar(_selectedCategory == 'Book' 
+        ? 'Please enter book title' 
+        : 'Please enter item name');
+    return;
+  }
+
+  if (_selectedCategory == 'Choose category') {
+    _showErrorSnackBar('Please select a category');
+    return;
+  }
+
+  if (_priceController.text.trim().isEmpty) {
+    _showErrorSnackBar('Please enter price');
+    return;
+  }
+
+  // Enhanced price validation - check for 0
+  double? price;
+  try {
+    price = double.parse(_priceController.text.trim());
+    if (price <= 0) {
+      _showErrorSnackBar('Price must be greater than 0');
+      return;
+    }
+  } catch (e) {
+    _showErrorSnackBar('Please enter a valid price');
+    return;
+  }
+
+  // Validate percentage for cosmetics
+  if (_selectedCategory == 'Cosmetics') {
+    final percentageController = _dynamicControllers['Percentage Used (%)'];
+    if (percentageController != null && percentageController.text.trim().isNotEmpty) {
+      try {
+        final percentage = double.parse(percentageController.text.trim());
+        if (percentage < 0 || percentage > 100) {
+          _showErrorSnackBar('Percentage used must be between 0 and 100');
+          return;
+        }
+      } catch (e) {
+        _showErrorSnackBar('Please enter a valid percentage (0-100)');
+        return;
+      }
+    }
+  }
+
+  // Start loading state
+  setState(() {
+    _isLoading = true;
+  });
+
+  try {
+    // Collect additional fields
+    final additionalFields = <String, dynamic>{};
+    
+    // Add condition if category requires it (except Cosmetics)
+    if (_categoriesWithCondition.contains(_selectedCategory) && _selectedCategory != 'Cosmetics') {
+      additionalFields['condition'] = _selectedCondition;
+    }
+    
+    // Add category-specific fields
+    for (var field in _currentFields) {
+      final controller = _dynamicControllers[field];
+      if (controller != null && controller.text.trim().isNotEmpty) {
+        additionalFields[field.toLowerCase().replaceAll(' ', '_')] = controller.text.trim();
+      }
+    }
+
+    // Add timeslot data
+    final Map<String, List<String>> timeslots = {};
+    _weeklyTimeslots.forEach((day, slots) {
+      final nonNullSlots = slots.where((slot) => slot != null).cast<String>().toList();
+      if (nonNullSlots.isNotEmpty) {
+        timeslots[day.toLowerCase()] = nonNullSlots;
+      }
+    });
+    
+    if (timeslots.isNotEmpty) {
+      additionalFields['meetup_timeslots'] = timeslots;
+    }
+
+    // Save item using ItemService
+    await _itemService.addItem(
+      name: _nameController.text.trim(),
+      category: _selectedCategory,
+      status: _categoriesWithCondition.contains(_selectedCategory) && _selectedCategory != 'Cosmetics' 
+          ? _selectedCondition 
+          : 'Available', // Default status for categories without condition
+      price: price,
+      imageFile: _imageFile,
+      additionalFields: additionalFields,
+    );
+
+    // Show success and navigate back
+    _showSuccessSnackBar('Item saved successfully!');
+    
+    // Wait a moment for user to see the success message
+    await Future.delayed(const Duration(seconds: 1));
+    
+    // Navigate back to home screen with success result
+    if (mounted) {
+      Navigator.of(context).pop(true); // Return true to indicate success
+    }
+  } catch (e) {
+    print('Error saving item: $e');
+    _showErrorSnackBar('Error saving item: ${e.toString()}');
+  } finally {
+    if (mounted) {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+}
+
+// Show error snackbar
+void _showErrorSnackBar(String message) {
+  if (mounted) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
@@ -875,51 +995,18 @@ class _AddItemPageState extends State<AddItemPage> {
       ),
     );
   }
+}
 
-  // Save item method with enhanced validation
-  void _saveItem() async {
-    // Validate form
-    if (_nameController.text.trim().isEmpty) {
-      _showErrorSnackBar(_selectedCategory == 'Book' 
-          ? 'Please enter book title' 
-          : 'Please enter item name');
-      return;
-    }
-
-    if (_selectedCategory == 'Choose category') {
-      _showErrorSnackBar('Please select a category');
-      return;
-    }
-
-    if (_priceController.text.trim().isEmpty) {
-      _showErrorSnackBar('Please enter price');
-      return;
-    }
-
-    // Enhanced price validation - check for 0
-    double? price;
-    try {
-      price = double.parse(_priceController.text.trim());
-      if (price <= 0) {
-        _showErrorSnackBar('Price must be greater than 0');
-        return;
-      }
-    } catch (e) {
-      _showErrorSnackBar('Please enter a valid price');
-      return;
-    }
-
-    // Validate percentage for cosmetics
-    if (_selectedCategory == 'Cosmetics') {
-      final percentageController = _dynamicControllers['Percentage Used (%)'];
-      if (percentageController != null && percentageController.text.trim().isNotEmpty) {
-        try {
-          final percentage = double.parse(percentageController.text.trim());
-          if (percentage < 0 || percentage > 100) {
-            _showErrorSnackBar('Percentage used must be between 0 and 100');
-            return;
-          }
-        } catch (e) {
-          _showErrorSnackBar('Please enter a valid percentage (0-100)');
-          return;
-        }}}}}
+// Also add the missing _showSuccessSnackBar method
+void _showSuccessSnackBar(String message) {
+  if (mounted) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.green,
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+}
+}

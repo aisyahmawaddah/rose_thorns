@@ -29,11 +29,12 @@ class ItemService {
 
   // ENHANCED: Filter out sold items helper
   List<ItemModel> _filterAvailableItems(List<ItemModel> items) {
-    return items.where((item) => 
-      item.status != 'sold' && 
-      item.status != 'unavailable'
-    ).toList();
-  }
+  return items.where((item) => 
+    item.status != 'sold' && 
+    item.status != 'unavailable' &&
+    item.status != 'deleted'  // Add this for extra safety
+  ).toList();
+}
 
   // Add new item (ENHANCED: Set status as available by default)
   Future<String> addItem({
@@ -316,41 +317,38 @@ class ItemService {
   }
 
   // ENHANCED: Delete item (mark as unavailable instead of hard delete)
-  Future<void> deleteItem(String itemId) async {
-    try {
-      print('🗑️ Starting item deletion: $itemId');
-      
-      // SOFT DELETE: Mark as unavailable instead of hard delete
-      await _itemsCollection.doc(itemId).update({
-        'status': 'unavailable',
-        'deletedAt': Timestamp.now(),
-      });
-      
-      print('✅ Item marked as unavailable successfully');
-      
-      // Optionally, still handle image deletion in background
-      final doc = await _itemsCollection.doc(itemId).get();
-      String? imageUrl;
-      
-      if (doc.exists) {
-        final data = doc.data() as Map<String, dynamic>;
-        imageUrl = data['imageUrl'] as String?;
-        print('📷 Item has image: ${imageUrl != null ? "Yes" : "No"}');
-      }
-      
-      // DELETE IMAGE IN BACKGROUND (don't wait for it)
-      if (imageUrl != null && imageUrl.isNotEmpty) {
-        print('🔄 Starting background image deletion...');
-        _deleteImageInBackground(imageUrl);
-      }
-      
-      print('🎉 Item deletion completed (image deletion running in background)');
-      
-    } catch (e) {
-      print('❌ Error deleting item: $e');
-      throw Exception('Failed to delete item: ${e.toString()}');
+Future<void> deleteItem(String itemId) async {
+  try {
+    print('🗑️ Starting item deletion: $itemId');
+    
+    // OPTION 1: HARD DELETE - Actually remove from database
+    // Get the document first to check for image
+    final doc = await _itemsCollection.doc(itemId).get();
+    String? imageUrl;
+    
+    if (doc.exists) {
+      final data = doc.data() as Map<String, dynamic>;
+      imageUrl = data['imageUrl'] as String?;
+      print('📷 Item has image: ${imageUrl != null ? "Yes" : "No"}');
     }
+    
+    // HARD DELETE: Actually remove the document from Firestore
+    await _itemsCollection.doc(itemId).delete();
+    print('✅ Item permanently deleted from database');
+    
+    // DELETE IMAGE IN BACKGROUND (don't wait for it)
+    if (imageUrl != null && imageUrl.isNotEmpty) {
+      print('🔄 Starting background image deletion...');
+      _deleteImageInBackground(imageUrl);
+    }
+    
+    print('🎉 Item deletion completed (image deletion running in background)');
+    
+  } catch (e) {
+    print('❌ Error deleting item: $e');
+    throw Exception('Failed to delete item: ${e.toString()}');
   }
+}
 
   // Helper method to delete image in background (fire-and-forget)
   void _deleteImageInBackground(String imageUrl) {
