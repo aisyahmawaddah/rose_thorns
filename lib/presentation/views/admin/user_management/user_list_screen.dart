@@ -632,19 +632,19 @@ class _UsersListScreenState extends State<UsersListScreen>
             ],
           ),
         ),
-        PopupMenuItem(
-          value: 'delete',
-          child: Row(
-            children: [
-              Icon(Icons.person_remove_rounded, color: const Color(0xFFFFB4B4)),
-              const SizedBox(width: 12),
-              Text(
-                'Deactivate',
-                style: TextStyle(color: const Color(0xFFFFB4B4)),
-              ),
-            ],
-          ),
-        ),
+        // PopupMenuItem(
+        //   value: 'delete',
+        //   child: Row(
+        //     children: [
+        //       Icon(Icons.person_remove_rounded, color: const Color(0xFFFFB4B4)),
+        //       const SizedBox(width: 12),
+        //       Text(
+        //         'Deactivate',
+        //         style: TextStyle(color: const Color(0xFFFFB4B4)),
+        //       ),
+        //     ],
+        //   ),
+        // ),
       ],
     );
   }

@@ -159,7 +159,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     );
   }
 
-  // NEW: Pick image from source
   Future<void> _pickImage(ImageSource source) async {
     try {
       final XFile? pickedFile = await _picker.pickImage(
@@ -174,7 +173,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           _selectedImage = File(pickedFile.path);
         });
 
-        _showSuccessSnackBar('Profile picture selected!');
+        _showSuccessSnackBar(
+            'Profile picture selected! Tap "Update Profile" to save.');
       }
     } catch (e) {
       _showErrorSnackBar('Error selecting image: ${e.toString()}');

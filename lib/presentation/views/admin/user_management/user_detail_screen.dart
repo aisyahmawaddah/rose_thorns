@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:koopon/data/models/login_model.dart';
 import 'package:koopon/data/services/admin_service.dart';
 
@@ -163,42 +164,93 @@ class _UserDetailScreenState extends State<UserDetailScreen>
     }
   }
 
-  Future<void> _toggleUserStatus() async {
+  Future<void> _deleteUser() async {
     if (_user.id == null) return;
 
-    final newStatus = !(_user.isActive ?? true);
-    final action = newStatus ? 'activate' : 'deactivate';
-
-    final confirmed = await _showStatusChangeDialog(action);
+    final confirmed = await _showDeleteConfirmDialog();
 
     if (confirmed == true) {
       setState(() => _isLoading = true);
 
       try {
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(_user.id!)
-            .update({'isActive': newStatus});
+        final batch = FirebaseFirestore.instance.batch();
 
-        setState(() {
-          _user = _user.copyWith(isActive: newStatus);
-          _isLoading = false;
-        });
+        // Delete user document from Firestore
+        batch.delete(
+            FirebaseFirestore.instance.collection('users').doc(_user.id!));
+
+        // Delete related user data (cart items, addresses, etc.)
+        await _deleteUserRelatedData(batch);
+
+        // Commit the batch
+        await batch.commit();
 
         if (mounted) {
-          _showSnackBar(
-              'User ${newStatus ? 'activated' : 'deactivated'} successfully');
+          _showSnackBar('User deleted successfully');
+          // Navigate back to previous screen
+          Navigator.of(context)
+              .pop(true); // Return true to indicate user was deleted
         }
       } catch (e) {
         setState(() => _isLoading = false);
         if (mounted) {
-          _showSnackBar('Error updating user status: $e', isError: true);
+          _showSnackBar('Error deleting user: $e', isError: true);
         }
       }
     }
   }
 
-  Future<bool?> _showStatusChangeDialog(String action) {
+  Future<void> _deleteUserRelatedData(WriteBatch batch) async {
+    try {
+      // Delete user's cart items
+      final cartQuery = await FirebaseFirestore.instance
+          .collection('carts')
+          .where('userId', isEqualTo: _user.id)
+          .get();
+
+      for (var doc in cartQuery.docs) {
+        batch.delete(doc.reference);
+      }
+
+      // Delete user's addresses
+      final addressQuery = await FirebaseFirestore.instance
+          .collection('addresses')
+          .where('userId', isEqualTo: _user.id)
+          .get();
+
+      for (var doc in addressQuery.docs) {
+        batch.delete(doc.reference);
+      }
+
+      // Delete user's orders (if any)
+      final orderQuery = await FirebaseFirestore.instance
+          .collection('orders')
+          .where('userId', isEqualTo: _user.id)
+          .get();
+
+      for (var doc in orderQuery.docs) {
+        batch.delete(doc.reference);
+      }
+
+      // Delete user's items (if user is a seller)
+      final itemQuery = await FirebaseFirestore.instance
+          .collection('items')
+          .where('sellerId', isEqualTo: _user.id)
+          .get();
+
+      for (var doc in itemQuery.docs) {
+        batch.delete(doc.reference);
+      }
+
+      print(
+          'UserDetailScreen: Prepared deletion of ${cartQuery.docs.length} cart items, ${addressQuery.docs.length} addresses, ${orderQuery.docs.length} orders, and ${itemQuery.docs.length} items');
+    } catch (e) {
+      print('UserDetailScreen: Error preparing user related data deletion: $e');
+      // Continue with user deletion even if some related data fails
+    }
+  }
+
+  Future<bool?> _showDeleteConfirmDialog() {
     return showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -206,16 +258,52 @@ class _UserDetailScreenState extends State<UserDetailScreen>
         title: Row(
           children: [
             Icon(
-              action == 'activate' ? Icons.check_circle : Icons.block,
-              color: action == 'activate'
-                  ? const Color.fromARGB(255, 180, 229, 180)
-                  : const Color.fromARGB(255, 255, 180, 180),
+              Icons.delete_forever,
+              color: const Color.fromARGB(255, 255, 80, 80),
             ),
             const SizedBox(width: 12),
-            Text('${action.toUpperCase()} User'),
+            const Text('Delete User'),
           ],
         ),
-        content: Text('Are you sure you want to $action ${_user.email}?'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Are you sure you want to permanently delete ${_user.email}?',
+              style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'This action will:',
+              style: TextStyle(fontWeight: FontWeight.w500),
+            ),
+            const SizedBox(height: 8),
+            const Text('• Delete the user account'),
+            const Text('• Remove all cart items'),
+            const Text('• Remove all addresses'),
+            const Text('• Remove all orders'),
+            const Text('• Remove all items (if seller)'),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color.fromARGB(255, 255, 240, 240),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: const Color.fromARGB(255, 255, 180, 180),
+                ),
+              ),
+              child: const Text(
+                '⚠️ This action cannot be undone!',
+                style: TextStyle(
+                  color: Color.fromARGB(255, 200, 0, 0),
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
@@ -224,15 +312,13 @@ class _UserDetailScreenState extends State<UserDetailScreen>
           ElevatedButton(
             onPressed: () => Navigator.of(context).pop(true),
             style: ElevatedButton.styleFrom(
-              backgroundColor: action == 'activate'
-                  ? const Color.fromARGB(255, 180, 229, 180)
-                  : const Color.fromARGB(255, 255, 180, 180),
+              backgroundColor: const Color.fromARGB(255, 255, 80, 80),
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
               ),
             ),
-            child: Text(action.toUpperCase()),
+            child: const Text('DELETE'),
           ),
         ],
       ),
@@ -380,7 +466,7 @@ class _UserDetailScreenState extends State<UserDetailScreen>
           CircularProgressIndicator(color: Colors.white),
           const SizedBox(height: 24),
           Text(
-            'Updating user...',
+            'Processing...',
             style: TextStyle(
               color: Colors.white,
               fontSize: 16,
@@ -632,29 +718,21 @@ class _UserDetailScreenState extends State<UserDetailScreen>
             ),
             const SizedBox(height: 20),
 
-            // Toggle Status Button
+            // Delete User Button
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
-                onPressed: _toggleUserStatus,
-                icon: Icon(
-                  (_user.isActive ?? true)
-                      ? Icons.block_rounded
-                      : Icons.check_circle_rounded,
-                ),
-                label: Text(
-                  (_user.isActive ?? true)
-                      ? 'Deactivate User'
-                      : 'Activate User',
-                  style: const TextStyle(
+                onPressed: _deleteUser,
+                icon: const Icon(Icons.delete_forever_rounded),
+                label: const Text(
+                  'Delete User',
+                  style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: (_user.isActive ?? true)
-                      ? const Color.fromARGB(255, 255, 21, 21)
-                      : const Color.fromARGB(255, 82, 255, 82),
+                  backgroundColor: const Color.fromARGB(255, 255, 80, 80),
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(

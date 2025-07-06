@@ -103,13 +103,6 @@ class _AdminScreenState extends State<AdminScreen>
               color: Colors.white.withOpacity(0.3),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: IconButton(
-              icon: const Icon(Icons.menu_rounded,
-                  color: Color.fromARGB(255, 185, 144, 242)),
-              onPressed: () {
-                // Add drawer or navigation functionality here
-              },
-            ),
           ),
           const Spacer(),
           const Text(
@@ -117,7 +110,7 @@ class _AdminScreenState extends State<AdminScreen>
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.w600,
-              color: Color.fromARGB(255, 251, 251, 251),
+              color: Color.fromARGB(255, 0, 0, 0),
             ),
           ),
           const Spacer(),
@@ -309,7 +302,8 @@ class _AdminScreenState extends State<AdminScreen>
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => const AdminItemManagementScreen(),
+                          builder: (context) =>
+                              const AdminItemManagementScreen(),
                         ),
                       );
                     },
@@ -330,18 +324,6 @@ class _AdminScreenState extends State<AdminScreen>
                           builder: (context) => const AdminAnalyticsScreen(),
                         ),
                       );
-                    },
-                    screenWidth,
-                  ),
-                ),
-                SizedBox(
-                  width: cardWidth,
-                  child: _buildQuickActionCard(
-                    'Reports',
-                    Icons.assessment_rounded,
-                    const Color.fromARGB(255, 255, 180, 180),
-                    () {
-                      _showComingSoonSnackBar(context, 'Reports');
                     },
                     screenWidth,
                   ),
@@ -376,8 +358,7 @@ class _AdminScreenState extends State<AdminScreen>
               blurRadius: 8,
               offset: const Offset(0, 3),
             )
-            ],
-          
+          ],
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -438,92 +419,91 @@ class _AdminScreenState extends State<AdminScreen>
     );
   }
 
-  
-
   // Replace the existing logout methods in admin_screen.dart with these:
 
-void _showLogoutDialog(BuildContext context) {
-  showDialog(
-    context: context,
-    builder: (context) => AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      title: Row(
-        children: [
-          Icon(Icons.logout_rounded,
-              color: const Color.fromARGB(255, 255, 180, 180)),
-          const SizedBox(width: 12),
-          const Text('Logout'),
-        ],
-      ),
-      content: const Text('Are you sure you want to logout?'),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(false),
-          child: const Text('Cancel'),
-        ),
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(true),
-          style: TextButton.styleFrom(
-            foregroundColor: const Color.fromARGB(255, 255, 180, 180),
-          ),
-          child: const Text('Logout'),
-        ),
-      ],
-    ),
-  ).then((shouldLogout) {
-    if (shouldLogout == true) {
-      _handleLogout(context);
-    }
-  });
-}
-
-Future<void> _handleLogout(BuildContext context) async {
-  try {
-    print('🔄 Admin logout started...');
-
-    // Show loading indicator
+  void _showLogoutDialog(BuildContext context) {
     showDialog(
       context: context,
-      barrierDismissible: false,
-      builder: (context) => const Center(
-        child: CircularProgressIndicator(
-          color: Color(0xFF3066BE), // Admin theme color
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Icon(Icons.logout_rounded,
+                color: const Color.fromARGB(255, 255, 180, 180)),
+            const SizedBox(width: 12),
+            const Text('Logout'),
+          ],
         ),
+        content: const Text('Are you sure you want to logout?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: TextButton.styleFrom(
+              foregroundColor: const Color.fromARGB(255, 255, 180, 180),
+            ),
+            child: const Text('Logout'),
+          ),
+        ],
       ),
-    );
+    ).then((shouldLogout) {
+      if (shouldLogout == true) {
+        _handleLogout(context);
+      }
+    });
+  }
 
-    // Sign out from Firebase
-    // Let AuthWrapper handle navigation automatically
-    await FirebaseAuth.instance.signOut();
-    print('👋 Firebase signOut completed');
+  Future<void> _handleLogout(BuildContext context) async {
+    try {
+      print('🔄 Admin logout started...');
 
-    // Hide loading indicator
-    if (mounted) {
-      Navigator.of(context).pop();
-      
-      // Show success message
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Logged out successfully'),
-          backgroundColor: Colors.green,
-          duration: Duration(seconds: 2),
+      // Show loading indicator
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(
+          child: CircularProgressIndicator(
+            color: Color(0xFF3066BE), // Admin theme color
+          ),
         ),
       );
-    }
-  } catch (e) {
-    print('❌ Admin logout error: $e');
 
-    // Hide loading indicator
-    if (mounted) {
-      Navigator.of(context).pop();
-      
-      // Show error message
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error logging out: ${e.toString()}'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      // Sign out from Firebase
+      // Let AuthWrapper handle navigation automatically
+      await FirebaseAuth.instance.signOut();
+      print('👋 Firebase signOut completed');
+
+      // Hide loading indicator
+      if (mounted) {
+        Navigator.of(context).pop();
+
+        // Show success message
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Logged out successfully'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      print('❌ Admin logout error: $e');
+
+      // Hide loading indicator
+      if (mounted) {
+        Navigator.of(context).pop();
+
+        // Show error message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error logging out: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
-}}
+}

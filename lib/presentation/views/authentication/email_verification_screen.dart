@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:koopon/presentation/views/authentication/login_screen.dart';
 import 'dart:async';
 
 class EmailVerificationScreen extends StatefulWidget {
@@ -163,9 +164,12 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
         // Wait a moment for the success message
         await Future.delayed(const Duration(seconds: 1));
 
-        // Navigate back to sign in page
+        // Navigate to LoginScreen
         if (mounted) {
-          Navigator.pushReplacementNamed(context, '/login');
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const LoginScreen()),
+          );
         }
       } else {
         // Email not verified yet
@@ -201,7 +205,10 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
             );
 
             await Future.delayed(const Duration(seconds: 1));
-            Navigator.pushReplacementNamed(context, '/login');
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => const LoginScreen()),
+            );
           }
         } catch (saveError) {
           if (mounted) {
@@ -224,10 +231,13 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
     }
   }
 
-  Future<void> _signOut() async {
+  Future<void> _navigateToSignIn() async {
     await FirebaseAuth.instance.signOut();
     if (mounted) {
-      Navigator.pushReplacementNamed(context, '/login'); // or your login route
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const LoginScreen()),
+      );
     }
   }
 
@@ -373,11 +383,11 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
 
                 const SizedBox(height: 30),
 
-                // Sign out option
+                // Sign In option
                 TextButton(
-                  onPressed: _signOut,
+                  onPressed: _navigateToSignIn,
                   child: Text(
-                    'Sign Out',
+                    'Sign In',
                     style: TextStyle(
                       color: Colors.white.withOpacity(0.8),
                       fontSize: 14,

@@ -49,12 +49,14 @@ class _LoginScreenState extends State<LoginScreen> {
         );
 
         // Check if email is verified
-        if (userCredential.user != null && !userCredential.user!.emailVerified) {
+        if (userCredential.user != null &&
+            !userCredential.user!.emailVerified) {
           // Show error and don't proceed
           if (!mounted) return;
           setState(() {
             _loginModel = _loginModel.copyWith(
-              errorMessage: 'Please verify your email before logging in. Check your inbox for the verification link.',
+              errorMessage:
+                  'Please verify your email before logging in. Check your inbox for the verification link.',
               isLoading: false,
             );
           });
@@ -382,8 +384,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     onPressed: _loginModel.isLoading ? null : _signIn,
                     style: ElevatedButton.styleFrom(
                       foregroundColor: Colors.white,
-                      backgroundColor:
-                          _loginModel.isLoading ? Colors.grey[600] : Colors.black,
+                      backgroundColor: _loginModel.isLoading
+                          ? Colors.grey[600]
+                          : Colors.black,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(30.0),
                       ),
