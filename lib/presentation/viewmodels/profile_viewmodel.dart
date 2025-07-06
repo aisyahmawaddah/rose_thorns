@@ -203,22 +203,29 @@ class ProfileViewModel extends ChangeNotifier {
 
   // Delete item
   Future<bool> deleteItem(String itemId) async {
-    try {
-      print('🗑️ ProfileViewModel: Deleting item: $itemId');
-      await _itemRepository.deleteItem(itemId);
-      
-      // Remove from local list
-      _userItems.removeWhere((item) => item.id == itemId);
-      notifyListeners();
-      
-      print('✅ ProfileViewModel: Item deleted successfully');
-      return true;
-    } catch (e) {
-      print('❌ ProfileViewModel: Error deleting item: $e');
-      _setError('Failed to delete item: $e');
-      return false;
-    }
+  try {
+    _setLoading(true);
+    
+    // Delete from service
+    await _itemRepository.deleteItem(itemId);
+    
+    // IMMEDIATELY remove from local list for instant UI update
+    _userItems.removeWhere((item) => item.id == itemId);
+    notifyListeners(); // Update UI immediately
+    
+    // Recalculate statistics after deletion
+    _calculateStatistics();
+    
+    _setLoading(false);
+    return true;
+  } catch (e) {
+    print('Error deleting item: $e');
+    _errorMessage = e.toString();
+    _setLoading(false);
+    notifyListeners();
+    return false;
   }
+}
 
   // Update user profile
   Future<bool> updateUserProfile(Map<String, dynamic> updates) async {

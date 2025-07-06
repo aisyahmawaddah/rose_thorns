@@ -47,14 +47,14 @@ class PurchaseHistoryViewModel extends ChangeNotifier {
     }
   }
 
-  // ENHANCED: Cancel an order (buyer can cancel placed orders)
-  // This will update the status in Firestore, which automatically updates seller's view too
-  Future<bool> cancelOrder(String orderId) async {
+  // NEW: Mark order as received (buyer confirms they received the items)
+  // This will update the status to completed
+  Future<bool> markOrderAsReceived(String orderId) async {
     try {
-      print('🚫 Buyer cancelling order: $orderId');
+      print('✅ Buyer marking order as received: $orderId');
       
-      // Update status in Firestore - this affects both buyer and seller views
-      final success = await _orderService.updateOrderStatus(orderId, OrderStatus.cancelled);
+      // Update status to completed in Firestore
+      final success = await _orderService.updateOrderStatus(orderId, OrderStatus.completed);
       
       if (success) {
         // Update local state for immediate UI feedback
@@ -72,25 +72,28 @@ class PurchaseHistoryViewModel extends ChangeNotifier {
             subtotal: _orders[orderIndex].subtotal,
             deliveryFee: _orders[orderIndex].deliveryFee,
             total: _orders[orderIndex].total,
-            status: OrderStatus.cancelled, // UPDATED: Status changed to cancelled
+            status: OrderStatus.completed, // UPDATED: Status changed to completed
             createdAt: _orders[orderIndex].createdAt,
             updatedAt: DateTime.now(),
           );
           notifyListeners();
         }
         
-        print('✅ Order cancelled successfully - status updated in Firestore');
-        print('📡 Seller will automatically see this cancellation in their order history');
+        print('✅ Order marked as received successfully - status updated to completed');
+        print('📡 Seller will see this order as completed in their order history');
         return true;
       } else {
-        print('❌ Failed to cancel order');
+        print('❌ Failed to mark order as received');
         return false;
       }
     } catch (e) {
-      print('❌ Error cancelling order: $e');
+      print('❌ Error marking order as received: $e');
+      _setError('Failed to confirm receipt: ${e.toString()}');
       return false;
     }
   }
+
+  // REMOVED: cancelOrder method - no longer needed
 
   // Refresh orders
   Future<void> refreshOrders() async {
@@ -136,7 +139,7 @@ class PurchaseHistoryViewModel extends ChangeNotifier {
     return stats;
   }
 
-  // Get total spent
+  // Get total spent (only completed orders)
   double getTotalSpent() {
     return _orders
         .where((order) => order.status == OrderStatus.completed)

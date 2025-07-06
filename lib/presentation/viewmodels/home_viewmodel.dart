@@ -146,27 +146,30 @@ class HomeViewModel extends ChangeNotifier {
   }
 
   // Delete an item
-  Future<bool> deleteItem(String itemId) async {
-    if (_disposed) return false; // Early return if disposed
+Future<bool> deleteItem(String itemId) async {
+  try {
+    _isLoading = true;
+    notifyListeners();
     
-    try {
-      await _itemService.deleteItem(itemId);
-      
-      if (!_disposed) { // Before updating lists
-        // Remove from local lists
-        _items.removeWhere((item) => item.id == itemId);
-        _filteredItems.removeWhere((item) => item.id == itemId);
-        
-        _safeNotifyListeners();
-      }
-      return true;
-    } catch (e) {
-      if (!_disposed) { // Before setting error
-        _setError('Failed to delete item: ${e.toString()}');
-      }
-      return false;
-    }
+    // Delete from service
+    await _itemService.deleteItem(itemId);
+    
+    // IMMEDIATELY remove from local list for instant UI update
+    _items.removeWhere((item) => item.id == itemId);
+    
+    _isLoading = false;
+    _errorMessage = null;
+    notifyListeners(); // Update UI immediately
+    
+    return true;
+  } catch (e) {
+    print('Error deleting item: $e');
+    _errorMessage = e.toString();
+    _isLoading = false;
+    notifyListeners();
+    return false;
   }
+}
 
   // ENHANCED: Refresh items (for pull-to-refresh and after orders)
   Future<void> refreshItems() async {

@@ -70,12 +70,12 @@ class ItemRepository {
 
   // Delete item
   Future<void> deleteItem(String itemId) async {
-    try {
-      await _itemService.deleteItem(itemId);
-    } catch (e) {
-      throw Exception('Repository: Failed to delete item - ${e.toString()}');
-    }
+  try {
+    await _itemService.deleteItem(itemId);
+  } catch (e) {
+    throw Exception('Repository: Failed to delete item - ${e.toString()}');
   }
+}
 
   // Search items
   Future<List<ItemModel>> searchItems(String query) async {
